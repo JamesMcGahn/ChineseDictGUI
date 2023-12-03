@@ -1,10 +1,17 @@
 out/
 data/
+logs/
+__pycache__/
 words.txt
 lessons.txt
+
+#key files for login/api
 key.json
+keys.py
 
 #test files
 test.html
 test-gram.html
 test.py
+
+.DS_Store
