@@ -1,6 +1,7 @@
 from urllib.parse import unquote
 
 import regex
+
 from dictionary import Dictionary, Sentence, Word
 from logger import Logger
 from terminal_opts import TerminalOptions
@@ -60,6 +61,7 @@ class ScrapeCpod:
             return ""
         audio_file = unquote(audio_table.find("a", class_="download-link")["href"])
         audio_file = audio_file.replace("/redirect/?url=", "")
+        audio_file = audio_file.replace("http://", "https://")
         return audio_file
 
     def scrape_defintion(self):
@@ -119,7 +121,6 @@ class ScrapeCpod:
         return self.selection("Examples", level_selection)
 
     def selection(self, type_select, level_selection=False):
-
         select = {
             "Expansion": "expand_sentences",
             "Dialogue": "dialogue",
@@ -206,7 +207,6 @@ class ScrapeCpod:
         title = title_cont.find("span", attrs={"itemprop": "name"}).string
         badge = title_cont.find("a", class_="badge").get_text()
         for sentence in dialogue:
-
             chinese = sentence.find("p", class_="click-to-add").get_text()
             pinyin = sentence.find("p", class_="show-pinyin").get_text()
             english = sentence.find("p", class_="translation-container").get_text()
@@ -231,7 +231,6 @@ class ScrapeCpod:
             word = card.find("div", class_="font-chinese title-font").get_text()
             table = card.find_all("tr")
             for sent in table:
-
                 chinese = sent.find("p", class_="click-to-add").get_text()
                 pinyin = sent.find("p", class_="show-pinyin").get_text()
                 english = sent.find("p", class_="translation-container").get_text()
@@ -273,7 +272,6 @@ class ScrapeCpod:
             sent_cont = gram.find("div", id="grammar_sentence")
             sents = sent_cont.find_all("tr")
             for sent in sents:
-
                 chinese = sent.find("p", class_="click-to-add").get_text()
                 pinyin = sent.find("p", class_="show-pinyin").get_text()
                 english = sent.find("p", class_="translation-container").get_text()

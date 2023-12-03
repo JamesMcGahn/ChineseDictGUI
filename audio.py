@@ -4,6 +4,7 @@ from time import sleep
 
 import google
 from google.cloud import texttospeech
+
 from logger import Logger
 from open_file import OpenFile
 from write_file import WriteFile
@@ -82,7 +83,8 @@ class Audio:
 
             path = WriteFile.check_dup(folder_path, dat["id"], ".mp3")
             try:
-                urllib.request.urlretrieve(dat["audio"], path)
+                checkHttp = dat["audio"].replace("http://", "https://")
+                urllib.request.urlretrieve(checkHttp, path)
                 Logger().insert(
                     f'({i+1}/{len(data)}) Audio content written to file "{dat["id"]}.mp3"',
                     "INFO",
