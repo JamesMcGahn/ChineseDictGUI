@@ -10,7 +10,7 @@ class ScrapeMd:
     def def_selection(self):
         if len(self.result_words) > 1:
             words = [
-                f"{x['chinese']}({x['pinyin']}) - {x['definition']}"
+                f"{x['chinese']}({x['pinyin']}) - {x['definition'] if len(x['definition']) < 70 else x['definition'][0:70]+'...'}"
                 for x in self.result_words
             ]
             words.append("None of these")
