@@ -10,92 +10,99 @@ from word_scrape import WordScrape
 from write_file import WriteFile
 
 
-def start():
-    def quit_app(e):
+class App:
+    def __init__(self):
+        self.dictionary = Dictionary()
+        self.dictionary.load_dictionary()
+        self.new_session = Session(
+            f"{keys['url']}accounts/signin", keys["email"], keys["password"]
+        )
+        self.new_session.load_session()
+        self.start()
+
+    def quit_app(self, e):
         if e:
             print("An error has occurred..please try again.")
             Logger().insert(e, "ERROR", False)
-        Logger().insert("\nQuitting App...", "INFO")
 
         try:
-            quit_options = TerminalOptions(
+            confirm_options = TerminalOptions(
                 ["Yes", "No"],
-                "Do you want to Save?",
+                "Do you want to quit the app?",
             ).get_selected()
-            if quit_options == "Yes":
-                dictionary.save_dictionary()
-                new_session.save_session()
+            if confirm_options == "No":
+                self.start()
+            if confirm_options == "Yes":
+                self.new_session.save_session()
+                quit_options = TerminalOptions(
+                    ["Yes", "No"],
+                    "Do you want to Save?",
+                ).get_selected()
+                if quit_options == "Yes":
+                    self.dictionary.save_dictionary()
+
+                Logger().insert("\nQuitting App...", "INFO")
         except KeyboardInterrupt:
             Logger().insert("Good Bye...", "INFO")
             quit()
         Logger().insert("Good Bye...", "INFO")
         quit()
 
-    new_session = Session(
-        f"{keys['url']}accounts/signin", keys["email"], keys["password"]
-    )
-    new_session.load_session()
+    def start(self):
+        print("Quit the app at anytime by pressing ctrl-c")
 
-    while True:
-        try:
-            dictionary = Dictionary()
-            dictionary.load_dictionary()
-
-            start_options = TerminalOptions(
-                [
-                    "Words",
-                    "Lessons",
-                    "Download Audio From Saved File",
-                    "Dictionary",
-                    "Quit",
-                ],
-                "Do You Want to Scrape Words or Lessons?",
-            )
-
-            print(start_options.get_selected)
-
-            start_options = start_options.get_selected()
-
-            if start_options == "Quit":
-                quit_app(False)
-            if start_options != "Dictionary":
-                filepath = input("Where is the file located?: ")
-                while not WriteFile.path_exists(filepath, False):
-                    filepath = input("File path doesn't exist. Try again: ")
-
-            if start_options == "Words" or start_options == "Lessons":
-                term_selection = TerminalOptions(
-                    ["newline", "comma - (,)", "semi-colon - (;)", "colon - (:)"],
-                    "How is the data is separated?",
-                ).indexes
-                seperator = ("\n", ",", ";", ":")
-
-                file_list = OpenFile.open_file(
-                    filepath, False, seperator[term_selection]
+        while True:
+            try:
+                start_options = TerminalOptions(
+                    [
+                        "Words",
+                        "Lessons",
+                        "Download Audio From Saved File",
+                        "Dictionary",
+                        "Quit",
+                    ],
+                    "Do You Want to Scrape Words or Lessons?",
                 )
+                start_options = start_options.get_selected()
 
-            if start_options == "Words":
-                WordScrape(new_session, dictionary, file_list)
+                if start_options == "Quit":
+                    self.quit_app(False)
+                if start_options != "Dictionary":
+                    filepath = input("Where is the file located?: ")
+                    while not WriteFile.path_exists(filepath, False):
+                        filepath = input("File path doesn't exist. Try again: ")
 
-            elif start_options == "Lessons":
-                LessonScrape(new_session, dictionary, file_list)
+                if start_options == "Words" or start_options == "Lessons":
+                    term_selection = TerminalOptions(
+                        ["newline", "comma - (,)", "semi-colon - (;)", "colon - (:)"],
+                        "How is the data is separated?",
+                    ).indexes
+                    seperator = ("\n", ",", ";", ":")
 
-            elif start_options == "Dictionary":
-                WriteFile.write_to_csv(
-                    "./out/master-words-list.csv",
-                    dictionary.get_master_dict(),
-                )
+                    file_list = OpenFile.open_file(
+                        filepath, False, seperator[term_selection]
+                    )
 
-            elif start_options == "Download Audio From Saved File":
-                Audio(filepath, "word")
-            dictionary.save_dictionary()
-            new_session.save_session()
+                if start_options == "Words":
+                    WordScrape(self.new_session, self.dictionary, file_list)
 
-        except KeyboardInterrupt:
-            quit_app(False)
-        except Exception as e:
-            print(e)
-            quit_app(e)
+                elif start_options == "Lessons":
+                    LessonScrape(self.new_session, self.dictionary, file_list)
+
+                elif start_options == "Dictionary":
+                    WriteFile.write_to_csv(
+                        "./out/master-words-list.csv",
+                        self.dictionary.get_master_dict(),
+                    )
+
+                elif start_options == "Download Audio From Saved File":
+                    Audio(filepath, "word")
+
+            except KeyboardInterrupt:
+                self.quit_app(False)
+            except Exception as e:
+                print(e)
+                self.quit_app(e)
 
 
-start()
+App()

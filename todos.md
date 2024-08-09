@@ -1,5 +1,9 @@
 # TO-DOS and FEATURES
 
+FEATURE: Move from Pickle to Database
+FEATURE: GUI
+FEATURE: Anki Integration
+
 FEATURE: add CLI option to download audio of words and/or sentences or dialogues
 
 FEATURE: Get definition for single word
@@ -16,11 +20,12 @@ FEATURE: print sentences to file
 
 FEATURE: option to just get example sentences for a word
 
-FEATURE: Quitting the APP
+✅ FEATURE: Quitting the APP
 
-    - ✅ Quit Option on initial run - Quit option on keyboard interrupt
-    - any time during a scrape or audio dl loop
-    - any time the main app runs
+    - ✅ Quit Option on initial run
+    - ✅ Quit option on keyboard interrupt
+    - ✅ any time during a scrape or audio dl loop
+    - ✅ any time the main app runs
 
 FEATURE: Load initial sentences and words
 
