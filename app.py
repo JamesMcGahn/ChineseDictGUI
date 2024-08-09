@@ -16,74 +16,86 @@ def start():
             print("An error has occurred..please try again.")
             Logger().insert(e, "ERROR", False)
         Logger().insert("\nQuitting App...", "INFO")
-        quit_options = TerminalOptions(
-            ["Yes", "No"],
-            "Do you want to Save?",
-        ).get_selected()
-        if quit_options == "Yes":
-            dictionary.save_dictionary()
-            new_session.save_session()
 
+        try:
+            quit_options = TerminalOptions(
+                ["Yes", "No"],
+                "Do you want to Save?",
+            ).get_selected()
+            if quit_options == "Yes":
+                dictionary.save_dictionary()
+                new_session.save_session()
+        except KeyboardInterrupt:
+            Logger().insert("Good Bye...", "INFO")
+            quit()
         Logger().insert("Good Bye...", "INFO")
         quit()
 
-    try:
-        new_session = Session(
-            f"{keys['url']}accounts/signin", keys["email"], keys["password"]
-        )
-        new_session.load_session()
+    new_session = Session(
+        f"{keys['url']}accounts/signin", keys["email"], keys["password"]
+    )
+    new_session.load_session()
 
-        dictionary = Dictionary()
-        dictionary.load_dictionary()
-        start_options = TerminalOptions(
-            [
-                "Words",
-                "Lessons",
-                "Download Audio From Saved File",
-                "Dictionary",
-                "Quit",
-            ],
-            "Do You Want to Scrape Words or Lessons?",
-        ).get_selected()
+    while True:
+        try:
+            dictionary = Dictionary()
+            dictionary.load_dictionary()
 
-        if start_options == "Quit":
-            quit_app(False)
-        if start_options != "Dictionary":
-            filepath = input("Where is the file located?: ")
-            while not WriteFile.path_exists(filepath, False):
-                filepath = input("File path doesn't exist. Try again: ")
-
-        if start_options == "Words" or start_options == "Lessons":
-            term_selection = TerminalOptions(
-                ["newline", "comma - (,)", "semi-colon - (;)", "colon - (:)"],
-                "How is the data is separated?",
-            ).indexes
-            seperator = ("\n", ",", ";", ":")
-
-            file_list = OpenFile.open_file(filepath, False, seperator[term_selection])
-
-        if start_options == "Words":
-            WordScrape(new_session, dictionary, file_list)
-
-        elif start_options == "Lessons":
-            LessonScrape(new_session, dictionary, file_list)
-
-        elif start_options == "Dictionary":
-            WriteFile.write_to_csv(
-                "./out/master-words-list.csv",
-                dictionary.get_master_dict(),
+            start_options = TerminalOptions(
+                [
+                    "Words",
+                    "Lessons",
+                    "Download Audio From Saved File",
+                    "Dictionary",
+                    "Quit",
+                ],
+                "Do You Want to Scrape Words or Lessons?",
             )
 
-        elif start_options == "Download Audio From Saved File":
-            Audio(filepath, "word")
-        dictionary.save_dictionary()
-        new_session.save_session()
+            print(start_options.get_selected)
 
-    except KeyboardInterrupt:
-        quit_app(False)
-    except Exception as e:
-        print(e)
-        quit_app(e)
+            start_options = start_options.get_selected()
+
+            if start_options == "Quit":
+                quit_app(False)
+            if start_options != "Dictionary":
+                filepath = input("Where is the file located?: ")
+                while not WriteFile.path_exists(filepath, False):
+                    filepath = input("File path doesn't exist. Try again: ")
+
+            if start_options == "Words" or start_options == "Lessons":
+                term_selection = TerminalOptions(
+                    ["newline", "comma - (,)", "semi-colon - (;)", "colon - (:)"],
+                    "How is the data is separated?",
+                ).indexes
+                seperator = ("\n", ",", ";", ":")
+
+                file_list = OpenFile.open_file(
+                    filepath, False, seperator[term_selection]
+                )
+
+            if start_options == "Words":
+                WordScrape(new_session, dictionary, file_list)
+
+            elif start_options == "Lessons":
+                LessonScrape(new_session, dictionary, file_list)
+
+            elif start_options == "Dictionary":
+                WriteFile.write_to_csv(
+                    "./out/master-words-list.csv",
+                    dictionary.get_master_dict(),
+                )
+
+            elif start_options == "Download Audio From Saved File":
+                Audio(filepath, "word")
+            dictionary.save_dictionary()
+            new_session.save_session()
+
+        except KeyboardInterrupt:
+            quit_app(False)
+        except Exception as e:
+            print(e)
+            quit_app(e)
 
 
 start()
