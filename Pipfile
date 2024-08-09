@@ -1,0 +1,26 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+google-api-core = "*"
+google = "*"
+"google.cloud" = "*"
+regex = "*"
+bs4 = "*"
+requests = "*"
+simple-term-menu = "*"
+selenium = "*"
+webdriver-manager = "*"
+google-cloud = "*"
+google-cloud-texttospeech = "*"
+google-api-python-client = "*"
+google-auth = "*"
+google-auth-httplib2 = "*"
+googleapis-common-protos = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
