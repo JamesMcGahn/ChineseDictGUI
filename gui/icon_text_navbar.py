@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QPushButton,
@@ -153,4 +153,8 @@ class IconTextNavBar(QWidget):
         self.pushButton_10.setText("Settings")
         self.pushButton_11.setText("Exit")
         self.verticalLayout_2.addWidget(self.pushButton_11)
-        # self.setHidden(True)
+        self.setHidden(True)
+
+    @Slot(bool)
+    def hide_nav(self, bool):
+        self.setHidden(not bool)

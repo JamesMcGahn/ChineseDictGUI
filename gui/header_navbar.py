@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
 
 
 class HeaderNavBar(QWidget):
+    hamburger_signal = Signal(bool)
+
     def __init__(self):
         super().__init__()
         self.setObjectName("header_widget")
@@ -62,9 +64,9 @@ class HeaderNavBar(QWidget):
 
         self.horizontalLayout_2.addWidget(self.lineEdit)
 
-        self.pushButton = QPushButton(self)
-        self.pushButton.setObjectName("pushButton")
-        self.pushButton.setStyleSheet(
+        self.hamburger_icon_btn = QPushButton(self)
+        self.hamburger_icon_btn.setObjectName("hamburger-icon-btn")
+        self.hamburger_icon_btn.setStyleSheet(
             "QPushButton {\n" "border: none;\n" "padding-right:.5em\n" "}"
         )
         icon6 = QIcon()
@@ -74,10 +76,15 @@ class HeaderNavBar(QWidget):
         icon6.addFile(
             ":/ /images/hamburger_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
-        self.pushButton.setIcon(icon6)
-        self.pushButton.setIconSize(QSize(29, 35))
-        self.pushButton.setCheckable(True)
+        self.hamburger_icon_btn.setIcon(icon6)
+        self.hamburger_icon_btn.setIconSize(QSize(29, 35))
+        self.hamburger_icon_btn.setCheckable(True)
 
-        self.horizontalLayout_2.addWidget(self.pushButton)
+        self.horizontalLayout_2.addWidget(self.hamburger_icon_btn)
 
         self.verticalLayout_7.addLayout(self.horizontalLayout_2)
+
+        self.hamburger_icon_btn.toggled.connect(self.hamburger_icon_btn_toggled)
+
+    def hamburger_icon_btn_toggled(self):
+        self.hamburger_signal.emit(self.hamburger_icon_btn.isChecked())

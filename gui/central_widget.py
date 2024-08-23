@@ -31,3 +31,6 @@ class CentralWidget(QWidget):
         self.gridLayout.addWidget(self.icon_text_widget, 0, 2, 3, 1)
         self.gridLayout.addWidget(self.header_widget, 0, 3, 1, 1)
         self.setLayout(self.gridLayout)
+
+        self.header_widget.hamburger_signal.connect(self.icon_only_widget.hide_nav)
+        self.header_widget.hamburger_signal.connect(self.icon_text_widget.hide_nav)

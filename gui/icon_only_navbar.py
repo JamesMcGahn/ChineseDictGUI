@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QPushButton,
@@ -126,3 +126,7 @@ class IconOnlyNavBar(QWidget):
         self.pushButton_9.setAutoExclusive(True)
 
         self.verticalLayout.addWidget(self.pushButton_9)
+
+    @Slot(bool)
+    def hide_nav(self, bool):
+        self.setHidden(bool)
