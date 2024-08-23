@@ -34,3 +34,10 @@ class CentralWidget(QWidget):
 
         self.header_widget.hamburger_signal.connect(self.icon_only_widget.hide_nav)
         self.header_widget.hamburger_signal.connect(self.icon_text_widget.hide_nav)
+
+        self.icon_only_widget.btn_checked_ico.connect(
+            self.icon_text_widget.btns_set_checked
+        )
+        self.icon_text_widget.btn_checked_ict.connect(
+            self.icon_only_widget.btns_set_checked
+        )

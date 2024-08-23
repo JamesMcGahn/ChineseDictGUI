@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSize, Qt, Slot
+from PySide6.QtCore import QSize, Qt, Signal, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QPushButton,
@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
 
 
 class IconTextNavBar(QWidget):
+    btn_checked_ict = Signal(bool, QPushButton)
+
     def __init__(self):
         super().__init__()
 
@@ -60,10 +62,10 @@ class IconTextNavBar(QWidget):
         icon5.addFile(
             ":/ /images/signout_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
-        self.verticalLayout_2 = QVBoxLayout(self)
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.verticalLayout_4 = QVBoxLayout()
-        self.verticalLayout_4.setObjectName("verticalLayout_4")
+        self.icon_text_nav_vlayout = QVBoxLayout(self)
+        self.icon_text_nav_vlayout.setObjectName("icon_text_nav_vlayout")
+        self.icon_btn_layout = QVBoxLayout()
+        self.icon_btn_layout.setObjectName("icon_btn_layout_ict")
         self.words_btn_ict = QPushButton(self)
         self.words_btn_ict.setObjectName("words_btn_ict")
         self.words_btn_ict.setIcon(icon)
@@ -71,7 +73,7 @@ class IconTextNavBar(QWidget):
         self.words_btn_ict.setCheckable(True)
         self.words_btn_ict.setAutoExclusive(True)
 
-        self.verticalLayout_4.addWidget(self.words_btn_ict)
+        self.icon_btn_layout.addWidget(self.words_btn_ict)
 
         self.sents_btn_ict = QPushButton(self)
         self.sents_btn_ict.setObjectName("sents_btn_ict")
@@ -90,7 +92,7 @@ class IconTextNavBar(QWidget):
         self.sents_btn_ict.setCheckable(True)
         self.sents_btn_ict.setAutoExclusive(True)
 
-        self.verticalLayout_4.addWidget(self.sents_btn_ict)
+        self.icon_btn_layout.addWidget(self.sents_btn_ict)
 
         self.audio_btn_ict = QPushButton(self)
         self.audio_btn_ict.setObjectName("audio_btn_ict")
@@ -108,7 +110,7 @@ class IconTextNavBar(QWidget):
         self.audio_btn_ict.setCheckable(True)
         self.audio_btn_ict.setAutoExclusive(True)
 
-        self.verticalLayout_4.addWidget(self.audio_btn_ict)
+        self.icon_btn_layout.addWidget(self.audio_btn_ict)
 
         self.dictionary_btn_ict = QPushButton(self)
         self.dictionary_btn_ict.setObjectName("dictionary_btn_ict")
@@ -121,40 +123,66 @@ class IconTextNavBar(QWidget):
         self.dictionary_btn_ict.setCheckable(True)
         self.dictionary_btn_ict.setAutoExclusive(True)
 
-        self.verticalLayout_4.addWidget(self.dictionary_btn_ict)
+        self.icon_btn_layout.addWidget(self.dictionary_btn_ict)
 
-        self.verticalLayout_2.addLayout(self.verticalLayout_4)
+        self.icon_text_nav_vlayout.addLayout(self.icon_btn_layout)
 
         self.verticalSpacer_3 = QSpacerItem(
             20, 589, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
         )
 
-        self.verticalLayout_2.addItem(self.verticalSpacer_3)
+        self.icon_text_nav_vlayout.addItem(self.verticalSpacer_3)
 
-        self.pushButton_10 = QPushButton(self)
-        self.pushButton_10.setObjectName("pushButton_10")
-        self.pushButton_10.setIcon(icon4)
-        self.pushButton_10.setIconSize(QSize(100, 20))
-        self.pushButton_10.setCheckable(True)
-        self.pushButton_10.setAutoExclusive(True)
+        self.settings_btn_ict = QPushButton(self)
+        self.settings_btn_ict.setObjectName("settings_btn_ict")
+        self.settings_btn_ict.setIcon(icon4)
+        self.settings_btn_ict.setIconSize(QSize(100, 20))
+        self.settings_btn_ict.setCheckable(True)
+        self.settings_btn_ict.setAutoExclusive(True)
 
-        self.verticalLayout_2.addWidget(self.pushButton_10)
+        self.icon_text_nav_vlayout.addWidget(self.settings_btn_ict)
 
-        self.pushButton_11 = QPushButton(self)
-        self.pushButton_11.setObjectName("pushButton_11")
-        self.pushButton_11.setIcon(icon5)
-        self.pushButton_11.setIconSize(QSize(100, 20))
-        self.pushButton_11.setCheckable(True)
-        self.pushButton_11.setAutoExclusive(True)
+        self.signout_btn_ict = QPushButton(self)
+        self.signout_btn_ict.setObjectName("signout_btn_ict")
+        self.signout_btn_ict.setIcon(icon5)
+        self.signout_btn_ict.setIconSize(QSize(100, 20))
+        self.signout_btn_ict.setCheckable(True)
+        self.signout_btn_ict.setAutoExclusive(True)
         self.words_btn_ict.setText(" Scrape Words")
         self.sents_btn_ict.setText(" Scrape Lessons")
         self.audio_btn_ict.setText(" Audio From File")
         self.dictionary_btn_ict.setText(" Dictionary")
-        self.pushButton_10.setText("Settings")
-        self.pushButton_11.setText("Exit")
-        self.verticalLayout_2.addWidget(self.pushButton_11)
+        self.settings_btn_ict.setText("Settings")
+        self.signout_btn_ict.setText("Exit")
+        self.icon_text_nav_vlayout.addWidget(self.signout_btn_ict)
         self.setHidden(True)
 
+        self.words_btn_ict.toggled.connect(self.btn_checked)
+        self.sents_btn_ict.toggled.connect(self.btn_checked)
+        self.dictionary_btn_ict.toggled.connect(self.btn_checked)
+        self.audio_btn_ict.toggled.connect(self.btn_checked)
+        self.settings_btn_ict.toggled.connect(self.btn_checked)
+        self.signout_btn_ict.toggled.connect(self.btn_checked)
+
+    def btn_checked(self, checked):
+        self.btn_checked_ict.emit(checked, self.sender())
+
     @Slot(bool)
-    def hide_nav(self, bool):
-        self.setHidden(not bool)
+    def hide_nav(self, checked):
+        self.setHidden(not checked)
+
+    @Slot(bool, QPushButton)
+    def btns_set_checked(self, checked, btn):
+        match btn.objectName():
+            case "words_btn_ico":
+                self.words_btn_ict.setChecked(checked)
+            case "sents_btn_ico":
+                self.sents_btn_ict.setChecked(checked)
+            case "audio_btn_ico":
+                self.audio_btn_ict.setChecked(checked)
+            case "dictionary_btn_ico":
+                self.dictionary_btn_ict.setChecked(checked)
+            case "settings_btn_ico":
+                self.settings_btn_ict.setChecked(checked)
+            case "signout_btn_ico":
+                self.signout_btn_ict.setChecked(checked)
