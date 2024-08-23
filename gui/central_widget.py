@@ -41,3 +41,10 @@ class CentralWidget(QWidget):
         self.icon_text_widget.btn_checked_ict.connect(
             self.icon_only_widget.btns_set_checked
         )
+
+        self.icon_only_widget.btn_clicked_page.connect(
+            self.main_screen_widget.change_page
+        )
+        self.icon_text_widget.btn_clicked_page.connect(
+            self.main_screen_widget.change_page
+        )

@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 class IconOnlyNavBar(QWidget):
     btn_checked_ico = Signal(bool, QPushButton)
+    btn_clicked_page = Signal(QPushButton)
 
     def __init__(self):
         super().__init__()
@@ -136,12 +137,22 @@ class IconOnlyNavBar(QWidget):
         self.settings_btn_ico.toggled.connect(self.btn_checked)
         self.signout_btn_ico.toggled.connect(self.btn_checked)
 
+        self.words_btn_ico.clicked.connect(self.btn_clicked)
+        self.sents_btn_ico.clicked.connect(self.btn_clicked)
+        self.dictionary_btn_ico.clicked.connect(self.btn_clicked)
+        self.audio_btn_ico.clicked.connect(self.btn_clicked)
+        self.settings_btn_ico.clicked.connect(self.btn_clicked)
+        self.signout_btn_ico.clicked.connect(self.btn_clicked)
+
     @Slot(bool)
     def hide_nav(self, checked):
         self.setHidden(checked)
 
     def btn_checked(self, checked):
         self.btn_checked_ico.emit(checked, self.sender())
+
+    def btn_clicked(self):
+        self.btn_clicked_page.emit(self.sender())
 
     @Slot(bool, QPushButton)
     def btns_set_checked(self, checked, btn):

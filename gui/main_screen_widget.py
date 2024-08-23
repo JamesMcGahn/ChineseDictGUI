@@ -1,6 +1,13 @@
-from PySide6.QtCore import QRect, QSize
+from PySide6.QtCore import QRect, QSize, Slot
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QLabel, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class MainScreenWidget(QWidget):
@@ -29,6 +36,7 @@ class MainScreenWidget(QWidget):
         self.label_6 = QLabel(self.words_page)
         self.label_6.setObjectName("label_6")
         self.label_6.setGeometry(QRect(280, 330, 221, 81))
+        self.label_6.setText("words page")
         font1 = QFont()
         font1.setPointSize(25)
         self.label_6.setFont(font1)
@@ -39,6 +47,7 @@ class MainScreenWidget(QWidget):
         self.label_4.setObjectName("label_4")
         self.label_4.setGeometry(QRect(500, 370, 221, 81))
         self.label_4.setFont(font1)
+        self.label_4.setText("sentences page")
         self.stackedWidget.addWidget(self.sentences_page)
         self.audio_page = QWidget()
         self.audio_page.setObjectName("audio_page")
@@ -46,6 +55,7 @@ class MainScreenWidget(QWidget):
         self.label_2.setObjectName("label_2")
         self.label_2.setGeometry(QRect(350, 410, 221, 81))
         self.label_2.setFont(font1)
+        self.label_2.setText("audio page")
         self.stackedWidget.addWidget(self.audio_page)
         self.dictionary_page = QWidget()
         self.dictionary_page.setObjectName("dictionary_page")
@@ -53,6 +63,7 @@ class MainScreenWidget(QWidget):
         self.label_3.setObjectName("label_3")
         self.label_3.setGeometry(QRect(480, 460, 221, 81))
         self.label_3.setFont(font1)
+        self.label_3.setText("dictionary page")
         self.stackedWidget.addWidget(self.dictionary_page)
         self.settings_page = QWidget()
         self.settings_page.setObjectName("settings_page")
@@ -60,6 +71,22 @@ class MainScreenWidget(QWidget):
         self.label_5.setObjectName("label_5")
         self.label_5.setGeometry(QRect(520, 430, 221, 81))
         self.label_5.setFont(font1)
+        self.label_5.setText("settings page")
         self.stackedWidget.addWidget(self.settings_page)
 
         self.verticalLayout_6.addWidget(self.stackedWidget)
+
+    @Slot(QPushButton)
+    def change_page(self, btn):
+        btn_name = btn.objectName()
+
+        if btn_name.startswith("words_btn_"):
+            self.stackedWidget.setCurrentIndex(0)
+        elif btn_name.startswith("sents_btn_"):
+            self.stackedWidget.setCurrentIndex(1)
+        elif btn_name.startswith("audio_btn_"):
+            self.stackedWidget.setCurrentIndex(2)
+        elif btn_name.startswith("dictionary_btn_"):
+            self.stackedWidget.setCurrentIndex(3)
+        elif btn_name.startswith("settings_btn_"):
+            self.stackedWidget.setCurrentIndex(4)
