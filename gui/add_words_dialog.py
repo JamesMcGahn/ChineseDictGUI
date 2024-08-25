@@ -184,18 +184,13 @@ class AddWordsDialog(QDialog):
         self.reject()
 
     def submit_btn_clicked(self):
-        self.word_list = [
-            x.strip() for x in self.textEdit.toPlainText().split("\n") if x != ""
-        ]
-        form = {
-            "word_list": self.word_list,
+        self.form = {
+            "word_list": self.textEdit.toPlainText().split("\n"),
             "definition_source": self.definition_source,
             "save_sentences": self.save_sentences,
             "level_selection": self.level_selection,
         }
-
-        self.add_words_submited_signal.emit(form)
-
+        self.add_words_submited_signal.emit(self.form)
         self.textEdit.clear()
         self.word_list = []
         self.definition_source = "Cpod"
