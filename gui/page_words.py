@@ -1,5 +1,6 @@
 from add_words_dialog import AddWordsDialog
 from multiword_dialog import MultiWordDialog
+from nosents_inclvl_dialog import IncreaseLvlsDialog
 from PySide6.QtCore import QRect, Signal, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -19,6 +20,7 @@ from word_table_model import WordTableModel
 class PageWords(QWidget):
     md_multi_selection_sig = Signal(int)
     use_cpod_def_sig = Signal(bool)
+    updated_sents_levels_sig = Signal(bool, list)
 
     def __init__(self):
         super().__init__()
@@ -56,7 +58,6 @@ class PageWords(QWidget):
 
     @Slot(dict)
     def get_dialog_submitted(self, form_data):
-        print("slot", form_data)
         self.word_scrape_thread = WordScraperThread(
             form_data["word_list"],
             form_data["definition_source"],
@@ -64,17 +65,26 @@ class PageWords(QWidget):
             form_data["level_selection"],
         )
         # TODO add list to the screen
-        # TODO get thread started
+
         self.word_scrape_thread.start()
         self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
         self.md_multi_selection_sig.connect(self.word_scrape_thread.get_md_user_select)
         self.use_cpod_def_sig.connect(self.word_scrape_thread.get_use_cpod_w)
         self.word_scrape_thread.send_word_sig.connect(self.get_word_from_thread_loop)
         self.word_scrape_thread.md_use_cpod_w_sig.connect(self.get_user_choice_usecpod)
+        self.word_scrape_thread.no_sents_inc_levels.connect(
+            self.get_user_no_sents_inclvl
+        )
+
+        self.updated_sents_levels_sig.connect(
+            self.word_scrape_thread.get_updated_sents_levels
+        )
+        self.word_scrape_thread.send_sents_sig.connect(
+            self.get_sentences_from_thread_loop
+        )
 
     @Slot(list)
     def get_dialog_mdmulti(self, words):
-        print("212121", words)
         self.selectionDialog = MultiWordDialog(words)
         self.selectionDialog.md_multi_def_signal.connect(
             self.get_dialog_multi_selection
@@ -104,3 +114,22 @@ class PageWords(QWidget):
         print("page-word-received", word)
 
         self.table_wordmodel.add_word(word)
+
+    @Slot(list)
+    def get_user_no_sents_inclvl(self, levels):
+        self.nosentsDialog = IncreaseLvlsDialog(levels)
+        self.nosentsDialog.sent_lvls_change_sig.connect(
+            self.user_no_sents_inclvl_selection
+        )
+        self.nosentsDialog.exec()
+
+    @Slot(bool, list)
+    def user_no_sents_inclvl_selection(self, changed, levels):
+        if changed:
+            self.updated_sents_levels_sig.emit(changed, levels)
+        else:
+            self.updated_sents_levels_sig.emit(False, levels)
+
+    @Slot(list)
+    def get_sentences_from_thread_loop(self, sentences):
+        print("received senteces", sentences)

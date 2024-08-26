@@ -15,6 +15,8 @@ class WordScraperThread(QThread):
     md_thd_multi_words_sig = Signal(list)
     md_use_cpod_w_sig = Signal(object)
     send_word_sig = Signal(object)
+    no_sents_inc_levels = Signal(list)
+    send_sents_sig = Signal(object)
 
     def __init__(
         self, word_list, definition_source, save_sentences, level_selection=False
@@ -35,6 +37,8 @@ class WordScraperThread(QThread):
         self._wait_condition = QWaitCondition()
         self._stop = False
         self._paused = False
+        self.user_update_levels = False
+        self.new_level_selection = None
 
     def run(self):
         print("starting thread")
@@ -55,12 +59,35 @@ class WordScraperThread(QThread):
             cpod.scrape_defintion()
 
             if self.save_sentences:
-                cpod.scrape_sentences(self.level_selection)
+                cpod.scrape_sentences()
+
             self.cpod_word = cpod.get_defintion()
-            print(self.cpod_word)
-            if self.save_sentences == "Yes":
+            print("save-senteces?", self.save_sentences)
+            if self.save_sentences:
+                print("heree - enter")
                 example_sentences = cpod.get_sentences()
-                # TODO do something with sentences
+
+                if self.level_selection is not False:
+                    level_sentences = [
+                        x for x in example_sentences if x.level in self.level_selection
+                    ]
+
+                    if len(level_sentences) == 0:
+                        print("theres is 0 sentences")
+                        self.no_sents_inc_levels.emit(self.level_selection)
+                        self._wait_condition.wait(self._mutex)
+
+                        if self.user_update_levels:
+                            if self.new_level_selection is not False:
+                                level_sentences = [
+                                    x
+                                    for x in example_sentences
+                                    if x.level in self.new_level_selection
+                                ]
+
+                    self.send_sents_sig.emit(level_sentences)
+                else:
+                    self.send_sents_sig.emit(example_sentences)
 
             if self.definition_source == "Cpod" and self.cpod_word is not None:
                 self.send_word_sig.emit(self.cpod_word)
@@ -95,20 +122,7 @@ class WordScraperThread(QThread):
                     if self.user_use_cpod_sel:
                         self.send_word_sig.emit(self.cpod_word)
 
-            # Simulate scraping data
-            # self.update_signal.emit(f"Scraping: {word}")
-            # self.msleep(1000)  # Simulate a delay
-
-            # if word in self.scraped_data:
-            #     self.user_interaction_needed.emit(word)
-            #     self.mutex.lock()
-            #     self.paused = True
-            #     self.mutex.unlock()
-            # else:
-            #     scraped_result = self.scrape_word(word)
-            #     self.scraped_data.add(word)
-            #     self.data_scraped.emit(scraped_result)
-            time.sleep(randint(6, 15))  # Simulate time-consuming scraping
+            time.sleep(randint(6, 15))
 
     def scrape_word(self, word):
         return f"Scraped result for {word}"
@@ -127,4 +141,12 @@ class WordScraperThread(QThread):
     @Slot(bool)
     def get_use_cpod_w(self, decision):
         self.user_use_cpod_sel = decision
+        self._wait_condition.wakeAll()
+
+    @Slot(bool, list)
+    def get_updated_sents_levels(self, changed, levels):
+        if changed:
+            self.user_update_levels = True
+            self.new_level_selection = levels
+
         self._wait_condition.wakeAll()
