@@ -6,12 +6,14 @@ from PySide6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
+    QTableView,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 from word_scrape_thread import WordScraperThread
+from word_table_model import WordTableModel
 
 
 class PageWords(QWidget):
@@ -38,12 +40,11 @@ class PageWords(QWidget):
         self.words_page_vlayout.addWidget(self.addwords_btn)
         self.words_page_vlayout.addWidget(self.label_6)
 
-        self.table_widget = QTableWidget()
-        self.table_widget.setColumnCount(3)
-        self.table_widget.setHorizontalHeaderLabels(
-            ["Chinese", "Definition", "Pinyin", "Audio"]
-        )
-        self.words_page_vlayout.addWidget(self.table_widget)
+        self.table_wordmodel = WordTableModel()
+        self.table_view = QTableView()
+        self.table_view.setModel(self.table_wordmodel)
+        self.table_view.show()
+        self.words_page_vlayout.addWidget(self.table_view)
 
         self.dialog = AddWordsDialog()
 
@@ -101,9 +102,5 @@ class PageWords(QWidget):
     @Slot(object)
     def get_word_from_thread_loop(self, word):
         print("page-word-received", word)
-        row = self.table_widget.rowCount()
-        self.table_widget.insertRow(row)
-        self.table_widget.setItem(row, 0, QTableWidgetItem(word.chinese))
-        self.table_widget.setItem(row, 1, QTableWidgetItem(word.definition))
-        self.table_widget.setItem(row, 2, QTableWidgetItem(word.pinyin))
-        self.table_widget.setItem(row, 3, QTableWidgetItem(word.audio))
+
+        self.table_wordmodel.add_word(word)
