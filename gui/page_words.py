@@ -4,15 +4,18 @@ from nosents_inclvl_dialog import IncreaseLvlsDialog
 from PySide6.QtCore import QRect, Signal, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
+    QHBoxLayout,
     QLabel,
     QMessageBox,
     QPushButton,
+    QStackedWidget,
     QTableView,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
+from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread
 from word_table_model import WordTableModel
 
@@ -42,16 +45,56 @@ class PageWords(QWidget):
         self.words_page_vlayout.addWidget(self.addwords_btn)
         self.words_page_vlayout.addWidget(self.label_6)
 
+        self.horizontal_btn_layout = QHBoxLayout(self)
+        self.words_table_btn = QPushButton("Words")
+        self.words_table_btn.setObjectName("words_table_btn")
+        self.sents_table_btn = QPushButton("Sents")
+        self.sents_table_btn.setObjectName("sents_table_btn")
+        self.horizontal_btn_layout.addWidget(self.words_table_btn)
+        self.horizontal_btn_layout.addWidget(self.sents_table_btn)
+
+        self.words_page_vlayout.addLayout(self.horizontal_btn_layout)
+        # Stacked Widget
+        self.stacked_widget = QStackedWidget()
+
+        # WordsTable
+        self.words_table = QWidget()
+        self.words_table_vlayout = QVBoxLayout(self.words_table)
         self.table_wordmodel = WordTableModel()
         self.table_view = QTableView()
         self.table_view.setModel(self.table_wordmodel)
         self.table_view.show()
-        self.words_page_vlayout.addWidget(self.table_view)
+        self.words_table_vlayout.addWidget(self.table_view)
+        self.stacked_widget.addWidget(self.words_table)
 
+        # SentenceTable
+        self.sents_table = QWidget()
+        self.label = QLabel("dsd")
+        self.sents_table_vlayout = QVBoxLayout(self.sents_table)
+        self.table_sentmodel = SentenceTableModel()
+        self.table_view = QTableView()
+        self.table_view.setModel(self.table_sentmodel)
+        self.table_view.show()
+        self.sents_table_vlayout.addWidget(self.label)
+        self.sents_table_vlayout.addWidget(self.table_view)
+        self.stacked_widget.addWidget(self.sents_table)
+
+        self.words_page_vlayout.addWidget(self.stacked_widget)
         self.dialog = AddWordsDialog()
 
+        self.stacked_widget.setCurrentIndex(0)
         self.addwords_btn.clicked.connect(self.addwords_btn_clicked)
         self.dialog.add_words_submited_signal.connect(self.get_dialog_submitted)
+        self.words_table_btn.clicked.connect(self.change_table)
+        self.sents_table_btn.clicked.connect(self.change_table)
+
+    def change_table(self):
+        btn_name = self.sender().objectName()
+
+        if btn_name == "words_table_btn":
+            self.stacked_widget.setCurrentIndex(0)
+        else:
+            self.stacked_widget.setCurrentIndex(1)
 
     def addwords_btn_clicked(self):
         self.dialog.exec()
@@ -133,3 +176,4 @@ class PageWords(QWidget):
     @Slot(list)
     def get_sentences_from_thread_loop(self, sentences):
         print("received senteces", sentences)
+        [self.table_sentmodel.add_sentence(x) for x in sentences]
