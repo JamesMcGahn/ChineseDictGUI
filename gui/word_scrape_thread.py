@@ -43,6 +43,10 @@ class WordScraperThread(QThread):
     def run(self):
         print("starting thread")
         for i, word in enumerate(self.word_list):
+            if word.strip() == "":
+                continue
+            print(i, len(self.word_list), word)
+            # TODO emit progess
             with QMutexLocker(self._mutex):
                 if self._stop:
                     break
@@ -51,77 +55,89 @@ class WordScraperThread(QThread):
                     self._wait_condition.wait(self._mutex)  # Wait until resumed
             # TODO remove keys.py file
             sess = SessionManger()
+            try:
+                cp_res = sess.get(f"{keys['url']}/dictionary/english-chinese/{word}")
+                c_soup = BeautifulSoup(cp_res.text, "html.parser")
+                print("here 1")
+                cpod = ScrapeCpod(c_soup, word)
+                cpod.scrape_defintion()
+                print("here 2")
+                if self.save_sentences:
+                    cpod.scrape_sentences()
 
-            cp_res = sess.get(f"{keys['url']}/dictionary/english-chinese/{word}")
-            c_soup = BeautifulSoup(cp_res.text, "html.parser")
+                self.cpod_word = cpod.get_defintion()
+                print("save-senteces?", self.save_sentences)
+                if self.save_sentences:
+                    print("heree - enter")
+                    example_sentences = cpod.get_sentences()
 
-            cpod = ScrapeCpod(c_soup, word)
-            cpod.scrape_defintion()
+                    if self.level_selection is not False:
+                        level_sentences = [
+                            x
+                            for x in example_sentences
+                            if x.level in self.level_selection
+                        ]
 
-            if self.save_sentences:
-                cpod.scrape_sentences()
+                        if len(level_sentences) == 0:
+                            print("theres is 0 sentences")
+                            self.no_sents_inc_levels.emit(self.level_selection)
+                            self._wait_condition.wait(self._mutex)
 
-            self.cpod_word = cpod.get_defintion()
-            print("save-senteces?", self.save_sentences)
-            if self.save_sentences:
-                print("heree - enter")
-                example_sentences = cpod.get_sentences()
+                            if self.user_update_levels:
+                                if self.new_level_selection is not False:
+                                    level_sentences = [
+                                        x
+                                        for x in example_sentences
+                                        if x.level in self.new_level_selection
+                                    ]
 
-                if self.level_selection is not False:
-                    level_sentences = [
-                        x for x in example_sentences if x.level in self.level_selection
-                    ]
+                        self.send_sents_sig.emit(level_sentences)
+                    else:
+                        self.send_sents_sig.emit(example_sentences)
 
-                    if len(level_sentences) == 0:
-                        print("theres is 0 sentences")
-                        self.no_sents_inc_levels.emit(self.level_selection)
+                if self.definition_source == "Cpod" and self.cpod_word is not None:
+                    self.send_word_sig.emit(self.cpod_word)
+                else:
+                    md_res = sess.get(
+                        f"{keys['murl']}/dictionary/english-chinese/{word}"
+                    )
+                    m_soup = BeautifulSoup(md_res.text, "html.parser")
+                    md = ScrapeMd(m_soup)
+                    print("here 3")
+                    md.scrape_definition()
+                    results = md.get_results_words()
+
+                    print(results)
+                    if len(results) > 1:
+                        # signal with words for user to pick correct definition
+
+                        self.md_thd_multi_words_sig.emit(results)
                         self._wait_condition.wait(self._mutex)
 
-                        if self.user_update_levels:
-                            if self.new_level_selection is not False:
-                                level_sentences = [
-                                    x
-                                    for x in example_sentences
-                                    if x.level in self.new_level_selection
-                                ]
+                        self.m_defined_word = md.def_selection(self.user_md_multi)
 
-                    self.send_sents_sig.emit(level_sentences)
-                else:
-                    self.send_sents_sig.emit(example_sentences)
+                    elif len(results) == 1:
+                        self.m_defined_word = md.def_selection(0)
+                    else:
+                        self.m_defined_word = None
 
-            if self.definition_source == "Cpod" and self.cpod_word is not None:
-                self.send_word_sig.emit(self.cpod_word)
-            else:
-                md_res = sess.get(f"{keys['murl']}/dictionary/english-chinese/{word}")
-                m_soup = BeautifulSoup(md_res.text, "html.parser")
-                md = ScrapeMd(m_soup)
-                md.scrape_definition()
-                results = md.get_results_words()
-                print(results)
-                if len(results) > 1:
-                    # signal with words for user to pick correct definition
+                    if self.cpod_word and self.m_defined_word is not None:
+                        self.m_defined_word.audio = self.cpod_word.audio
 
-                    self.md_thd_multi_words_sig.emit(results)
-                    self._wait_condition.wait(self._mutex)
+                        self.send_word_sig.emit(self.m_defined_word)
 
-                self.m_defined_word = md.def_selection(self.user_md_multi)
+                    elif self.m_defined_word is not None:
+                        self.send_word_sig.emit(self.m_defined_word)
 
-                if self.cpod_word and self.m_defined_word is not None:
-                    self.m_defined_word.audio = self.cpod_word.audio
+                    elif self.m_defined_word is None and self.cpod_word is not None:
+                        print("emit -- gerer")
+                        self.md_use_cpod_w_sig.emit(self.cpod_word)
+                        self._wait_condition.wait(self._mutex)
 
-                    self.send_word_sig.emit(self.m_defined_word)
-
-                elif self.m_defined_word is not None:
-                    self.send_word_sig.emit(self.m_defined_word)
-
-                elif self.m_defined_word is None and self.cpod_word is not None:
-                    print("emit -- gerer")
-                    self.md_use_cpod_w_sig.emit(self.cpod_word)
-                    self._wait_condition.wait(self._mutex)
-
-                    if self.user_use_cpod_sel:
-                        self.send_word_sig.emit(self.cpod_word)
-
+                        if self.user_use_cpod_sel:
+                            self.send_word_sig.emit(self.cpod_word)
+            except Exception as e:
+                print(e)
             time.sleep(randint(6, 15))
 
     def scrape_word(self, word):
