@@ -19,10 +19,12 @@ class ScrapeMd:
                 sel_word["definition"],
                 sel_word["pinyin"],
                 sel_word["audio"],
+                sel_word["level"],
             )
 
     def scrape_definition(self):
         results_table = self.soup.find("td", class_="resultswrap")
+        print(results_table)
         if results_table is None:
             return None
         results = results_table.find_all("tr", class_="row")
@@ -32,10 +34,12 @@ class ScrapeMd:
             pinyin = result.find("div", class_="pinyin").find("a").get_text()
             definition = result.find("div", class_="defs").get_text()
             pinyin = pinyin.replace("\u200b", "")
+            level = result.find("div", class_="hsk")
             word = {
                 "chinese": hanzi,
                 "definition": definition,
                 "pinyin": pinyin,
                 "audio": "",
+                "level": level.get_text() if level is not None else "",
             }
             self.result_words.append(word)

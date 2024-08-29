@@ -219,7 +219,6 @@ class ScrapeCpod:
             english = Dictionary.strip_string(english)
             dialogue_sent = Sentence(title, chinese, english, pinyin, badge, audio)
             self.dialogue.append(dialogue_sent)
-        return self.selection("Dialogue")
 
     def scrape_expansion(self):
         expansion = self.soup.find(id="expansion")
@@ -242,7 +241,6 @@ class ScrapeCpod:
                 english = Dictionary.strip_string(english)
                 expand_sentence = Sentence(word, chinese, english, pinyin, badge, audio)
                 self.expand_sentences.append(expand_sentence)
-        return self.selection("Expansion")
 
     def scrape_lesson_vocab(self):
         key_vocab = self.soup.find(id="key_vocab")
@@ -286,4 +284,3 @@ class ScrapeCpod:
                     title_n_des, chinese, english, pinyin, badge, audio
                 )
                 self.grammar_sentences.append(grammar_sent)
-        return self.selection("Grammar")

@@ -19,9 +19,9 @@ from PySide6.QtWidgets import (
 class AddWordsDialog(QDialog):
     add_words_submited_signal = Signal(dict)
 
-    def __init__(self):
+    def __init__(self, word_list=None):
         super().__init__()
-        self.word_list = []
+        self.word_list = word_list
         self.definition_source = "Cpod"
         self.save_sentences = False
         self.level_selection = False
@@ -39,6 +39,9 @@ class AddWordsDialog(QDialog):
         self.text_edit_horz_layout.setObjectName("text_edit_horz_layout")
         self.textEdit = QTextEdit()
         self.textEdit.setObjectName("textEdit")
+
+        if word_list is not None:
+            self.textEdit.setText(self.word_list)
 
         self.r_btn_vert_layout = QVBoxLayout()
         self.r_btn_vert_layout.setSpacing(6)

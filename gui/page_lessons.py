@@ -1,4 +1,6 @@
+from add_lessons_dialog import AddLessonsDialog
 from add_words_dialog import AddWordsDialog
+from lesson_scrape_thread import LessonScraperThread
 from multiword_dialog import MultiWordDialog
 from nosents_inclvl_dialog import IncreaseLvlsDialog
 from PySide6.QtCore import QRect, Signal, Slot
@@ -20,20 +22,20 @@ from word_scrape_thread import WordScraperThread
 from word_table_model import WordTableModel
 
 
-class PageWords(QWidget):
+class PageLessons(QWidget):
     md_multi_selection_sig = Signal(int)
     use_cpod_def_sig = Signal(bool)
     updated_sents_levels_sig = Signal(bool, list)
 
     def __init__(self):
         super().__init__()
-        self.setObjectName("words_page")
+        self.setObjectName("lessons_page")
         with open("./gui/styles/main_screen_widget.css", "r") as ss:
             self.setStyleSheet(ss.read())
         self.label_6 = QLabel()
         self.label_6.setObjectName("label_6")
         self.label_6.setGeometry(QRect(280, 330, 221, 81))
-        self.label_6.setText("words page")
+        self.label_6.setText("Lessons page")
         font1 = QFont()
 
         font1.setPointSize(25)
@@ -80,11 +82,11 @@ class PageWords(QWidget):
         self.stacked_widget.addWidget(self.sents_table)
 
         self.words_page_vlayout.addWidget(self.stacked_widget)
-        self.dialog = AddWordsDialog()
+        self.dialog = AddLessonsDialog()
 
-        self.stacked_widget.setCurrentIndex(0)
+        self.stacked_widget.setCurrentIndex(1)
         self.addwords_btn.clicked.connect(self.addwords_btn_clicked)
-        self.dialog.add_words_submited_signal.connect(self.get_dialog_submitted)
+        self.dialog.add_lesson_submited_signal.connect(self.get_dialog_submitted)
         self.words_table_btn.clicked.connect(self.change_table)
         self.sents_table_btn.clicked.connect(self.change_table)
 
@@ -101,28 +103,14 @@ class PageWords(QWidget):
 
     @Slot(dict)
     def get_dialog_submitted(self, form_data):
-        self.word_scrape_thread = WordScraperThread(
-            form_data["word_list"],
-            form_data["definition_source"],
-            form_data["save_sentences"],
-            form_data["level_selection"],
-        )
+        self.lesson_scrape_thread = LessonScraperThread(form_data)
         # TODO add list to the screen
 
-        self.word_scrape_thread.start()
-        self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
-        self.md_multi_selection_sig.connect(self.word_scrape_thread.get_md_user_select)
-        self.use_cpod_def_sig.connect(self.word_scrape_thread.get_use_cpod_w)
-        self.word_scrape_thread.send_word_sig.connect(self.get_word_from_thread_loop)
-        self.word_scrape_thread.md_use_cpod_w_sig.connect(self.get_user_choice_usecpod)
-        self.word_scrape_thread.no_sents_inc_levels.connect(
-            self.get_user_no_sents_inclvl
+        self.lesson_scrape_thread.start()
+        self.lesson_scrape_thread.send_words_sig.connect(
+            self.get_words_from_sthread_loop
         )
-
-        self.updated_sents_levels_sig.connect(
-            self.word_scrape_thread.get_updated_sents_levels
-        )
-        self.word_scrape_thread.send_sents_sig.connect(
+        self.lesson_scrape_thread.send_sents_sig.connect(
             self.get_sentences_from_thread_loop
         )
 
@@ -153,10 +141,46 @@ class PageWords(QWidget):
             self.use_cpod_def_sig.emit(False)
 
     @Slot(object)
+    def get_words_from_sthread_loop(self, words):
+        print("page-word-received", words)
+        selection = "".join(f"{word.chinese}\n" for word in words)
+        self.wdialog = AddWordsDialog(selection)
+        self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)
+        self.wdialog.exec()
+        # self.table_wordmodel.add_word(word)
+
+    @Slot(object)
     def get_word_from_thread_loop(self, word):
         print("page-word-received", word)
 
         self.table_wordmodel.add_word(word)
+
+    @Slot(object)
+    def get_wdialog_submitted(self, form_data):
+        self.word_scrape_thread = WordScraperThread(
+            form_data["word_list"],
+            form_data["definition_source"],
+            form_data["save_sentences"],
+            form_data["level_selection"],
+        )
+        # TODO add list to the screen
+
+        self.word_scrape_thread.start()
+        self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
+        self.md_multi_selection_sig.connect(self.word_scrape_thread.get_md_user_select)
+        self.use_cpod_def_sig.connect(self.word_scrape_thread.get_use_cpod_w)
+        self.word_scrape_thread.send_word_sig.connect(self.get_word_from_thread_loop)
+        self.word_scrape_thread.md_use_cpod_w_sig.connect(self.get_user_choice_usecpod)
+        self.word_scrape_thread.no_sents_inc_levels.connect(
+            self.get_user_no_sents_inclvl
+        )
+
+        self.updated_sents_levels_sig.connect(
+            self.word_scrape_thread.get_updated_sents_levels
+        )
+        self.word_scrape_thread.send_sents_sig.connect(
+            self.get_sentences_from_thread_loop
+        )
 
     @Slot(list)
     def get_user_no_sents_inclvl(self, levels):
