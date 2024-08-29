@@ -12,7 +12,7 @@ class WordTableModel(QAbstractTableModel):
         return len(self.words)
 
     def columnCount(self, parent=None):
-        return 3
+        return 5
 
     def update_data(self, words):
         self.beginResetModel()
@@ -32,27 +32,39 @@ class WordTableModel(QAbstractTableModel):
                 return "Pinyin"
             if section == 2:
                 return "Definition"
+            if section == 3:
+                return "Level"
+            if section == 4:
+                return "Audio"
 
         return super().headerData(section, orientation, role)
 
     def data(self, index: QModelIndex, role=Qt.DisplayRole):
         if not index.isValid():
             return None
-        person = self.words[index.row()]
+        word = self.words[index.row()]
         if role == Qt.DisplayRole:
             if index.column() == 0:
-                return person.chinese
+                return word.chinese
             elif index.column() == 1:
-                return person.pinyin
+                return word.pinyin
             elif index.column() == 2:
-                return person.definition
+                return word.definition
+            elif index.column() == 3:
+                return word.level
+            elif index.column() == 4:
+                return word.audio
         elif role == Qt.EditRole:
             if index.column() == 0:
-                return person.chinese
+                return word.chinese
             elif index.column() == 1:
-                return person.pinyin
+                return word.pinyin
             elif index.column() == 2:
-                return person.definition
+                return word.definition
+            elif index.column() == 3:
+                return word.level
+            elif index.column() == 4:
+                return word.audio
 
     def flags(self, index: QModelIndex):
         if not index.isValid():
@@ -68,6 +80,10 @@ class WordTableModel(QAbstractTableModel):
                 word.pinyin = value
             elif index.column() == 2:
                 word.definition = value
+            elif index.column() == 3:
+                word.level = value
+            elif index.column() == 4:
+                word.audio = value
             self.dataChanged.emit()
             return True
         return False
