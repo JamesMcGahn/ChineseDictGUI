@@ -1,5 +1,6 @@
 import resources_rc as resources_rc
 from central_widget import CentralWidget
+from db_manager import DatabaseManager
 from network_thread import NetworkThread
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QFont
@@ -29,6 +30,40 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.centralwidget)
 
         self.setup_session()
+        self.setup_database()
+
+    def setup_database(self):
+        db = DatabaseManager("chineseDict.db")
+        db.connect()
+        db.execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS words (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             chinese TEXT NOT NULL,
+             pinyin TEXT NOT NULL,
+             definition TEXT NOT NULL,
+             audio TEXT,
+             level TEXT,
+             anki_audio TEXT,
+             anki_id INTEGER,
+             anki_update INTEGER)
+            """
+        )
+        db.execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS sentences (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             chinese TEXT NOT NULL,
+             english TEXT NOT NULL,
+             pinyin TEXT NOT NULL,
+             level TEXT,
+             audio TEXT,
+             anki_audio TEXT,
+             anki_id INTEGER,
+             anki_update INTEGER)
+            """
+        )
+        db.disconnect()
 
     def setup_session(self):
         if self.session_manager.load_session():

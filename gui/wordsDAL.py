@@ -1,0 +1,34 @@
+class WordsDAL:
+    def __init__(self, db_manager):
+        self.db_manager = db_manager
+
+    def insert_word(self, word):
+        query = "INSERT INTO words (chinese, pinyin, definition, audio, level) VALUES (?,?,?,?,?)"
+        return self.db_manager.execute_query(
+            query,
+            (
+                word.chinese,
+                word.pinyin,
+                word.definition,
+                word.audio,
+                word.level,
+            ),
+        )
+
+    def delete_word(self, id):
+        query = "DELETE FROM words WHERE id = ?"
+        self.db_manager.execute_query(query, (id,))
+
+    def update_word(self, id: int, updates: dict):
+        """
+        Dynamically update fields in the 'words' table.
+
+        :param id: ID of the word to update.
+        :param updates: Dictionary of column names and their new values.
+        """
+        set_clause = ", ".join([f"{column} = ?" for column in updates.keys()])
+        parameters = list(updates.values()) + [id]
+
+        # trunk-ignore(bandit/B608)
+        query = f"UPDATE words SET {set_clause} WHERE id = ?"
+        self.db_manager.execute_query(query, parameters)
