@@ -1,4 +1,6 @@
 from add_words_dialog import AddWordsDialog
+from db_manager import DatabaseManager
+from db_query_thread import DatabaseQueryThread
 from multiword_dialog import MultiWordDialog
 from nosents_inclvl_dialog import IncreaseLvlsDialog
 from PySide6.QtCore import QRect, Signal, Slot
@@ -10,8 +12,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QStackedWidget,
     QTableView,
-    QTableWidget,
-    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -59,24 +59,31 @@ class PageWords(QWidget):
 
         # WordsTable
         self.words_table = QWidget()
+        self.save_btn_words = QPushButton("Save Selected")
         self.words_table_vlayout = QVBoxLayout(self.words_table)
+        self.words_table_vlayout.addWidget(self.save_btn_words)
         self.table_wordmodel = WordTableModel()
-        self.table_view = QTableView()
-        self.table_view.setModel(self.table_wordmodel)
-        self.table_view.show()
-        self.words_table_vlayout.addWidget(self.table_view)
+        self.table_view_w = QTableView()
+        self.table_view_w.setSelectionBehavior(QTableView.SelectRows)
+        self.table_view_w.setModel(self.table_wordmodel)
+        self.table_view_w.show()
+        self.words_table_vlayout.addWidget(self.table_view_w)
         self.stacked_widget.addWidget(self.words_table)
 
         # SentenceTable
         self.sents_table = QWidget()
         self.label = QLabel("dsd")
+        self.save_btn_sents = QPushButton("Save Selected")
+
         self.sents_table_vlayout = QVBoxLayout(self.sents_table)
+        self.sents_table_vlayout.addWidget(self.save_btn_sents)
         self.table_sentmodel = SentenceTableModel()
-        self.table_view = QTableView()
-        self.table_view.setModel(self.table_sentmodel)
-        self.table_view.show()
+        self.table_view_s = QTableView()
+        self.table_view_s.setSelectionBehavior(QTableView.SelectRows)
+        self.table_view_s.setModel(self.table_sentmodel)
+        self.table_view_s.show()
         self.sents_table_vlayout.addWidget(self.label)
-        self.sents_table_vlayout.addWidget(self.table_view)
+        self.sents_table_vlayout.addWidget(self.table_view_s)
         self.stacked_widget.addWidget(self.sents_table)
 
         self.words_page_vlayout.addWidget(self.stacked_widget)
@@ -87,6 +94,25 @@ class PageWords(QWidget):
         self.dialog.add_words_submited_signal.connect(self.get_dialog_submitted)
         self.words_table_btn.clicked.connect(self.change_table)
         self.sents_table_btn.clicked.connect(self.change_table)
+        self.save_btn_words.clicked.connect(self.save_selected_words)
+        self.save_btn_sents.clicked.connect(self.save_selected_sents)
+
+        self.db = DatabaseManager("chineseDict.db")
+
+    def save_selected_words(self):
+        selection_model = self.table_view_w.selectionModel()
+        selected_rows = selection_model.selectedRows()
+        words = [
+            self.table_wordmodel.get_row_data(index.row()) for index in selected_rows
+        ]
+        self.save_selwords = DatabaseQueryThread(self.db, "insert_words", words)
+        self.save_selwords.start()
+        print(words)
+
+    def save_selected_sents(self):
+        selection_model = self.table_view_s.selectionModel()
+        selected_rows = selection_model.selectedRows()
+        print(selected_rows)
 
     def change_table(self):
         btn_name = self.sender().objectName()

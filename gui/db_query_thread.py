@@ -19,7 +19,7 @@ class DatabaseQueryThread(QThread):
         self.db_manager.connect()
         self.dal = WordsDAL(self.db_manager)
         try:
-            self.db_manager.beginTransaction()
+            self.db_manager.begin_transaction()
             match (self.operation):
                 case "insert_word":
                     self.dal.insert_word(self.params)

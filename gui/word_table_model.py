@@ -1,5 +1,7 @@
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
 
+from dictionary import Word
+
 
 class WordTableModel(QAbstractTableModel):
     dataChanged = Signal()
@@ -87,3 +89,17 @@ class WordTableModel(QAbstractTableModel):
             self.dataChanged.emit()
             return True
         return False
+
+    def get_row_data(self, row_index):
+        """Retrieve a dictionary containing all data from a specific row."""
+        if 0 <= row_index < self.rowCount():
+            return Word(
+                self.data(self.index(row_index, 0), Qt.DisplayRole),
+                self.data(self.index(row_index, 2), Qt.DisplayRole),
+                self.data(self.index(row_index, 1), Qt.DisplayRole),
+                self.data(self.index(row_index, 4), Qt.DisplayRole),
+                self.data(self.index(row_index, 3), Qt.DisplayRole),
+            )
+
+        else:
+            return None  # Invalid row index
