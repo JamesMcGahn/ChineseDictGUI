@@ -1,5 +1,6 @@
 import time
 from random import randint
+from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
 from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal, Slot
@@ -78,28 +79,36 @@ class WordScraperThread(QThread):
                             if x.level in self.level_selection
                         ]
 
-                        if len(level_sentences) == 0:
-                            print("theres is 0 sentences")
-                            self.no_sents_inc_levels.emit(self.level_selection)
-                            self._wait_condition.wait(self._mutex)
+                        with QMutexLocker(self._mutex):
+                            if len(level_sentences) == 0:
+                                print("theres is 0 sentences")
+                                self.no_sents_inc_levels.emit(self.level_selection)
 
-                            if self.user_update_levels:
-                                if self.new_level_selection is not False:
-                                    level_sentences = [
-                                        x
-                                        for x in example_sentences
-                                        if x.level in self.new_level_selection
-                                    ]
+                                self._paused = True
+
+                            while self._paused:
+                                self._wait_condition.wait(self._mutex)
+
+                        if self.user_update_levels:
+                            if self.new_level_selection is not False:
+                                level_sentences = [
+                                    x
+                                    for x in example_sentences
+                                    if x.level in self.new_level_selection
+                                ]
 
                         self.send_sents_sig.emit(level_sentences)
+                        self.user_update_levels = False
                     else:
                         self.send_sents_sig.emit(example_sentences)
 
                 if self.definition_source == "Cpod" and self.cpod_word is not None:
                     self.send_word_sig.emit(self.cpod_word)
                 else:
+                    params = {"page": "worddict", "wdrst": "0", "wdqb": word}
+                    encoded_params = urlencode(params)
                     md_res = sess.get(
-                        f"{keys['murl']}/dictionary/english-chinese/{word}"
+                        f"{keys['murl']}/dictionary/english-chinese?{encoded_params}"
                     )
                     m_soup = BeautifulSoup(md_res.text, "html.parser")
                     md = ScrapeMd(m_soup)
@@ -108,14 +117,18 @@ class WordScraperThread(QThread):
                     results = md.get_results_words()
 
                     print(results)
-                    if len(results) > 1:
-                        # signal with words for user to pick correct definition
 
-                        self.md_thd_multi_words_sig.emit(results)
-                        self._wait_condition.wait(self._mutex)
+                    with QMutexLocker(self._mutex):
+                        if len(results) > 1:
+                            self.md_thd_multi_words_sig.emit(results)
+                            self._paused = True
 
+                        while self._paused:
+                            self._wait_condition.wait(self._mutex)
+
+                    if self.user_md_multi is not None:
                         self.m_defined_word = md.def_selection(self.user_md_multi)
-
+                        self.user_md_multi = None
                     elif len(results) == 1:
                         self.m_defined_word = md.def_selection(0)
                     else:
@@ -129,13 +142,17 @@ class WordScraperThread(QThread):
                     elif self.m_defined_word is not None:
                         self.send_word_sig.emit(self.m_defined_word)
 
-                    elif self.m_defined_word is None and self.cpod_word is not None:
-                        print("emit -- gerer")
-                        self.md_use_cpod_w_sig.emit(self.cpod_word)
-                        self._wait_condition.wait(self._mutex)
+                    with QMutexLocker(self._mutex):
+                        if self.m_defined_word is None and self.cpod_word is not None:
+                            print("emit -- gerer")
+                            self.md_use_cpod_w_sig.emit(self.cpod_word)
+                            self._paused = True
+                        while self._paused:
+                            self._wait_condition.wait(self._mutex)
 
-                        if self.user_use_cpod_sel:
-                            self.send_word_sig.emit(self.cpod_word)
+                    if self.user_use_cpod_sel:
+                        self.send_word_sig.emit(self.cpod_word)
+                        self.user_use_cpod_sel = False
             except Exception as e:
                 print(e)
             time.sleep(randint(6, 15))
@@ -144,20 +161,19 @@ class WordScraperThread(QThread):
         return f"Scraped result for {word}"
 
     def resume(self):
-        self.mutex.lock()
-        self.paused = False
-        self.wait_condition.wakeAll()
-        self.mutex.unlock()
+        with QMutexLocker(self._mutex):  # Automatic lock and unlock
+            self._paused = False
+            self._wait_condition.wakeOne()
 
     @Slot(int)
     def get_md_user_select(self, int):
         self.user_md_multi = int
-        self._wait_condition.wakeAll()
+        self.resume()
 
     @Slot(bool)
     def get_use_cpod_w(self, decision):
         self.user_use_cpod_sel = decision
-        self._wait_condition.wakeAll()
+        self.resume()
 
     @Slot(bool, list)
     def get_updated_sents_levels(self, changed, levels):
@@ -165,4 +181,4 @@ class WordScraperThread(QThread):
             self.user_update_levels = True
             self.new_level_selection = levels
 
-        self._wait_condition.wakeAll()
+        self.resume()
