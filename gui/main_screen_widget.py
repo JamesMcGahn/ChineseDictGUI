@@ -1,3 +1,4 @@
+from page_dictionary import PageDictionary
 from page_lessons import PageLessons
 from page_words import PageWords
 from PySide6.QtCore import QRect, QSize, Slot
@@ -41,6 +42,7 @@ class MainScreenWidget(QWidget):
 
         self.stackedWidget.addWidget(self.sentences_page)
         self.audio_page = QWidget()
+
         self.audio_page.setObjectName("audio_page")
         self.label_2 = QLabel(self.audio_page)
         self.label_2.setObjectName("label_2")
@@ -48,13 +50,10 @@ class MainScreenWidget(QWidget):
         self.label_2.setFont(font1)
         self.label_2.setText("audio page")
         self.stackedWidget.addWidget(self.audio_page)
-        self.dictionary_page = QWidget()
-        self.dictionary_page.setObjectName("dictionary_page")
+
+        self.dictionary_page = PageDictionary()
         self.label_3 = QLabel(self.dictionary_page)
-        self.label_3.setObjectName("label_3")
-        self.label_3.setGeometry(QRect(480, 460, 221, 81))
-        self.label_3.setFont(font1)
-        self.label_3.setText("dictionary page")
+
         self.stackedWidget.addWidget(self.dictionary_page)
         self.settings_page = QWidget()
         self.settings_page.setObjectName("settings_page")
