@@ -10,7 +10,7 @@ class DatabaseManager(QObject):
         self.mutex = QMutex()
 
     def connect(self):
-        self.connection = sqlite3.connect(self.db_name)
+        self.connection = sqlite3.connect(self.db_name, check_same_thread=False)
 
     def execute_query(self, query, params=None):
         with QMutexLocker(self.mutex):

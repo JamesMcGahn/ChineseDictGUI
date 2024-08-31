@@ -3,40 +3,72 @@ import sqlite3
 from PySide6.QtCore import QThread, Signal
 from wordsDAL import WordsDAL
 
+from dictionary import Word
+
 
 class DatabaseQueryThread(QThread):
-    result_ready = Signal(object)
+    result_ready = Signal((object,), (bool,))
+
     error_occurred = Signal(str)
 
-    def __init__(self, db_manager, operation, params=None, id=None):
+    def __init__(self, db_manager, operation, **kwargs):
         super().__init__()
         self.db_manager = db_manager
         self.operation = operation
-        self.params = params
-        self.id = id
+        self.kwargs = kwargs
 
     def run(self):
         self.db_manager.connect()
         self.dal = WordsDAL(self.db_manager)
         try:
-            self.db_manager.begin_transaction()
             match (self.operation):
                 case "insert_word":
-                    self.dal.insert_word(self.params)
+                    word = self.kwargs.get("word", None)
+                    if word is None:
+                        raise ValueError("word must be specified as kwarg")
+                    self.db_manager.begin_transaction()
+                    self.dal.insert_word(word)
                     self.db_manager.commit_transaction()
 
                 case "insert_words":
-                    for x in self.params:
+                    words = self.kwargs.get("words", None)
+                    if words is None:
+                        raise ValueError("words must be specified as kwarg")
+                    self.db_manager.begin_transaction()
+                    for x in words:
                         self.dal.insert_word(x)
                     self.db_manager.commit_transaction()
 
                 case "update_word":
-                    self.dal.update_word(self.id, self.params)
+                    updates = self.kwargs.get("updates", None)
+                    id = self.kwargs.get("id", None)
+                    if word is None or id is None:
+                        raise ValueError("word and id must be specified as kwarg")
+                    self.db_manager.begin_transaction()
+                    self.dal.update_word(id, updates)
 
                 case "delete_word":
-                    self.dal.delete_word(self.id)
+                    id = self.kwargs.get("id", None)
+                    if id is None:
+                        raise ValueError("id must be specified as kwarg")
+                    self.db_manager.begin_transaction()
+                    self.dal.delete_word(id)
 
-            self.result_ready.emit(True)
+                case "get_pagination_words":
+                    print("here")
+                    page = self.kwargs.get("page", None)
+                    limit = self.kwargs.get("limit", 25)
+                    result = self.dal.get_words_paginate(page, limit)
+                    if result is not None:
+                        words = [
+                            Word(word[1], word[3], word[2], word[4], word[5], word[0])
+                            for word in result.fetchall()
+                        ]
+                        self.result_ready[object].emit(words)
+                    else:
+                        self.result_ready[object].emit(None)
+            print("in")
+            self.result_ready[bool].emit(True)
         except sqlite3.Error as e:
             self.db_manager.rollback_transaction()
             self.error_occurred.emit(f"An error occurred: {e}")
