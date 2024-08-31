@@ -8,7 +8,6 @@ from session_manager import SessionManger
 
 from cpod_scrape import ScrapeCpod
 from keys import keys
-from md_scrape import ScrapeMd
 from web_scrape import WebScrape
 from write_file import WriteFile
 
