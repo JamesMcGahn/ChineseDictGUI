@@ -18,6 +18,7 @@ class WordScraperThread(QThread):
     send_word_sig = Signal(object)
     no_sents_inc_levels = Signal(list)
     send_sents_sig = Signal(object)
+    thread_finished = Signal(bool)
 
     def __init__(
         self, word_list, definition_source, save_sentences, level_selection=False
@@ -155,7 +156,9 @@ class WordScraperThread(QThread):
                         self.user_use_cpod_sel = False
             except Exception as e:
                 print(e)
+            # trunk-ignore(bandit/B311)
             time.sleep(randint(6, 15))
+        self.thread_finished.emit(True)
 
     def scrape_word(self, word):
         return f"Scraped result for {word}"
