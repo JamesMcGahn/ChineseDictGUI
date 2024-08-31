@@ -60,8 +60,10 @@ class PageWords(QWidget):
         # WordsTable
         self.words_table = QWidget()
         self.save_btn_words = QPushButton("Save Selected")
+        self.select_all_w = QPushButton("Select All")
         self.words_table_vlayout = QVBoxLayout(self.words_table)
         self.words_table_vlayout.addWidget(self.save_btn_words)
+        self.words_table_vlayout.addWidget(self.select_all_w)
         self.table_wordmodel = WordTableModel()
         self.table_view_w = QTableView()
         self.table_view_w.setSelectionBehavior(QTableView.SelectRows)
@@ -74,9 +76,11 @@ class PageWords(QWidget):
         self.sents_table = QWidget()
         self.label = QLabel("dsd")
         self.save_btn_sents = QPushButton("Save Selected")
+        self.select_all_s = QPushButton("Select All")
 
         self.sents_table_vlayout = QVBoxLayout(self.sents_table)
         self.sents_table_vlayout.addWidget(self.save_btn_sents)
+        self.sents_table_vlayout.addWidget(self.select_all_s)
         self.table_sentmodel = SentenceTableModel()
         self.table_view_s = QTableView()
         self.table_view_s.setSelectionBehavior(QTableView.SelectRows)
@@ -96,8 +100,16 @@ class PageWords(QWidget):
         self.sents_table_btn.clicked.connect(self.change_table)
         self.save_btn_words.clicked.connect(self.save_selected_words)
         self.save_btn_sents.clicked.connect(self.save_selected_sents)
+        self.select_all_w.clicked.connect(self.select_all_words)
+        self.select_all_s.clicked.connect(self.select_all_sents)
 
         self.db = DatabaseManager("chineseDict.db")
+
+    def select_all_words(self):
+        self.table_view_w.selectAll()
+
+    def select_all_sents(self):
+        self.table_view_s.selectAll()
 
     def save_selected_words(self):
         selection_model = self.table_view_w.selectionModel()
@@ -105,7 +117,7 @@ class PageWords(QWidget):
         words = [
             self.table_wordmodel.get_row_data(index.row()) for index in selected_rows
         ]
-        self.save_selwords = DatabaseQueryThread(self.db, "insert_words", words)
+        self.save_selwords = DatabaseQueryThread(self.db, "insert_words", words=words)
         self.save_selwords.start()
         print(words)
 
@@ -134,7 +146,8 @@ class PageWords(QWidget):
             form_data["level_selection"],
         )
         # TODO add list to the screen
-
+        # TODO disable the add words button when starting thread
+        self.addwords_btn.setDisabled(True)
         self.word_scrape_thread.start()
         self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
         self.md_multi_selection_sig.connect(self.word_scrape_thread.get_md_user_select)
@@ -151,6 +164,7 @@ class PageWords(QWidget):
         self.word_scrape_thread.send_sents_sig.connect(
             self.get_sentences_from_thread_loop
         )
+        self.word_scrape_thread.thread_finished.connect(self.thread_finished)
 
     @Slot(list)
     def get_dialog_mdmulti(self, words):
@@ -203,3 +217,8 @@ class PageWords(QWidget):
     def get_sentences_from_thread_loop(self, sentences):
         print("received senteces", sentences)
         [self.table_sentmodel.add_sentence(x) for x in sentences]
+
+    @Slot(bool)
+    def thread_finished(self, isFinished):
+        if isFinished:
+            self.addwords_btn.setDisabled(False)
