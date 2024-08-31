@@ -17,7 +17,7 @@ class WordsDAL:
 
     def delete_word(self, id):
         query = "DELETE FROM words WHERE id = ?"
-        self.db_manager.execute_query(query, (id,))
+        return self.db_manager.execute_query(query, (id,))
 
     def update_word(self, id: int, updates: dict):
         """
@@ -31,4 +31,15 @@ class WordsDAL:
 
         # trunk-ignore(bandit/B608)
         query = f"UPDATE words SET {set_clause} WHERE id = ?"
-        self.db_manager.execute_query(query, parameters)
+        return self.db_manager.execute_query(query, parameters)
+
+    def get_words_paginate(self, page, limit=25):
+        offset = (page - 1) * limit
+        query = "SELECT * FROM words LIMIT ? OFFSET ?"
+        return self.db_manager.execute_query(
+            query,
+            (
+                limit,
+                offset,
+            ),
+        )

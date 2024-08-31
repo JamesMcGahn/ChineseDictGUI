@@ -14,7 +14,7 @@ class WordTableModel(QAbstractTableModel):
         return len(self.words)
 
     def columnCount(self, parent=None):
-        return 5
+        return 6
 
     def update_data(self, words):
         self.beginResetModel()
@@ -29,14 +29,16 @@ class WordTableModel(QAbstractTableModel):
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             if section == 0:
-                return "Chinese"
+                return "Number"
             if section == 1:
-                return "Pinyin"
+                return "Chinese"
             if section == 2:
-                return "Definition"
+                return "Pinyin"
             if section == 3:
-                return "Level"
+                return "Definition"
             if section == 4:
+                return "Level"
+            if section == 5:
                 return "Audio"
 
         return super().headerData(section, orientation, role)
@@ -47,25 +49,30 @@ class WordTableModel(QAbstractTableModel):
         word = self.words[index.row()]
         if role == Qt.DisplayRole:
             if index.column() == 0:
-                return word.chinese
+                if word.id:
+                    return word.id
+                else:
+                    return index.row() + 1
             elif index.column() == 1:
-                return word.pinyin
+                return word.chinese
             elif index.column() == 2:
-                return word.definition
+                return word.pinyin
             elif index.column() == 3:
-                return word.level
+                return word.definition
             elif index.column() == 4:
+                return word.level
+            elif index.column() == 5:
                 return word.audio
         elif role == Qt.EditRole:
-            if index.column() == 0:
+            if index.column() == 1:
                 return word.chinese
-            elif index.column() == 1:
-                return word.pinyin
             elif index.column() == 2:
-                return word.definition
+                return word.pinyin
             elif index.column() == 3:
-                return word.level
+                return word.definition
             elif index.column() == 4:
+                return word.level
+            elif index.column() == 5:
                 return word.audio
 
     def flags(self, index: QModelIndex):
@@ -76,15 +83,15 @@ class WordTableModel(QAbstractTableModel):
     def setData(self, index: QModelIndex, value, role=Qt.EditRole):
         if index.isValid() and role == Qt.EditRole:
             word = self.words[index.row()]
-            if index.column() == 0:
+            if index.column() == 1:
                 word.chinese = value
-            elif index.column() == 1:
-                word.pinyin = value
             elif index.column() == 2:
-                word.definition = value
+                word.pinyin = value
             elif index.column() == 3:
-                word.level = value
+                word.definition = value
             elif index.column() == 4:
+                word.level = value
+            elif index.column() == 5:
                 word.audio = value
             self.dataChanged.emit()
             return True
@@ -92,13 +99,16 @@ class WordTableModel(QAbstractTableModel):
 
     def get_row_data(self, row_index):
         """Retrieve a dictionary containing all data from a specific row."""
+        word = self.words[row_index]
+        print("here is the selectioned", word)
         if 0 <= row_index < self.rowCount():
             return Word(
-                self.data(self.index(row_index, 0), Qt.DisplayRole),
-                self.data(self.index(row_index, 2), Qt.DisplayRole),
                 self.data(self.index(row_index, 1), Qt.DisplayRole),
-                self.data(self.index(row_index, 4), Qt.DisplayRole),
                 self.data(self.index(row_index, 3), Qt.DisplayRole),
+                self.data(self.index(row_index, 2), Qt.DisplayRole),
+                self.data(self.index(row_index, 5), Qt.DisplayRole),
+                self.data(self.index(row_index, 4), Qt.DisplayRole),
+                word.id if word.id else None,
             )
 
         else:
