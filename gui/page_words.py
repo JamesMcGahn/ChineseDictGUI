@@ -124,7 +124,13 @@ class PageWords(QWidget):
     def save_selected_sents(self):
         selection_model = self.table_view_s.selectionModel()
         selected_rows = selection_model.selectedRows()
-        print(selected_rows)
+        sents = [
+            self.table_sentmodel.get_row_data(index.row()) for index in selected_rows
+        ]
+        self.save_selsents = DatabaseQueryThread(
+            self.db, "insert_sentences", sentences=sents
+        )
+        self.save_selsents.start()
 
     def change_table(self):
         btn_name = self.sender().objectName()

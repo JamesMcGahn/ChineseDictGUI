@@ -2,9 +2,10 @@ import math
 import sqlite3
 
 from PySide6.QtCore import QThread, Signal
+from sentsDAL import SentsDAL
 from wordsDAL import WordsDAL
 
-from dictionary import Word
+from dictionary import Sentence, Word
 
 
 class DatabaseQueryThread(QThread):
@@ -21,6 +22,7 @@ class DatabaseQueryThread(QThread):
     def run(self):
         self.db_manager.connect()
         self.dal = WordsDAL(self.db_manager)
+        self.dals = SentsDAL(self.db_manager)
         try:
             match (self.operation):
                 case "insert_word":
@@ -47,6 +49,7 @@ class DatabaseQueryThread(QThread):
                         raise ValueError("word and id must be specified as kwarg")
                     self.db_manager.begin_transaction()
                     self.dal.update_word(id, updates)
+                    self.db_manager.commit_transaction()
 
                 case "delete_word":
                     id = self.kwargs.get("id", None)
@@ -54,6 +57,7 @@ class DatabaseQueryThread(QThread):
                         raise ValueError("id must be specified as kwarg")
                     self.db_manager.begin_transaction()
                     self.dal.delete_word(id)
+                    self.db_manager.commit_transaction()
 
                 case "get_pagination_words":
                     print("here")
@@ -87,7 +91,73 @@ class DatabaseQueryThread(QThread):
                             hasPrevPage,
                             hasNextPage,
                         )
+                case "insert_sentence":
+                    sentence = self.kwargs.get("sentence", None)
+                    if sentence is None:
+                        raise ValueError("sentence must be specified as kwarg")
+                    self.db_manager.begin_transaction()
+                    self.dals.insert_word(sentence)
+                    self.db_manager.commit_transaction()
 
+                case "insert_sentences":
+                    sentences = self.kwargs.get("sentences", None)
+                    if sentences is None:
+                        raise ValueError("sentences must be specified as kwarg")
+                    self.db_manager.begin_transaction()
+                    for x in sentences:
+                        self.dals.insert_sentence(x)
+                    self.db_manager.commit_transaction()
+
+                case "update_sentence":
+                    updates = self.kwargs.get("updates", None)
+                    id = self.kwargs.get("id", None)
+                    if updates is None or id is None:
+                        raise ValueError("updates and id must be specified as kwarg")
+                    self.db_manager.begin_transaction()
+                    self.dals.update_sentence(id, updates)
+                    self.db_manager.commit_transaction()
+
+                case "delete_word":
+                    id = self.kwargs.get("id", None)
+                    if id is None:
+                        raise ValueError("id must be specified as kwarg")
+                    self.db_manager.begin_transaction()
+                    self.dals.delete_sentence(id)
+                    self.db_manager.commit_transaction()
+
+                case "get_pagination_words":
+                    page = self.kwargs.get("page", None)
+                    limit = self.kwargs.get("limit", 25)
+                    table_count_result = self.dal.get_words_table_count()
+                    table_count_result = table_count_result.fetchone()[0]
+                    total_pages = math.ceil(table_count_result / limit)
+                    hasNextPage = total_pages > page
+                    hasPrevPage = page > 1
+                    result = self.dals.get_sentences_paginate(page, limit)
+                    if result is not None:
+                        sentences = [
+                            Sentence(
+                                sent[1], sent[2], sent[3], sent[4], sent[5], sent[0]
+                            )
+                            for sent in result.fetchall()
+                        ]
+                        self.pagination.emit(
+                            sentences,
+                            table_count_result,
+                            total_pages,
+                            page,
+                            hasPrevPage,
+                            hasNextPage,
+                        )
+                    else:
+                        self.pagination.emit(
+                            None,
+                            table_count_result,
+                            total_pages,
+                            page,
+                            hasPrevPage,
+                            hasNextPage,
+                        )
             self.result_ready[bool].emit(True)
         except sqlite3.Error as e:
             self.db_manager.rollback_transaction()

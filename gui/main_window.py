@@ -56,8 +56,8 @@ class MainWindow(QMainWindow):
              chinese TEXT NOT NULL,
              english TEXT NOT NULL,
              pinyin TEXT NOT NULL,
-             level TEXT,
              audio TEXT,
+             level TEXT,
              anki_audio TEXT,
              anki_id INTEGER,
              anki_update INTEGER)

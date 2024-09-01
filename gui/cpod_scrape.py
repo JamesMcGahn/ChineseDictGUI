@@ -108,8 +108,13 @@ class ScrapeCpod:
             english_sent = Dictionary.strip_string(english_sent)
             pinyin_sent = Dictionary.strip_string(pinyin_sent)
             example_sentence = Sentence(
-                self.word, char_sent, english_sent, pinyin_sent, level, audio
+                char_sent,
+                english_sent,
+                pinyin_sent,
+                audio,
+                level,
             )
+            example_sentence.word = self.word
             if (
                 audio != ""
                 and audio != "null"
@@ -217,7 +222,9 @@ class ScrapeCpod:
             chinese = Dictionary.strip_string(chinese)
             pinyin = Dictionary.strip_string(pinyin)
             english = Dictionary.strip_string(english)
-            dialogue_sent = Sentence(title, chinese, english, pinyin, badge, audio)
+
+            dialogue_sent = Sentence(chinese, english, pinyin, audio, badge)
+            dialogue_sent.word = title
             self.dialogue.append(dialogue_sent)
 
     def scrape_expansion(self):
@@ -239,7 +246,9 @@ class ScrapeCpod:
                 pinyin = Dictionary.strip_string(pinyin)
                 chinese = Dictionary.strip_string(chinese)
                 english = Dictionary.strip_string(english)
-                expand_sentence = Sentence(word, chinese, english, pinyin, badge, audio)
+
+                expand_sentence = Sentence(chinese, english, pinyin, audio, badge)
+                expand_sentence.word = word
                 self.expand_sentences.append(expand_sentence)
 
     def scrape_lesson_vocab(self):
@@ -280,7 +289,6 @@ class ScrapeCpod:
                 chinese = Dictionary.strip_string(chinese)
                 english = Dictionary.strip_string(english)
 
-                grammar_sent = Sentence(
-                    title_n_des, chinese, english, pinyin, badge, audio
-                )
+                grammar_sent = Sentence(chinese, english, pinyin, audio, badge)
+                grammar_sent.word = title_n_des
                 self.grammar_sentences.append(grammar_sent)

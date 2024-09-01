@@ -29,7 +29,7 @@ class WordTableModel(QAbstractTableModel):
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             if section == 0:
-                return "Number"
+                return "Id"
             if section == 1:
                 return "Chinese"
             if section == 2:
