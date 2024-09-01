@@ -16,6 +16,14 @@ class WordTableModel(QAbstractTableModel):
     def columnCount(self, parent=None):
         return 6
 
+    def remove_selected(self, selected):
+        indexes = [i.row() for i in selected]
+        indexSet = set(indexes)
+        filtered_list = [
+            word for index, word in enumerate(self.words) if index not in indexSet
+        ]
+        self.update_data(filtered_list)
+
     def update_data(self, words):
         self.beginResetModel()
         self.words = words

@@ -16,6 +16,14 @@ class SentenceTableModel(QAbstractTableModel):
     def columnCount(self, parent=None):
         return 6
 
+    def remove_selected(self, selected):
+        indexes = [i.row() for i in selected]
+        indexSet = set(indexes)
+        filtered_list = [
+            sent for index, sent in enumerate(self.sentences) if index not in indexSet
+        ]
+        self.update_data(filtered_list)
+
     def update_data(self, sentences):
         self.beginResetModel()
         self.sentences = sentences

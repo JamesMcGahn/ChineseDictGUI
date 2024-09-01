@@ -119,7 +119,7 @@ class PageWords(QWidget):
         ]
         self.save_selwords = DatabaseQueryThread(self.db, "insert_words", words=words)
         self.save_selwords.start()
-        print(words)
+        self.table_wordmodel.remove_selected(selected_rows)
 
     def save_selected_sents(self):
         selection_model = self.table_view_s.selectionModel()
@@ -131,6 +131,7 @@ class PageWords(QWidget):
             self.db, "insert_sentences", sentences=sents
         )
         self.save_selsents.start()
+        self.table_sentmodel.remove_selected(selected_rows)
 
     def change_table(self):
         btn_name = self.sender().objectName()
