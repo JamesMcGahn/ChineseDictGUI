@@ -12,6 +12,7 @@ class DatabaseQueryThread(QThread):
     result_ready = Signal((object,), (bool,))
     pagination = Signal(object, int, int, int, bool, bool)
     error_occurred = Signal(str)
+    message = Signal(str)
 
     def __init__(self, db_manager, operation, **kwargs):
         super().__init__()
@@ -21,7 +22,7 @@ class DatabaseQueryThread(QThread):
 
     def run(self):
         self.db_manager.connect()
-        self.dal = WordsDAL(self.db_manager)
+        self.dalw = WordsDAL(self.db_manager)
         self.dals = SentsDAL(self.db_manager)
         try:
             match (self.operation):
@@ -30,7 +31,7 @@ class DatabaseQueryThread(QThread):
                     if word is None:
                         raise ValueError("word must be specified as kwarg")
                     self.db_manager.begin_transaction()
-                    self.dal.insert_word(word)
+                    self.dalw.insert_word(word)
                     self.db_manager.commit_transaction()
 
                 case "insert_words":
@@ -39,16 +40,19 @@ class DatabaseQueryThread(QThread):
                         raise ValueError("words must be specified as kwarg")
                     self.db_manager.begin_transaction()
                     for x in words:
-                        self.dal.insert_word(x)
+                        self.dalw.insert_word(x)
                     self.db_manager.commit_transaction()
 
                 case "update_word":
                     updates = self.kwargs.get("updates", None)
                     id = self.kwargs.get("id", None)
-                    if word is None or id is None:
+                    if updates is None or id is None:
                         raise ValueError("word and id must be specified as kwarg")
                     self.db_manager.begin_transaction()
-                    self.dal.update_word(id, updates)
+                    suc = self.dalw.update_word(id, updates)
+
+                    if suc.rowcount == 1:
+                        self.message.emit("Update Saved.")
                     self.db_manager.commit_transaction()
 
                 case "delete_word":
@@ -56,19 +60,19 @@ class DatabaseQueryThread(QThread):
                     if id is None:
                         raise ValueError("id must be specified as kwarg")
                     self.db_manager.begin_transaction()
-                    self.dal.delete_word(id)
+                    self.dalw.delete_word(id)
                     self.db_manager.commit_transaction()
 
                 case "get_pagination_words":
                     print("here")
                     page = self.kwargs.get("page", None)
                     limit = self.kwargs.get("limit", 25)
-                    table_count_result = self.dal.get_words_table_count()
+                    table_count_result = self.dalw.get_words_table_count()
                     table_count_result = table_count_result.fetchone()[0]
                     total_pages = math.ceil(table_count_result / limit)
                     hasNextPage = total_pages > page
                     hasPrevPage = page > 1
-                    result = self.dal.get_words_paginate(page, limit)
+                    result = self.dalw.get_words_paginate(page, limit)
                     if result is not None:
                         words = [
                             Word(word[1], word[3], word[2], word[4], word[5], word[0])
@@ -117,7 +121,7 @@ class DatabaseQueryThread(QThread):
                     self.dals.update_sentence(id, updates)
                     self.db_manager.commit_transaction()
 
-                case "delete_word":
+                case "delete_sentence":
                     id = self.kwargs.get("id", None)
                     if id is None:
                         raise ValueError("id must be specified as kwarg")
@@ -125,11 +129,12 @@ class DatabaseQueryThread(QThread):
                     self.dals.delete_sentence(id)
                     self.db_manager.commit_transaction()
 
-                case "get_pagination_words":
+                case "get_pagination_sentences":
                     page = self.kwargs.get("page", None)
                     limit = self.kwargs.get("limit", 25)
-                    table_count_result = self.dal.get_words_table_count()
+                    table_count_result = self.dals.get_sentences_table_count()
                     table_count_result = table_count_result.fetchone()[0]
+                    print(table_count_result)
                     total_pages = math.ceil(table_count_result / limit)
                     hasNextPage = total_pages > page
                     hasPrevPage = page > 1
@@ -162,5 +167,7 @@ class DatabaseQueryThread(QThread):
         except sqlite3.Error as e:
             self.db_manager.rollback_transaction()
             self.error_occurred.emit(f"An error occurred: {e}")
+        except Exception as e:
+            print(e)
         finally:
             self.db_manager.disconnect()

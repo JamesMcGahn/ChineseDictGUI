@@ -5,6 +5,7 @@ from dictionary import Word
 
 class WordTableModel(QAbstractTableModel):
     dataChanged = Signal()
+    wordUpdated = Signal(object)
 
     def __init__(self, words=None):
         super().__init__()
@@ -102,6 +103,7 @@ class WordTableModel(QAbstractTableModel):
             elif index.column() == 5:
                 word.audio = value
             self.dataChanged.emit()
+            self.wordUpdated.emit(word)
             return True
         return False
 
