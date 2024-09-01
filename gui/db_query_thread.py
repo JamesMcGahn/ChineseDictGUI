@@ -1,3 +1,4 @@
+import math
 import sqlite3
 
 from PySide6.QtCore import QThread, Signal
@@ -8,7 +9,7 @@ from dictionary import Word
 
 class DatabaseQueryThread(QThread):
     result_ready = Signal((object,), (bool,))
-
+    pagination = Signal(object, int, int, int, bool, bool)
     error_occurred = Signal(str)
 
     def __init__(self, db_manager, operation, **kwargs):
@@ -58,16 +59,35 @@ class DatabaseQueryThread(QThread):
                     print("here")
                     page = self.kwargs.get("page", None)
                     limit = self.kwargs.get("limit", 25)
+                    table_count_result = self.dal.get_words_table_count()
+                    table_count_result = table_count_result.fetchone()[0]
+                    total_pages = math.ceil(table_count_result / limit)
+                    hasNextPage = total_pages > page
+                    hasPrevPage = page > 1
                     result = self.dal.get_words_paginate(page, limit)
                     if result is not None:
                         words = [
                             Word(word[1], word[3], word[2], word[4], word[5], word[0])
                             for word in result.fetchall()
                         ]
-                        self.result_ready[object].emit(words)
+                        self.pagination.emit(
+                            words,
+                            table_count_result,
+                            total_pages,
+                            page,
+                            hasPrevPage,
+                            hasNextPage,
+                        )
                     else:
-                        self.result_ready[object].emit(None)
-            print("in")
+                        self.pagination.emit(
+                            None,
+                            table_count_result,
+                            total_pages,
+                            page,
+                            hasPrevPage,
+                            hasNextPage,
+                        )
+
             self.result_ready[bool].emit(True)
         except sqlite3.Error as e:
             self.db_manager.rollback_transaction()

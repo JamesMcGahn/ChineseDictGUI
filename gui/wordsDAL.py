@@ -43,3 +43,7 @@ class WordsDAL:
                 offset,
             ),
         )
+
+    def get_words_table_count(self):
+        query = "SELECT COUNT(*) FROM words;"
+        return self.db_manager.execute_query(query)

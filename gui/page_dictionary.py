@@ -27,6 +27,7 @@ class PageDictionary(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.word_table_page = 1
 
         self.setObjectName("dictionary_page")
         with open("./gui/styles/main_screen_widget.css", "r") as ss:
@@ -62,6 +63,7 @@ class PageDictionary(QWidget):
         self.words_table = QWidget()
         self.save_btn_words = QPushButton("Save Selected")
         self.select_all_w = QPushButton("Select All")
+
         self.words_table_vlayout = QVBoxLayout(self.words_table)
         self.words_table_vlayout.addWidget(self.save_btn_words)
         self.words_table_vlayout.addWidget(self.select_all_w)
@@ -71,6 +73,12 @@ class PageDictionary(QWidget):
         self.table_view_w.setModel(self.table_wordmodel)
         self.table_view_w.show()
         self.words_table_vlayout.addWidget(self.table_view_w)
+        self.nextbtns_hlayout = QHBoxLayout()
+        self.next_page_w = QPushButton("Next Page")
+        self.prev_page_w = QPushButton("Previous Page")
+        self.nextbtns_hlayout.addWidget(self.prev_page_w)
+        self.nextbtns_hlayout.addWidget(self.next_page_w)
+        self.words_table_vlayout.addLayout(self.nextbtns_hlayout)
         self.stacked_widget.addWidget(self.words_table)
 
         # SentenceTable
@@ -101,6 +109,9 @@ class PageDictionary(QWidget):
         self.save_btn_sents.clicked.connect(self.save_selected_sents)
         self.select_all_w.clicked.connect(self.select_all_words)
         self.select_all_s.clicked.connect(self.select_all_sents)
+
+        self.next_page_w.clicked.connect(self.words_nextpg_click)
+        self.prev_page_w.clicked.connect(self.words_prevpg_click)
 
         self.db = DatabaseManager("chineseDict.db")
         self.get_page_words(1, 3)
@@ -134,16 +145,36 @@ class PageDictionary(QWidget):
         else:
             self.stacked_widget.setCurrentIndex(1)
 
+    def words_nextpg_click(self):
+        self.get_page_words(self.word_table_page + 1, 3)
+        self.word_table_page += 1
+
+    def words_prevpg_click(self):
+        if self.word_table_page > 1:
+            self.get_page_words(self.word_table_page - 1, 3)
+            self.word_table_page -= 1
+
     def get_page_words(self, page, limit):
         print("fn ran")
         self.threader = DatabaseQueryThread(
             self.db, "get_pagination_words", page=page, limit=limit
         )
         self.threader.start()
-        self.threader.result_ready[object].connect(self.load_words_page)
+        self.threader.pagination.connect(self.load_words_page)
 
-    @Slot(object)
-    def load_words_page(self, result):
-        self.table_wordmodel.update_data(result)
-        for item in result:
-            print(item.id)
+    @Slot(object, int, int, int, bool, bool)
+    def load_words_page(
+        self, words, table_count_result, total_pages, page, hasPrevPage, hasNextPage
+    ):
+        self.table_wordmodel.update_data(words)
+        self.page = page
+        print(words, table_count_result, total_pages, page, hasPrevPage, hasNextPage)
+        if hasNextPage:
+            self.next_page_w.setDisabled(False)
+        else:
+            self.next_page_w.setDisabled(True)
+
+        if hasPrevPage:
+            self.prev_page_w.setDisabled(False)
+        else:
+            self.prev_page_w.setDisabled(True)
