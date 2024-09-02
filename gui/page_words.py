@@ -1,4 +1,5 @@
 from add_words_dialog import AddWordsDialog
+from audio_thread import AudioThread
 from db_manager import DatabaseManager
 from db_query_thread import DatabaseQueryThread
 from multiword_dialog import MultiWordDialog
@@ -18,6 +19,8 @@ from PySide6.QtWidgets import (
 from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread
 from word_table_model import WordTableModel
+
+from dictionary import Sentence
 
 
 class PageWords(QWidget):
@@ -103,7 +106,8 @@ class PageWords(QWidget):
         self.select_all_w.clicked.connect(self.select_all_words)
         self.select_all_s.clicked.connect(self.select_all_sents)
 
-        self.db = DatabaseManager("chineseDict.db")
+        self.dbw = DatabaseManager("chineseDict.db")
+        self.dbs = DatabaseManager("chineseDict.db")
 
     def select_all_words(self):
         self.table_view_w.selectAll()
@@ -117,9 +121,32 @@ class PageWords(QWidget):
         words = [
             self.table_wordmodel.get_row_data(index.row()) for index in selected_rows
         ]
-        self.save_selwords = DatabaseQueryThread(self.db, "insert_words", words=words)
+        self.save_selwords = DatabaseQueryThread(self.dbw, "insert_words", words=words)
         self.save_selwords.start()
         self.table_wordmodel.remove_selected(selected_rows)
+        self.save_selwords.insertIds.connect(self.download_audio)
+
+    def download_audio(self, audlist):
+        [print(x.id) for x in audlist]
+        [print(x.audio) for x in audlist]
+        [print(type(x)) for x in audlist]
+        # TODO get audio folder path from settings
+        self.at = AudioThread(audlist, "./test/")
+        self.at.start()
+        self.at.updateAnkiAudio.connect(self.update_anki_audio)
+
+    @Slot(object)
+    def update_anki_audio(self, obj):
+        if isinstance(obj, Sentence):
+            self.upwThread = DatabaseQueryThread(
+                self.dbw, "update_sentence", id=obj.id, updates=vars(obj)
+            )
+            self.upwThread.start()
+        else:
+            self.upsThread = DatabaseQueryThread(
+                self.dbs, "update_word", id=obj.id, updates=vars(obj)
+            )
+            self.upsThread.start()
 
     def save_selected_sents(self):
         selection_model = self.table_view_s.selectionModel()
@@ -128,10 +155,11 @@ class PageWords(QWidget):
             self.table_sentmodel.get_row_data(index.row()) for index in selected_rows
         ]
         self.save_selsents = DatabaseQueryThread(
-            self.db, "insert_sentences", sentences=sents
+            self.dbs, "insert_sentences", sentences=sents
         )
         self.save_selsents.start()
         self.table_sentmodel.remove_selected(selected_rows)
+        self.save_selsents.insertIds.connect(self.download_audio)
 
     def change_table(self):
         btn_name = self.sender().objectName()

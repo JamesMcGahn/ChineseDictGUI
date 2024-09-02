@@ -122,17 +122,25 @@ class DatabaseQueryThread(QThread):
                     if sentence is None:
                         raise ValueError("sentence must be specified as kwarg")
                     self.db_manager.begin_transaction()
-                    self.dals.insert_word(sentence)
+                    result = self.dals.insert_word(sentence)
+                    id = result.lastrowid
+                    sentence.id = id
                     self.db_manager.commit_transaction()
+                    self.insertIds.emit([sentence])
 
                 case "insert_sentences":
                     sentences = self.kwargs.get("sentences", None)
                     if sentences is None:
                         raise ValueError("sentences must be specified as kwarg")
                     self.db_manager.begin_transaction()
+                    id_sentences = []
                     for x in sentences:
-                        self.dals.insert_sentence(x)
+                        result = self.dals.insert_sentence(x)
+                        id = result.lastrowid
+                        x.id = id
+                        id_sentences.append(x)
                     self.db_manager.commit_transaction()
+                    self.insertIds.emit(id_sentences)
 
                 case "update_sentence":
                     updates = self.kwargs.get("updates", None)

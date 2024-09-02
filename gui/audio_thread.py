@@ -4,14 +4,17 @@ from time import sleep
 
 import google
 from google.cloud import texttospeech
-from PySide6.QtCore import QThread
+from PySide6.QtCore import QThread, Signal
 
+from dictionary import Sentence
 from logger import Logger
 from write_file import WriteFile
 
 
 class AudioThread(QThread):
-    def __init__(self, data, folder_path):
+    updateAnkiAudio = Signal(object)
+
+    def __init__(self, data, folder_path=None):
         super().__init__()
         self.folder_path = folder_path
         self.data = data
@@ -45,7 +48,7 @@ class AudioThread(QThread):
                 }
             )
 
-            if self.folder_path:
+            if self.folder_path is not None:
                 path = WriteFile.check_dup(self.folder_path, filename, ".mp3")
             else:
                 path = "./"
@@ -67,34 +70,42 @@ class AudioThread(QThread):
                 return False
 
     def run(self):
-        print(" in thread")
         for i, x in enumerate(self.data):
             print(x)
-
+            print(x.audio)
             try:
-                if not x.audio:
-                    success = self.google_audio(x.chinese, x.id)
+                filename = x.id
+
+                if isinstance(x, Sentence):
+                    filename = f"10KS-{x.id}"
+
+                x.anki_audio = f"{filename}.mp3"
+
+                if not x.audio and isinstance(x, Sentence):
+                    success = self.google_audio(x.chinese, filename)
                     if success:
                         pass  # TODO notify user / logger
                     continue
 
-                path = WriteFile.check_dup(self.folder_path, x.id, ".mp3")
+                path = WriteFile.check_dup(self.folder_path, filename, ".mp3")
 
                 checkHttp = x.audio.replace("http://", "https://")
                 urllib.request.urlretrieve(checkHttp, path)
                 Logger().insert(
-                    f'({i+1}/{len(self.data)}) Audio content written to file "{x.id}.mp3"',
+                    f'({i+1}/{len(self.data)}) Audio content written to file "{filename}.mp3"',
                     "INFO",
                 )
+                self.updateAnkiAudio.emit(x)
             except Exception as e:
                 Logger().insert(e, "ERROR", False)
                 Logger().insert(
                     "Something went wrong...Trying to Get Audio from Google...", "ERROR"
                 )
-                success = self.google_audio(x.chinese, x.id)
+                success = self.google_audio(x.chinese, filename)
                 if success:
                     Logger().insert(
-                        f'({i+1}/{len(self.data)}) Audio content written to file "{x.id}.mp3"',
+                        f'({i+1}/{len(self.data)}) Audio content written to file "{filename}.mp3"',
                         "INFO",
                     )
+                    self.updateAnkiAudio.emit(x)
             sleep(randint(5, 15))

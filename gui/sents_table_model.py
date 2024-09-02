@@ -111,12 +111,12 @@ class SentenceTableModel(QAbstractTableModel):
         print("here is the selectioned", sentence)
         if 0 <= row_index < self.rowCount():
             return Sentence(
-                self.data(self.index(row_index, 1), Qt.DisplayRole),
-                self.data(self.index(row_index, 2), Qt.DisplayRole),
-                self.data(self.index(row_index, 3), Qt.DisplayRole),
-                self.data(self.index(row_index, 4), Qt.DisplayRole),
-                self.data(self.index(row_index, 5), Qt.DisplayRole),
-                sentence.id if sentence.id else None,
+                chinese=self.data(self.index(row_index, 1), Qt.DisplayRole),
+                english=self.data(self.index(row_index, 2), Qt.DisplayRole),
+                pinyin=self.data(self.index(row_index, 3), Qt.DisplayRole),
+                level=self.data(self.index(row_index, 4), Qt.DisplayRole),
+                audio=self.data(self.index(row_index, 5), Qt.DisplayRole),
+                id=sentence.id if sentence.id else None,
             )
 
         else:
