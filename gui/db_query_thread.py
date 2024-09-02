@@ -13,6 +13,7 @@ class DatabaseQueryThread(QThread):
     pagination = Signal(object, int, int, int, bool, bool)
     error_occurred = Signal(str)
     message = Signal(str)
+    insertIds = Signal(list)
 
     def __init__(self, db_manager, operation, **kwargs):
         super().__init__()
@@ -31,17 +32,27 @@ class DatabaseQueryThread(QThread):
                     if word is None:
                         raise ValueError("word must be specified as kwarg")
                     self.db_manager.begin_transaction()
-                    self.dalw.insert_word(word)
+                    result = self.dalw.insert_word(word)
+                    id = result.lastrowid
+                    word.id = id
                     self.db_manager.commit_transaction()
+                    self.insertIds.emit([word])
 
                 case "insert_words":
                     words = self.kwargs.get("words", None)
                     if words is None:
                         raise ValueError("words must be specified as kwarg")
                     self.db_manager.begin_transaction()
+                    id_words = []
                     for x in words:
-                        self.dalw.insert_word(x)
+                        result = self.dalw.insert_word(x)
+                        id = result.lastrowid
+                        x.id = id
+                        id_words.append(x)
+
                     self.db_manager.commit_transaction()
+                    self.insertIds.emit(id_words)
+
 
                 case "update_word":
                     updates = self.kwargs.get("updates", None)
