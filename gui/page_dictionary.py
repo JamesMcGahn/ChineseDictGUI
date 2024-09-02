@@ -65,10 +65,12 @@ class PageDictionary(QWidget):
         self.words_table = QWidget()
         self.save_btn_words = QPushButton("Save Selected")
         self.select_all_w = QPushButton("Select All")
+        self.delete_seled_w = QPushButton("Delete Selected")
 
         self.words_table_vlayout = QVBoxLayout(self.words_table)
         self.words_table_vlayout.addWidget(self.save_btn_words)
         self.words_table_vlayout.addWidget(self.select_all_w)
+        self.words_table_vlayout.addWidget(self.delete_seled_w)
         self.table_wordmodel = WordTableModel()
         self.table_view_w = QTableView()
         self.table_view_w.setSelectionBehavior(QTableView.SelectRows)
@@ -88,10 +90,11 @@ class PageDictionary(QWidget):
         self.label = QLabel("dsd")
         self.save_btn_sents = QPushButton("Save Selected")
         self.select_all_s = QPushButton("Select All")
-
+        self.delete_seled_s = QPushButton("Delete Selected")
         self.sents_table_vlayout = QVBoxLayout(self.sents_table)
         self.sents_table_vlayout.addWidget(self.save_btn_sents)
         self.sents_table_vlayout.addWidget(self.select_all_s)
+        self.sents_table_vlayout.addWidget(self.delete_seled_s)
         self.table_sentmodel = SentenceTableModel()
         self.table_view_s = QTableView()
         self.table_view_s.setSelectionBehavior(QTableView.SelectRows)
@@ -117,6 +120,8 @@ class PageDictionary(QWidget):
         self.save_btn_sents.clicked.connect(self.save_selected_sents)
         self.select_all_w.clicked.connect(self.select_all_words)
         self.select_all_s.clicked.connect(self.select_all_sents)
+        self.delete_seled_w.clicked.connect(self.delete_selected_words)
+        self.delete_seled_s.clicked.connect(self.delete_selected_sents)
 
         self.next_page_w.clicked.connect(self.words_nextpg_click)
         self.prev_page_w.clicked.connect(self.words_prevpg_click)
@@ -153,7 +158,30 @@ class PageDictionary(QWidget):
         ]
         self.save_selwords = DatabaseQueryThread(self.dbw, "insert_words", words=words)
         self.save_selwords.start()
-        print(words)
+
+    def delete_selected_words(self):
+        selection_model = self.table_view_w.selectionModel()
+        selected_rows = selection_model.selectedRows()
+        words = [
+            self.table_wordmodel.get_row_data(index.row()).id for index in selected_rows
+        ]
+
+        self.del_words = DatabaseQueryThread(self.dbw, "delete_words", ids=words)
+        self.del_words.start()
+        self.table_wordmodel.remove_selected(selected_rows)
+        self.del_words.message.connect(self.toast_message)
+
+    def delete_selected_sents(self):
+        selection_model = self.table_view_s.selectionModel()
+        selected_rows = selection_model.selectedRows()
+        sents = [
+            self.table_sentmodel.get_row_data(index.row()).id for index in selected_rows
+        ]
+
+        self.del_sents = DatabaseQueryThread(self.dbs, "delete_sentences", ids=sents)
+        self.del_sents.start()
+        self.table_sentmodel.remove_selected(selected_rows)
+        self.del_sents.message.connect(self.toast_message)
 
     def save_selected_sents(self):
         selection_model = self.table_view_s.selectionModel()
@@ -187,7 +215,6 @@ class PageDictionary(QWidget):
             self.sent_table_page -= 1
 
     def get_page_words(self, page, limit):
-        print("fn ran")
         self.threader = DatabaseQueryThread(
             self.dbw, "get_pagination_words", page=page, limit=limit
         )
@@ -195,7 +222,6 @@ class PageDictionary(QWidget):
         self.threader.pagination.connect(self.load_words_page)
 
     def get_page_sents(self, page, limit):
-        print("fn ran")
         self.sthreader = DatabaseQueryThread(
             self.dbs, "get_pagination_sentences", page=page, limit=limit
         )

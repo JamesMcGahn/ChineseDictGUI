@@ -62,6 +62,17 @@ class DatabaseQueryThread(QThread):
                     self.db_manager.begin_transaction()
                     self.dalw.delete_word(id)
                     self.db_manager.commit_transaction()
+                    self.message.emit("Word Deleted.")
+
+                case "delete_words":
+                    ids = self.kwargs.get("ids", None)
+                    if ids is None:
+                        raise ValueError("ids must be specified as kwarg")
+                    self.db_manager.begin_transaction()
+                    for id in ids:
+                        self.dalw.delete_word(id)
+                    self.db_manager.commit_transaction()
+                    self.message.emit(f" {len(ids)} Word{"s" if len(ids) > 1 else "" } Deleted.")
 
                 case "get_pagination_words":
                     print("here")
@@ -128,6 +139,18 @@ class DatabaseQueryThread(QThread):
                     self.db_manager.begin_transaction()
                     self.dals.delete_sentence(id)
                     self.db_manager.commit_transaction()
+                    self.message.emit("Sentence Deleted.")
+
+                case "delete_sentences":
+                    ids = self.kwargs.get("ids", None)
+                    if ids is None:
+                        raise ValueError("id must be specified as kwarg")
+
+                    self.db_manager.begin_transaction()
+                    for id in ids:
+                        self.dals.delete_sentence(id)
+                    self.db_manager.commit_transaction()
+                    self.message.emit(f" {len(ids)} Sentence{"s" if len(ids) > 1 else "" } Deleted.")
 
                 case "get_pagination_sentences":
                     page = self.kwargs.get("page", None)
