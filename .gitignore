@@ -18,3 +18,5 @@ test.py
 .venv/*
 
 designer-files/images/*
+
+chineseDict.db
