@@ -142,11 +142,14 @@ class PageWords(QWidget):
                 self.dbw, "update_sentence", id=obj.id, updates=vars(obj)
             )
             self.upwThread.start()
+            self.upwThread.finished.connect(self.upwThread.deleteLater)
+
         else:
             self.upsThread = DatabaseQueryThread(
                 self.dbs, "update_word", id=obj.id, updates=vars(obj)
             )
             self.upsThread.start()
+            self.upsThread.finished.connect(self.upsThread.deleteLater)
 
     def save_selected_sents(self):
         selection_model = self.table_view_s.selectionModel()
@@ -160,6 +163,7 @@ class PageWords(QWidget):
         self.save_selsents.start()
         self.table_sentmodel.remove_selected(selected_rows)
         self.save_selsents.insertIds.connect(self.download_audio)
+        self.save_selsents.finished.connect(self.save_selsents.deleteLater)
 
     def change_table(self):
         btn_name = self.sender().objectName()
@@ -184,6 +188,7 @@ class PageWords(QWidget):
         # TODO disable the add words button when starting thread
         self.addwords_btn.setDisabled(True)
         self.word_scrape_thread.start()
+        self.word_scrape_thread.finished.connect(self.word_scrape_thread.deleteLater)
         self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
         self.md_multi_selection_sig.connect(self.word_scrape_thread.get_md_user_select)
         self.use_cpod_def_sig.connect(self.word_scrape_thread.get_use_cpod_w)

@@ -141,9 +141,14 @@ class PageLessons(QWidget):
     @Slot(object)
     def get_words_from_sthread_loop(self, words):
         print("page-word-received", words)
+        if len(words) == 0:
+            self.lesson_scrape_thread.deleteLater()
+            return
         selection = "".join(f"{word.chinese}\n" for word in words)
         self.wdialog = AddWordsDialog(selection)
         self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)
+        self.lesson_scrape_thread.deleteLater()
+        # TODO Filter words out that arent already in db
         self.wdialog.exec()
         # self.table_wordmodel.add_word(word)
 
@@ -179,6 +184,7 @@ class PageLessons(QWidget):
         self.word_scrape_thread.send_sents_sig.connect(
             self.get_sentences_from_thread_loop
         )
+        self.word_scrape_thread.finished.connect(self.word_scrape_thread.deleteLater)
 
     @Slot(list)
     def get_user_no_sents_inclvl(self, levels):

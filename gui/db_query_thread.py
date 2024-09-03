@@ -9,6 +9,7 @@ from dictionary import Sentence, Word
 
 
 class DatabaseQueryThread(QThread):
+    finished = Signal()
     result_ready = Signal((object,), (bool,))
     pagination = Signal(object, int, int, int, bool, bool)
     error_occurred = Signal(str)
@@ -213,3 +214,4 @@ class DatabaseQueryThread(QThread):
             print(e)
         finally:
             self.db_manager.disconnect()
+            self.finished.emit()

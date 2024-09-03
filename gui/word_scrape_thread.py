@@ -12,6 +12,7 @@ from md_scrape import ScrapeMd
 
 
 class WordScraperThread(QThread):
+    finished = Signal()
     data_scraped = Signal(str)
     md_thd_multi_words_sig = Signal(list)
     md_use_cpod_w_sig = Signal(object)
@@ -159,6 +160,7 @@ class WordScraperThread(QThread):
             # trunk-ignore(bandit/B311)
             time.sleep(randint(6, 15))
         self.thread_finished.emit(True)
+        self.finished.emit()
 
     def scrape_word(self, word):
         return f"Scraped result for {word}"
