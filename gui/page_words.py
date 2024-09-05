@@ -30,6 +30,9 @@ class PageWords(QWidget):
 
     def __init__(self):
         super().__init__()
+
+        self.audio_threads = []
+
         self.setObjectName("words_page")
         with open("./gui/styles/main_screen_widget.css", "r") as ss:
             self.setStyleSheet(ss.read())
@@ -126,14 +129,22 @@ class PageWords(QWidget):
         self.table_wordmodel.remove_selected(selected_rows)
         self.save_selwords.insertIds.connect(self.download_audio)
 
+    @Slot(list)
     def download_audio(self, audlist):
-        [print(x.id) for x in audlist]
-        [print(x.audio) for x in audlist]
-        [print(type(x)) for x in audlist]
         # TODO get audio folder path from settings
-        self.at = AudioThread(audlist, "./test/")
-        self.at.start()
-        self.at.updateAnkiAudio.connect(self.update_anki_audio)
+        audio_thread = AudioThread(audlist, "./test/")
+
+        audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
+        audio_thread.finished.connect(lambda: self.remove_thread(audio_thread))
+        self.audio_threads.append(audio_thread)
+        if len(self.audio_threads) == 1:
+            audio_thread.start()
+
+    def remove_thread(self, thread):
+        thread.deleteLater()
+        self.audio_threads.remove(thread)
+        if self.audio_threads:
+            self.audio_threads[0].start()
 
     @Slot(object)
     def update_anki_audio(self, obj):
