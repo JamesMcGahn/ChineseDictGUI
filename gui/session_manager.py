@@ -17,11 +17,11 @@ class SessionManger(QObject):
     def __init__(self):
         super().__init__()
 
-    def post(self, url, data=None, json=None):
-        return SessionManger.session.post(url, data=data, json=json)
+    def post(self, url, data=None, json=None, timeout=10):
+        return SessionManger.session.post(url, data=data, json=json, timeout=timeout)
 
-    def get(self, url):
-        return SessionManger.session.get(url)
+    def get(self, url, data=None, json=None, timeout=10):
+        return SessionManger.session.get(url, data=data, json=json, timeout=timeout)
 
     # TODO used in web_scrape - need to remove
     def get_session_url(self):
