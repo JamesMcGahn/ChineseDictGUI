@@ -47,3 +47,7 @@ class WordsDAL:
     def get_words_table_count(self):
         query = "SELECT COUNT(*) FROM words;"
         return self.db_manager.execute_query(query)
+
+    def get_word_by_ankiid(self, anki_id):
+        query = "SELECT * FROM words WHERE anki_id = ?"
+        return self.db_manager.execute_query(query, anki_id)
