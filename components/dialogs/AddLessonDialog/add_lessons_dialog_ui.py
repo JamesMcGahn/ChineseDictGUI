@@ -1,13 +1,7 @@
-from PySide6.QtCore import QFile, QIODevice, QTextStream, Signal
 from PySide6.QtWidgets import (
-    QAbstractItemView,
-    QCheckBox,
-    QComboBox,
     QDialog,
-    QFileDialog,
     QHBoxLayout,
     QLabel,
-    QListWidget,
     QPushButton,
     QSizePolicy,
     QSpacerItem,
@@ -16,17 +10,16 @@ from PySide6.QtWidgets import (
 )
 
 
-class AddLessonsDialog(QDialog):
-    add_lesson_submited_signal = Signal(list)
-
+class AddLessonsDialogView(QDialog):
     def __init__(self):
         super().__init__()
-        self.lesson_list = []
+        self.init_ui()
 
-        self.dialog_vlayout = QVBoxLayout(self)
+    def init_ui(self):
+        self.dialog_vlayout = QVBoxLayout()
         self.dialog_vlayout.setSpacing(6)
         self.dialog_vlayout.setContentsMargins(11, 11, 11, 11)
-        self.dialog_vlayout.setObjectName("dialog_vlayout")
+        self.dialog_vlayout.setObjectName("add_lesson_dialog_vlayout")
 
         self.info_text1 = QLabel("Open a text file or paste the lesson urls below")
         self.info_text2 = QLabel("Words should be new line separated")
@@ -41,7 +34,6 @@ class AddLessonsDialog(QDialog):
         self.r_btn_vert_layout.setSpacing(6)
         self.r_btn_vert_layout.setObjectName("r_btn_vert_layout")
         self.write_button = QPushButton()
-        self.write_button.setObjectName("write_button")
 
         self.read_button = QPushButton("Open .txt")
         self.read_button.setObjectName("read_button")
@@ -50,13 +42,13 @@ class AddLessonsDialog(QDialog):
             20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
         )
 
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.submit_cnl_h_layout = QHBoxLayout()
+        self.submit_cnl_h_layout.setObjectName("submit_cnl_h_layout")
         self.horizontalSpacer = QSpacerItem(
             40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum
         )
 
-        self.horizontalLayout_3.addItem(self.horizontalSpacer)
+        self.submit_cnl_h_layout.addItem(self.horizontalSpacer)
 
         self.submit_btn = QPushButton("Submit")
         self.submit_btn.setObjectName("submit_button")
@@ -64,8 +56,8 @@ class AddLessonsDialog(QDialog):
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setObjectName("cancel_button")
 
-        self.horizontalLayout_3.addWidget(self.cancel_btn)
-        self.horizontalLayout_3.addWidget(self.submit_btn)
+        self.submit_cnl_h_layout.addWidget(self.cancel_btn)
+        self.submit_cnl_h_layout.addWidget(self.submit_btn)
 
         self.r_btn_vert_layout.addWidget(self.read_button)
         self.r_btn_vert_layout.addItem(self.verticalSpacer)
@@ -76,39 +68,6 @@ class AddLessonsDialog(QDialog):
         self.dialog_vlayout.addWidget(self.info_text1)
         self.dialog_vlayout.addWidget(self.info_text2)
         self.dialog_vlayout.addLayout(self.text_edit_horz_layout)
+        self.dialog_vlayout.addLayout(self.submit_cnl_h_layout)
 
-        self.dialog_vlayout.addLayout(self.horizontalLayout_3)
-
-        self.submit_btn.clicked.connect(self.submit_btn_clicked)
-        self.cancel_btn.clicked.connect(self.cancel_btn_clicked)
-
-    def read_button_clicked(self):
-        file_content = ""
-        file_name, _ = QFileDialog.getOpenFileName(
-            self, "Open File", "./", "Text(*.txt)"
-        )
-        if file_name == "":
-            return
-        print("filename", file_name)
-        file = QFile(file_name)
-        if not file.open(QIODevice.ReadOnly | QIODevice.Text):
-            return
-        in_stream = QTextStream(file)
-        while not in_stream.atEnd():
-            line = in_stream.readLine()
-            file_content += line
-            file_content += "\n"
-        file.close()
-        self.textEdit.clear()
-
-        self.textEdit.setText(file_content)
-
-    def cancel_btn_clicked(self):
-        self.reject()
-
-    def submit_btn_clicked(self):
-        self.add_lesson_submited_signal.emit(self.textEdit.toPlainText().split("\n"))
-        self.textEdit.clear()
-        self.lesson_list = []
-
-        self.accept()
+        self.setLayout(self.dialog_vlayout)

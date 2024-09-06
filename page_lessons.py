@@ -11,8 +11,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from add_lessons_dialog import AddLessonsDialog
 from add_words_dialog import AddWordsDialog
+from components.dialogs import AddLessonsDialog
 from lesson_scrape_thread import LessonScraperThread
 from multiword_dialog import MultiWordDialog
 from nosents_inclvl_dialog import IncreaseLvlsDialog
