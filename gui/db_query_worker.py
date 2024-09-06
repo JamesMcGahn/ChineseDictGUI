@@ -120,6 +120,14 @@ class DBQueryWorker(QObject):
                             hasPrevPage,
                             hasNextPage,
                         )
+
+                case "get_word_by_ankiid":
+                    id = self.kwargs.get("id", None)
+                    if id is None:
+                        raise ValueError("Id must be specified as kwarg")
+                    result = self.dals.get_word_by_ankiid(id)
+
+
                 case "insert_sentence":
                     sentence = self.kwargs.get("sentence", None)
                     if sentence is None:
