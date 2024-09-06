@@ -46,7 +46,8 @@ class MainWindow(QMainWindow):
              level TEXT,
              anki_audio TEXT,
              anki_id INTEGER,
-             anki_update INTEGER)
+             anki_update INTEGER,
+             local_update INTEGER)
             """
         )
         db.execute_query(
@@ -60,8 +61,19 @@ class MainWindow(QMainWindow):
              level TEXT,
              anki_audio TEXT,
              anki_id INTEGER,
-             anki_update INTEGER)
+             anki_update INTEGER,
+             local_update INTEGER
+             )
             """
+        )
+
+        db.execute_query(
+            """
+            CREATE TABLE IF NOT EXISTS anki_integration (
+            id TEXT PRIMARY KEY,
+            anki_update INTEGER,
+            local_update INTEGER)
+             """
         )
         db.disconnect()
 
