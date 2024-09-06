@@ -1,7 +1,3 @@
-from page_dictionary import PageDictionary
-from page_lessons import PageLessons
-from page_settings import PageSettings
-from page_words import PageWords
 from PySide6.QtCore import QRect, QSize, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -13,13 +9,18 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from page_dictionary import PageDictionary
+from page_lessons import PageLessons
+from page_settings import PageSettings
+from page_words import PageWords
+
 
 class MainScreenWidget(QWidget):
     def __init__(self):
         super().__init__()
 
         self.setObjectName("main_screen_widget")
-        with open("./gui/styles/main_screen_widget.css", "r") as ss:
+        with open("./styles/main_screen_widget.css", "r") as ss:
             self.setStyleSheet(ss.read())
         sizePolicy = QSizePolicy(
             QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred

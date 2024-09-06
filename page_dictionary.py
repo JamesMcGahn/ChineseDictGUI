@@ -1,8 +1,3 @@
-from add_words_dialog import AddWordsDialog
-from db_manager import DatabaseManager
-from db_query_thread import DatabaseQueryThread
-from multiword_dialog import MultiWordDialog
-from nosents_inclvl_dialog import IncreaseLvlsDialog
 from PySide6.QtCore import QRect, Signal, Slot
 from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
@@ -15,6 +10,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from add_words_dialog import AddWordsDialog
+from db_manager import DatabaseManager
+from db_query_thread import DatabaseQueryThread
+from multiword_dialog import MultiWordDialog
+from nosents_inclvl_dialog import IncreaseLvlsDialog
 from qtoast import QToast
 from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread
@@ -32,7 +33,7 @@ class PageDictionary(QWidget):
         self.sent_table_page = 1
 
         self.setObjectName("dictionary_page")
-        with open("./gui/styles/main_screen_widget.css", "r") as ss:
+        with open("./styles/main_screen_widget.css", "r") as ss:
             self.setStyleSheet(ss.read())
         self.label_6 = QLabel()
         self.label_6.setObjectName("label_6")

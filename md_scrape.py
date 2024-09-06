@@ -1,5 +1,4 @@
 from dictionary import Word
-from terminal_opts import TerminalOptions
 
 
 class ScrapeMd:
@@ -7,43 +6,25 @@ class ScrapeMd:
         self.soup = soup
         self.result_words = []
 
-    def def_selection(self):
-        if len(self.result_words) > 1:
-            words = [
-                f"{x['chinese']}({x['pinyin']}) - {x['definition'] if len(x['definition']) < 70 else x['definition'][0:70]+'...'}"
-                for x in self.result_words
-            ]
-            words.append("None of these")
+    def get_results_words(self):
+        return self.result_words
 
-            term_selection = TerminalOptions(
-                words,
-                "Select the Definition You Want to Use",
-                False,
-            ).indexes
-            if term_selection == len(self.result_words):
-                print("true")
-                return None
-            else:
-                sel_word = self.result_words[term_selection]
-                return Word(
-                    sel_word["chinese"],
-                    sel_word["definition"],
-                    sel_word["pinyin"],
-                    sel_word["audio"],
-                )
-        elif len(self.result_words) == 1:
-            sel_word = self.result_words[0]
+    def def_selection(self, index):
+        if index is None or index == len(self.result_words):
+            return None
+        else:
+            sel_word = self.result_words[index]
             return Word(
                 sel_word["chinese"],
                 sel_word["definition"],
                 sel_word["pinyin"],
                 sel_word["audio"],
+                sel_word["level"],
             )
-        else:
-            return None
 
-    def get_defintion(self):
+    def scrape_definition(self):
         results_table = self.soup.find("td", class_="resultswrap")
+        print(results_table)
         if results_table is None:
             return None
         results = results_table.find_all("tr", class_="row")
@@ -53,11 +34,12 @@ class ScrapeMd:
             pinyin = result.find("div", class_="pinyin").find("a").get_text()
             definition = result.find("div", class_="defs").get_text()
             pinyin = pinyin.replace("\u200b", "")
+            level = result.find("div", class_="hsk")
             word = {
                 "chinese": hanzi,
                 "definition": definition,
                 "pinyin": pinyin,
                 "audio": "",
+                "level": level.get_text() if level is not None else "",
             }
             self.result_words.append(word)
-        return self.def_selection()

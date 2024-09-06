@@ -4,10 +4,10 @@ from random import randint
 
 from bs4 import BeautifulSoup
 from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal, Slot
-from session_manager import SessionManger
 
 from cpod_scrape import ScrapeCpod
 from keys import keys
+from session_manager import SessionManger
 from web_scrape import WebScrape
 from write_file import WriteFile
 

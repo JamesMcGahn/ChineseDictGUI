@@ -2,7 +2,8 @@ import pickle
 
 from logger import Logger
 from open_file import OpenFile
-from terminal_opts import TerminalOptions
+
+# from terminal_opts import TerminalOptions
 from write_file import WriteFile
 
 
@@ -19,26 +20,26 @@ class Dictionary:
     def strip_string(string):
         return string.replace("\n", "").replace("\t", "").strip()
 
-    def check_for_dup(self, word, ask_user=True):
-        if any(
-            (k.chinese == word.chinese and (wordmatch := k)) for k in self.masterdict
-        ):
-            if ask_user:
-                Logger().insert(
-                    f"In Dictionary: {wordmatch.chinese} - {wordmatch.pinyin} - {wordmatch.definition}",
-                    "INFO",
-                )
-                keepword = TerminalOptions(
-                    ["Yes", "No"],
-                    f"Keep Potential Duplicate? - {word.chinese} - {word.pinyin} - {word.definition}",
-                ).get_selected()
-                if keepword == "No":
-                    Logger().insert(f"{word.chinese} not saved.", "INFO")
-                    return True
-            else:
-                return True
-        else:
-            return False
+    # def check_for_dup(self, word, ask_user=True):
+    #     if any(
+    #         (k.chinese == word.chinese and (wordmatch := k)) for k in self.masterdict
+    #     ):
+    #         if ask_user:
+    #             Logger().insert(
+    #                 f"In Dictionary: {wordmatch.chinese} - {wordmatch.pinyin} - {wordmatch.definition}",
+    #                 "INFO",
+    #             )
+    #             keepword = TerminalOptions(
+    #                 ["Yes", "No"],
+    #                 f"Keep Potential Duplicate? - {word.chinese} - {word.pinyin} - {word.definition}",
+    #             ).get_selected()
+    #             if keepword == "No":
+    #                 Logger().insert(f"{word.chinese} not saved.", "INFO")
+    #                 return True
+    #         else:
+    #             return True
+    #     else:
+    #         return False
 
     def add_word(self, word, dups=False):
         if not dups and self.check_for_dup(word):
@@ -96,20 +97,52 @@ class Dictionary:
 
 
 class Word:
-    def __init__(self, chinese, definition, pinyin, audio):
-        self.id = 0
+    def __init__(
+        self,
+        chinese,
+        definition,
+        pinyin,
+        audio,
+        level="",
+        id=0,
+        anki_audio=None,
+        anki_id=None,
+        anki_update=None,
+        local_update=None,
+    ):
+        self.id = id
         self.chinese = chinese
         self.pinyin = pinyin
         self.definition = definition
         self.audio = audio
+        self.level = level
+        self.anki_audio = anki_audio
+        self.anki_id = anki_id
+        self.anki_update = anki_update
+        self.local_update = local_update
 
 
 class Sentence:
-    def __init__(self, word, chinese, english, pinyin, level, audio):
-        self.id = 0
-        self.word = word
+    def __init__(
+        self,
+        chinese,
+        english,
+        pinyin,
+        audio,
+        level="",
+        id=0,
+        anki_audio=None,
+        anki_id=None,
+        anki_update=None,
+        local_update=None,
+    ):
+        self.id = id
         self.chinese = chinese
         self.english = english
         self.pinyin = pinyin
         self.level = level
         self.audio = audio
+        self.anki_audio = anki_audio
+        self.anki_id = anki_id
+        self.anki_update = anki_update
+        self.local_update = local_update

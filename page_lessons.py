@@ -1,8 +1,3 @@
-from add_lessons_dialog import AddLessonsDialog
-from add_words_dialog import AddWordsDialog
-from lesson_scrape_thread import LessonScraperThread
-from multiword_dialog import MultiWordDialog
-from nosents_inclvl_dialog import IncreaseLvlsDialog
 from PySide6.QtCore import QRect, Signal, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -15,6 +10,12 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from add_lessons_dialog import AddLessonsDialog
+from add_words_dialog import AddWordsDialog
+from lesson_scrape_thread import LessonScraperThread
+from multiword_dialog import MultiWordDialog
+from nosents_inclvl_dialog import IncreaseLvlsDialog
 from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread
 from word_table_model import WordTableModel
@@ -28,7 +29,7 @@ class PageLessons(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("lessons_page")
-        with open("./gui/styles/main_screen_widget.css", "r") as ss:
+        with open("./styles/main_screen_widget.css", "r") as ss:
             self.setStyleSheet(ss.read())
         self.label_6 = QLabel()
         self.label_6.setObjectName("label_6")

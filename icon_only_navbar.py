@@ -19,7 +19,7 @@ class IconOnlyNavBar(QWidget):
         self.setObjectName("icon_only_widget")
         self.setMaximumSize(QSize(70, 16777215))
         self.setAttribute(Qt.WA_StyledBackground, True)
-        with open("./gui/styles/icon_only_navbar.css", "r") as ss:
+        with open("./styles/icon_only_navbar.css", "r") as ss:
             self.setStyleSheet(ss.read())
 
         self.icon_nav_vlayout = QVBoxLayout(self)

@@ -20,7 +20,7 @@ class HeaderNavBar(QWidget):
         self.setObjectName("header_widget")
         self.setMaximumSize(QSize(16777215, 175))
         self.setAttribute(Qt.WA_StyledBackground, True)
-        with open("./gui/styles/header_navbar.css", "r") as ss:
+        with open("./styles/header_navbar.css", "r") as ss:
             self.setStyleSheet(ss.read())
 
         sizePolicy = QSizePolicy(

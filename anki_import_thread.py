@@ -1,15 +1,15 @@
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
+from PySide6.QtCore import QObject, QThread, Signal, Slot
+
 from db_manager import DatabaseManager
 from db_query_worker import DBQueryWorker
+from dictionary import Sentence, Word
 from network_thread import NetworkWorker
-from PySide6.QtCore import QObject, QThread, Signal, Slot
 from sentsDAL import SentsDAL
 from session_manager import SessionManger
 from wordsDAL import WordsDAL
-
-from dictionary import Sentence, Word
 
 
 class FindAnkiInLocal(QObject):

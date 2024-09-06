@@ -19,7 +19,7 @@ class IconTextNavBar(QWidget):
         self.setObjectName("icon_text_widget")
         self.setMaximumSize(QSize(250, 16777215))
         self.setAttribute(Qt.WA_StyledBackground, True)
-        with open("./gui/styles/icon_text_navbar.css", "r") as ss:
+        with open("./styles/icon_text_navbar.css", "r") as ss:
             self.setStyleSheet(ss.read())
         icon = QIcon()
         icon.addFile(

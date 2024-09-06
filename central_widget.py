@@ -1,9 +1,10 @@
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QGridLayout, QWidget
+
 from header_navbar import HeaderNavBar
 from icon_only_navbar import IconOnlyNavBar
 from icon_text_navbar import IconTextNavBar
 from main_screen_widget import MainScreenWidget
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QGridLayout, QWidget
 
 
 class CentralWidget(QWidget):
@@ -12,7 +13,7 @@ class CentralWidget(QWidget):
 
         self.setObjectName("centralwidget")
         self.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        with open("./gui/styles/central_widget.css", "r") as ss:
+        with open("./styles/central_widget.css", "r") as ss:
             self.setStyleSheet(ss.read())
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.gridLayout = QGridLayout(self)

@@ -1,9 +1,3 @@
-from add_words_dialog import AddWordsDialog
-from audio_thread import AudioThread
-from db_manager import DatabaseManager
-from db_query_thread import DatabaseQueryThread
-from multiword_dialog import MultiWordDialog
-from nosents_inclvl_dialog import IncreaseLvlsDialog
 from PySide6.QtCore import QRect, Signal, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -16,11 +10,17 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from add_words_dialog import AddWordsDialog
+from audio_thread import AudioThread
+from db_manager import DatabaseManager
+from db_query_thread import DatabaseQueryThread
+from dictionary import Sentence
+from multiword_dialog import MultiWordDialog
+from nosents_inclvl_dialog import IncreaseLvlsDialog
 from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread
 from word_table_model import WordTableModel
-
-from dictionary import Sentence
 
 
 class PageWords(QWidget):
@@ -34,7 +34,7 @@ class PageWords(QWidget):
         self.audio_threads = []
 
         self.setObjectName("words_page")
-        with open("./gui/styles/main_screen_widget.css", "r") as ss:
+        with open("./styles/main_screen_widget.css", "r") as ss:
             self.setStyleSheet(ss.read())
         self.label_6 = QLabel()
         self.label_6.setObjectName("label_6")

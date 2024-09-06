@@ -1,13 +1,13 @@
-import resources_rc as resources_rc
-from central_widget import CentralWidget
-from db_manager import DatabaseManager
-from network_thread import NetworkThread
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QMainWindow
-from session_manager import SessionManger
 
+import resources_rc as resources_rc
+from central_widget import CentralWidget
+from db_manager import DatabaseManager
 from keys import keys
+from network_thread import NetworkThread
+from session_manager import SessionManger
 
 
 class MainWindow(QMainWindow):
@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
         font = QFont()
         font.setFamilies([".AppleSystemUIFont"])
         self.setFont(font)
-        with open("./gui/styles/main_window.css", "r") as ss:
+        with open("./styles/main_window.css", "r") as ss:
             self.setStyleSheet(ss.read())
         self.centralwidget = CentralWidget()
 

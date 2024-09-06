@@ -4,11 +4,11 @@ from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
 from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal, Slot
-from session_manager import SessionManger
 
 from cpod_scrape import ScrapeCpod
 from keys import keys
 from md_scrape import ScrapeMd
+from session_manager import SessionManger
 
 
 class WordScraperThread(QThread):
