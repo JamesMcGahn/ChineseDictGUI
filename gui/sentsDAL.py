@@ -3,7 +3,7 @@ class SentsDAL:
         self.db_manager = db_manager
 
     def insert_sentence(self, sentence):
-        query = "INSERT INTO sentences (chinese, english, pinyin, audio, level) VALUES (?,?,?,?,?)"
+        query = "INSERT INTO sentences (chinese, english, pinyin, audio, level,anki_audio, anki_id, anki_update) VALUES (?,?,?,?,?,?,?,?)"
         return self.db_manager.execute_query(
             query,
             (
@@ -12,6 +12,9 @@ class SentsDAL:
                 sentence.pinyin,
                 sentence.audio,
                 sentence.level,
+                sentence.anki_audio,
+                sentence.anki_id,
+                sentence.anki_update,
             ),
         )
 
@@ -47,3 +50,7 @@ class SentsDAL:
     def get_sentences_table_count(self):
         query = "SELECT COUNT(*) FROM sentences;"
         return self.db_manager.execute_query(query)
+
+    def get_sentence_by_ankiid(self, anki_id):
+        query = "SELECT * FROM sentences WHERE anki_id = ?"
+        return self.db_manager.execute_query(query, (anki_id,))

@@ -1,36 +1,21 @@
-import concurrent.futures
-import os
 import threading
-import time
-from concurrent.futures import Future, ThreadPoolExecutor
-from random import randint
+from concurrent.futures import ThreadPoolExecutor
 
-import PySide6.QtConcurrent
-from bs4 import BeautifulSoup
 from db_manager import DatabaseManager
+from db_query_worker import DBQueryWorker
 from network_thread import NetworkWorker
-from PySide6.QtCore import (
-    QMutex,
-    QMutexLocker,
-    QObject,
-    QThread,
-    QWaitCondition,
-    Signal,
-    Slot,
-)
+from PySide6.QtCore import QObject, QThread, Signal, Slot
 from sentsDAL import SentsDAL
 from session_manager import SessionManger
 from wordsDAL import WordsDAL
 
-from cpod_scrape import ScrapeCpod
-from dictionary import Word
-from keys import keys
-from web_scrape import WebScrape
-from write_file import WriteFile
+from dictionary import Sentence, Word
 
 
 class FindAnkiInLocal(QObject):
     response_sig = Signal(str, object, str)
+
+    finished = Signal()
 
     def __init__(self, db_manager, ankiIds, dtype="words"):
         super().__init__()
@@ -52,7 +37,7 @@ class FindAnkiInLocal(QObject):
             if self.dtype == "words":
                 result = wd.get_word_by_ankiid(id)
             else:
-                result = sd.get_sent_by_ankiid(id)
+                result = sd.get_sentence_by_ankiid(id)
 
             if result.fetchone() is None:
                 no_db_matches.append(id)
@@ -66,71 +51,51 @@ class FindAnkiInLocal(QObject):
         }
 
         if len(no_db_matches) == 0:
-            print("no words found")
+            self.response_sig.emit("success", None, None)
+            self.finished.emit()
             return
+
         sess = SessionManger()
         self.net_worker = NetworkWorker(
             sess, "GET", "http://127.0.0.1:8765", json=json, timeout=60
         )
         self.net_worker.moveToThread(self.thread())
-        print(self.thread())
         self.net_worker.response_sig.connect(self.notes_response)
         self.net_worker.error_sig.connect(self.notes_response)
-        print("doo")
+
         self.net_worker.do_work()
 
     @Slot(str, object, str)
     def notes_response(self, status, response, errorType=None):
-        print("dsssdsds")
         res = response
         if status == "error" or res.json()["error"] is not None:
             print(status, response, errorType)
             self.response_sig.emit(status, None, errorType)
         else:
-            print("ererererere")
             print(res)
             self.response_sig.emit(status, res.json(), errorType)
 
+        self.finished.emit()
+
 
 class AnkiImportThread(QThread):
-    data_scraped = Signal(str)
-    md_thd_multi_words_sig = Signal(list)
-    md_use_cpod_w_sig = Signal(object)
-    send_words_sig = Signal(list)
-    no_sents_inc_levels = Signal(list)
-    send_sents_sig = Signal(object)
+    finished = Signal()
 
-    def __init__(self):
+    def __init__(self, dname, dtype="words"):
         super().__init__()
-
-        self.user_use_cpod_sel = False
-
-        self.cpod_word = None
-        self.user_md_multi = None
-        self.scraped_data = set()
-        self._mutex = QMutex()
-
-        self._wait_condition = QWaitCondition()
-        self._stop = False
-        self._paused = False
-        self.user_update_levels = False
-        self.new_level_selection = None
+        self.dtype = dtype
+        self.dname = dname
 
     def run(self):
-        print("starting thread")
-
         sess = SessionManger()
         json = {
             "action": "findNotes",
             "version": 6,
-            "params": {"query": 'deck:"Mandarin Words"'},
+            "params": {"query": f'deck:"{self.dname}"'},
         }
-        # response = sess.get("http://127.0.0.1:8765", json=json)
-        # response = response.json()
 
         net_worker = NetworkWorker(sess, "GET", "http://127.0.0.1:8765", json=json)
 
-        # net_worker.finished.connect(net_worker.deleteLater)
         net_worker.response_sig.connect(self.received_response)
         net_worker.error_sig.connect(self.received_response)
         net_worker.moveToThread(self.thread())
@@ -138,39 +103,34 @@ class AnkiImportThread(QThread):
         self.executor = ThreadPoolExecutor(max_workers=4)
         self.executor.submit(net_worker.do_work)
 
-        # print(response)
-        # if response["error"] is not None:
-        #     # TODO: handle error properly
-        #     print("error getting deck")
-
-        # print(response["result"][0])
-
     def received_response(self, status, response, errorType=None):
-        print("hi")
         if status == "error":
             print(status, response, errorType)
         else:
             ankiIds = response.json()["result"]
+            print(ankiIds)
             db = DatabaseManager("chineseDict.db")
-            self.worker = FindAnkiInLocal(db, ankiIds)
+            self.worker = FindAnkiInLocal(db, ankiIds, dtype=self.dtype)
             self.worker.moveToThread(self.thread())
             self.worker.response_sig.connect(self.notes_response)
 
-            # self.worker.do_work()
+            # self.worker.do_work
 
             self.executor.submit(self.worker.do_work)
             # anki worker here
 
     def notes_response(self, status, response, errorType=None):
-        print("heehheheeh")
-
-        words = response["result"]
+        print("here")
         db = DatabaseManager("chineseDict.db")
-        db.connect()
-        wd = WordsDAL(db)
-        db.begin_transaction()
-        for word in words:
-            wd.insert_word(
+        print("ss", response)
+
+        if status == "success" and response is None:
+            print("Nothing to add")
+            self.finished.emit()
+            return
+
+        if self.dtype == "words":
+            words = [
                 Word(
                     chinese=word["fields"]["中文"]["value"],
                     pinyin=word["fields"]["Pinyin"]["value"],
@@ -181,11 +141,39 @@ class AnkiImportThread(QThread):
                     anki_id=word["noteId"],
                     anki_update=word["mod"],
                 )
+                for word in response["result"]
+            ]
+            self.dbworker = DBQueryWorker(
+                db,
+                "insert_words",
+                words=words,
             )
-        db.commit_transaction()
+        else:
+            sents = [
+                Sentence(
+                    chinese=sent["fields"]["中文"]["value"],
+                    pinyin=sent["fields"]["Pinyin"]["value"],
+                    english=sent["fields"]["English"]["value"],
+                    audio=None,
+                    level=sent["fields"]["Notes"]["value"],
+                    anki_audio=sent["fields"]["audio"]["value"],
+                    anki_id=sent["noteId"],
+                    anki_update=sent["mod"],
+                )
+                for sent in response["result"]
+            ]
+            self.dbworker = DBQueryWorker(
+                db,
+                "insert_sentences",
+                sentences=sents,
+            )
 
-    def resume(self):
-        self.mutex.lock()
-        self.paused = False
-        self.wait_condition.wakeAll()
-        self.mutex.unlock()
+        self.dbworker.moveToThread(self.thread())
+        self.dbworker.do_work()
+        self.dbworker.finished.connect(self.quit)
+        self.dbworker.error_occurred.emit(self.error_occured)
+        self.dbworker.finished.connect(self.dbworker.deleteLater)
+        self.finished.emit()
+
+    def error_occured(self, message):
+        print(message)

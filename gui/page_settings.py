@@ -63,5 +63,10 @@ class PageSettings(QWidget):
         self.import_deck_btn.clicked.connect(self.import_anki_deck)
 
     def import_anki_deck(self):
-        self.import_anki = AnkiImportThread()
-        self.import_anki.run()
+        self.import_anki_w = AnkiImportThread("Mandarin Words", "words")
+        self.import_anki_w.run()
+        self.import_anki_w.finished.connect(self.import_anki_sents)
+
+    def import_anki_sents(self):
+        self.import_anki_s = AnkiImportThread("Mandarin 10k Sentences", "sents")
+        self.import_anki_s.run()
