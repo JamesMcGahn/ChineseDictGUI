@@ -116,7 +116,7 @@ class Word:
         self.audio = audio
         self.level = level
         self.anki_audio = anki_audio
-        self.anki_audio = anki_id
+        self.anki_id = anki_id
         self.anki_update = anki_update
 
 
@@ -140,5 +140,5 @@ class Sentence:
         self.level = level
         self.audio = audio
         self.anki_audio = anki_audio
-        self.anki_audio = anki_id
+        self.anki_id = anki_id
         self.anki_update = anki_update
