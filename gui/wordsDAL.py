@@ -3,7 +3,7 @@ class WordsDAL:
         self.db_manager = db_manager
 
     def insert_word(self, word):
-        query = "INSERT INTO words (chinese, pinyin, definition, audio, level) VALUES (?,?,?,?,?)"
+        query = "INSERT INTO words (chinese, pinyin, definition, audio, level, anki_audio, anki_id, anki_update) VALUES (?,?,?,?,?,?,?,?)"
         return self.db_manager.execute_query(
             query,
             (
@@ -12,6 +12,9 @@ class WordsDAL:
                 word.definition,
                 word.audio,
                 word.level,
+                word.anki_audio,
+                word.anki_id,
+                word.anki_update,
             ),
         )
 
@@ -50,4 +53,4 @@ class WordsDAL:
 
     def get_word_by_ankiid(self, anki_id):
         query = "SELECT * FROM words WHERE anki_id = ?"
-        return self.db_manager.execute_query(query, anki_id)
+        return self.db_manager.execute_query(query, (anki_id,))
