@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from add_words_dialog import AddWordsDialog
 from anki_import_thread import AnkiImportThread
 from lesson_scrape_thread import LessonScraperThread
 from multiword_dialog import MultiWordDialog

@@ -1,10 +1,8 @@
-from PySide6.QtCore import QFile, QIODevice, QTextStream, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
     QDialog,
-    QFileDialog,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -16,17 +14,13 @@ from PySide6.QtWidgets import (
 )
 
 
-class AddWordsDialog(QDialog):
-    add_words_submited_signal = Signal(dict)
-
-    def __init__(self, word_list=None):
+class AddWordsDialogView(QDialog):
+    def __init__(self):
         super().__init__()
-        self.word_list = word_list
-        self.definition_source = "Cpod"
-        self.save_sentences = False
-        self.level_selection = False
+        self.init_ui()
 
-        self.dialog_vlayout = QVBoxLayout(self)
+    def init_ui(self):
+        self.dialog_vlayout = QVBoxLayout()
         self.dialog_vlayout.setSpacing(6)
         self.dialog_vlayout.setContentsMargins(11, 11, 11, 11)
         self.dialog_vlayout.setObjectName("dialog_vlayout")
@@ -39,9 +33,6 @@ class AddWordsDialog(QDialog):
         self.text_edit_horz_layout.setObjectName("text_edit_horz_layout")
         self.textEdit = QTextEdit()
         self.textEdit.setObjectName("textEdit")
-
-        if word_list is not None:
-            self.textEdit.setText(self.word_list)
 
         self.r_btn_vert_layout = QVBoxLayout()
         self.r_btn_vert_layout.setSpacing(6)
@@ -86,13 +77,13 @@ class AddWordsDialog(QDialog):
             ]
         )
 
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.submit_cnl_h_layout = QHBoxLayout()
+        self.submit_cnl_h_layout.setObjectName("submit_cnl_h_layout")
         self.horizontalSpacer = QSpacerItem(
             40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum
         )
 
-        self.horizontalLayout_3.addItem(self.horizontalSpacer)
+        self.submit_cnl_h_layout.addItem(self.horizontalSpacer)
 
         self.submit_btn = QPushButton("Submit")
         self.submit_btn.setObjectName("submit_button")
@@ -100,8 +91,8 @@ class AddWordsDialog(QDialog):
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setObjectName("cancel_button")
 
-        self.horizontalLayout_3.addWidget(self.cancel_btn)
-        self.horizontalLayout_3.addWidget(self.submit_btn)
+        self.submit_cnl_h_layout.addWidget(self.cancel_btn)
+        self.submit_cnl_h_layout.addWidget(self.submit_btn)
 
         self.filt_sents_lb.setHidden(True)
         self.filt_sents_cb.setHidden(True)
@@ -124,84 +115,6 @@ class AddWordsDialog(QDialog):
         self.dialog_vlayout.addLayout(self.filt_sents_hlayout)
         self.dialog_vlayout.addWidget(self.sent_filt_lb)
         self.dialog_vlayout.addWidget(self.sent_filt_ql)
-        self.dialog_vlayout.addLayout(self.horizontalLayout_3)
+        self.dialog_vlayout.addLayout(self.submit_cnl_h_layout)
 
-        self.def_src_combo.currentTextChanged.connect(self.def_src_combo_changed)
-        self.read_button.clicked.connect(self.read_button_clicked)
-
-        self.ex_sents_cb.toggled.connect(self.ex_sents_cb_toggle)
-        self.filt_sents_cb.toggled.connect(self.filt_sents_cb_toggle)
-
-        self.sent_filt_ql.itemSelectionChanged.connect(self.sent_filt_ql_changed)
-
-        self.submit_btn.clicked.connect(self.submit_btn_clicked)
-        self.cancel_btn.clicked.connect(self.cancel_btn_clicked)
-
-    def read_button_clicked(self):
-        file_content = ""
-        file_name, _ = QFileDialog.getOpenFileName(
-            self, "Open File", "./", "Text(*.txt)"
-        )
-        if file_name == "":
-            return
-        print("filename", file_name)
-        file = QFile(file_name)
-        if not file.open(QIODevice.ReadOnly | QIODevice.Text):
-            return
-        in_stream = QTextStream(file)
-        while not in_stream.atEnd():
-            line = in_stream.readLine()
-            file_content += line
-            file_content += "\n"
-        file.close()
-        self.textEdit.clear()
-
-        self.textEdit.setText(file_content)
-
-    def ex_sents_cb_toggle(self, checked):
-        if checked:
-            self.filt_sents_cb.setHidden(False)
-            self.filt_sents_lb.setHidden(False)
-            self.save_sentences = True
-        else:
-            self.filt_sents_cb.setHidden(True)
-            self.filt_sents_lb.setHidden(True)
-            self.save_sentences = False
-
-    def filt_sents_cb_toggle(self, checked):
-        if checked:
-            self.sent_filt_lb.setHidden(False)
-            self.sent_filt_ql.setHidden(False)
-        else:
-            self.sent_filt_lb.setHidden(True)
-            self.sent_filt_ql.setHidden(True)
-            self.level_selection = False
-
-    def sent_filt_ql_changed(self):
-        self.level_selection = [x.text() for x in self.sent_filt_ql.selectedItems()]
-
-    def def_src_combo_changed(self, selection):
-        self.definition_source = selection
-
-    def cancel_btn_clicked(self):
-        self.reject()
-
-    def submit_btn_clicked(self):
-        self.form = {
-            "word_list": self.textEdit.toPlainText().split("\n"),
-            "definition_source": self.definition_source,
-            "save_sentences": self.save_sentences,
-            "level_selection": self.level_selection,
-        }
-        self.add_words_submited_signal.emit(self.form)
-        self.textEdit.clear()
-        self.word_list = []
-        self.definition_source = "Cpod"
-        self.def_src_combo.setCurrentIndex(0)
-        self.ex_sents_cb.setChecked(False)
-        self.save_sentences = False
-        self.filt_sents_cb.setChecked(False)
-        self.sent_filt_ql.clearSelection()
-        self.level_selection = False
-
-        self.accept()
+        self.setLayout(self.dialog_vlayout)

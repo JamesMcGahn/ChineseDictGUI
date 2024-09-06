@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from add_words_dialog import AddWordsDialog
+from components.dialogs import AddWordsDialog
 from db_manager import DatabaseManager
 from db_query_thread import DatabaseQueryThread
 from multiword_dialog import MultiWordDialog
