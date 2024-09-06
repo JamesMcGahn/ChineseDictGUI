@@ -1,3 +1,5 @@
+from time import time
+
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
 
 from dictionary import Sentence
@@ -9,6 +11,9 @@ class SentenceTableModel(QAbstractTableModel):
     def __init__(self, sentences=None):
         super().__init__()
         self.sentences = sentences if sentences is not None else []
+
+    def current_timestamp(self):
+        return int(time())
 
     def rowCount(self, parent=None):
         return len(self.sentences)
@@ -101,6 +106,7 @@ class SentenceTableModel(QAbstractTableModel):
                 sentence.level = value
             elif index.column() == 5:
                 sentence.audio = value
+            sentence.local_update = self.current_timestamp()
             self.dataChanged.emit()
             return True
         return False

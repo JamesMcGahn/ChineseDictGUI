@@ -1,3 +1,5 @@
+from time import time
+
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
 
 from dictionary import Word
@@ -10,6 +12,9 @@ class WordTableModel(QAbstractTableModel):
     def __init__(self, words=None):
         super().__init__()
         self.words = words if words is not None else []
+
+    def current_timestamp(self):
+        return int(time())
 
     def rowCount(self, parent=None):
         return len(self.words)
@@ -102,6 +107,7 @@ class WordTableModel(QAbstractTableModel):
                 word.level = value
             elif index.column() == 5:
                 word.audio = value
+            word.local_update = self.current_timestamp()
             self.dataChanged.emit()
             self.wordUpdated.emit(word)
             return True

@@ -108,6 +108,7 @@ class Word:
         anki_audio=None,
         anki_id=None,
         anki_update=None,
+        local_update=None,
     ):
         self.id = id
         self.chinese = chinese
@@ -118,6 +119,7 @@ class Word:
         self.anki_audio = anki_audio
         self.anki_id = anki_id
         self.anki_update = anki_update
+        self.local_update = local_update
 
 
 class Sentence:
@@ -132,6 +134,7 @@ class Sentence:
         anki_audio=None,
         anki_id=None,
         anki_update=None,
+        local_update=None,
     ):
         self.id = id
         self.chinese = chinese
@@ -142,3 +145,4 @@ class Sentence:
         self.anki_audio = anki_audio
         self.anki_id = anki_id
         self.anki_update = anki_update
+        self.local_update = local_update
