@@ -3,11 +3,11 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QMainWindow
 
 import resources_rc as resources_rc
-from central_widget import CentralWidget
 from db.db_manager import DatabaseManager
 from keys import keys
 from network_thread import NetworkThread
 from session_manager import SessionManger
+from views.central_widget import CentralWidget
 
 
 class MainWindow(QMainWindow):

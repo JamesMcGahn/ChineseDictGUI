@@ -5,14 +5,14 @@ from views import MainScreen
 from views.navbars import HeaderNavBar, IconOnlyNavBar, IconTextNavBar
 
 
-class CentralWidget(QWidget):
+class CentralWidgetView(QWidget):
     def __init__(self):
         super().__init__()
+        self.init_ui()
 
-        self.setObjectName("centralwidget")
+    def init_ui(self):
         self.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        with open("./styles/central_widget.css", "r") as ss:
-            self.setStyleSheet(ss.read())
+
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.gridLayout = QGridLayout(self)
         self.gridLayout.setSpacing(0)
@@ -30,20 +30,3 @@ class CentralWidget(QWidget):
         self.gridLayout.addWidget(self.icon_text_widget, 0, 2, 3, 1)
         self.gridLayout.addWidget(self.header_widget, 0, 3, 1, 1)
         self.setLayout(self.gridLayout)
-
-        self.header_widget.hamburger_signal.connect(self.icon_only_widget.hide_nav)
-        self.header_widget.hamburger_signal.connect(self.icon_text_widget.hide_nav)
-
-        self.icon_only_widget.btn_checked_ico.connect(
-            self.icon_text_widget.btns_set_checked
-        )
-        self.icon_text_widget.btn_checked_ict.connect(
-            self.icon_only_widget.btns_set_checked
-        )
-
-        self.icon_only_widget.btn_clicked_page.connect(
-            self.main_screen_widget.change_page
-        )
-        self.icon_text_widget.btn_clicked_page.connect(
-            self.main_screen_widget.change_page
-        )
