@@ -8,9 +8,8 @@ from components.dialogs import (
     MultiWordDialog,
 )
 from lesson_scrape_thread import LessonScraperThread
-from sents_table_model import SentenceTableModel
+from models.table import SentenceTableModel, WordTableModel
 from word_scrape_thread import WordScraperThread
-from word_table_model import WordTableModel
 
 from .page_lessons_ui import PageLessonsView
 

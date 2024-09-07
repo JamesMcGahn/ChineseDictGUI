@@ -4,8 +4,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 from components.toasts import QToast
 from db.db_manager import DatabaseManager
 from db_query_thread import DatabaseQueryThread
-from sents_table_model import SentenceTableModel
-from word_table_model import WordTableModel
+from models.table import SentenceTableModel, WordTableModel
 
 from .page_dictionary_ui import PageDictionaryView
 

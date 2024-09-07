@@ -13,9 +13,8 @@ from PySide6.QtWidgets import (
 
 from anki_import_thread import AnkiImportThread
 from lesson_scrape_thread import LessonScraperThread
-from sents_table_model import SentenceTableModel
+from models.table import SentenceTableModel, WordTableModel
 from word_scrape_thread import WordScraperThread
-from word_table_model import WordTableModel
 
 
 class PageSettings(QWidget):

@@ -6,9 +6,8 @@ from components.dialogs import AddWordsDialog, IncreaseLvlsDialog, MultiWordDial
 from db.db_manager import DatabaseManager
 from db_query_thread import DatabaseQueryThread
 from dictionary import Sentence
-from sents_table_model import SentenceTableModel
+from models.table import SentenceTableModel, WordTableModel
 from word_scrape_thread import WordScraperThread
-from word_table_model import WordTableModel
 
 from .page_words_ui import PageWordsView
 
