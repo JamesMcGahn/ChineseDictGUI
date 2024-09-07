@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGridLayout, QWidget
 
-from header_navbar import HeaderNavBar
+from components.navbars import HeaderNavBar
 from icon_only_navbar import IconOnlyNavBar
 from icon_text_navbar import IconTextNavBar
 from main_screen_widget import MainScreenWidget

@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
@@ -12,41 +14,46 @@ from PySide6.QtWidgets import (
 )
 
 
-class HeaderNavBar(QWidget):
-    hamburger_signal = Signal(bool)
-
+class HeaderNavBarView(QWidget):
     def __init__(self):
         super().__init__()
-        self.setObjectName("header_widget")
+        self.init_ui()
+
+    def init_ui(self):
         self.setMaximumSize(QSize(16777215, 175))
         self.setAttribute(Qt.WA_StyledBackground, True)
-        with open("./styles/header_navbar.css", "r") as ss:
+        module_dir = os.path.dirname(os.path.realpath(__file__))
+        file_path = os.path.join(module_dir, "header_navbar.css")
+
+        with open(file_path, "r") as ss:
             self.setStyleSheet(ss.read())
 
         sizePolicy = QSizePolicy(
             QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred
         )
 
-        self.verticalLayout_7 = QVBoxLayout(self)
-        self.verticalLayout_7.setObjectName("verticalLayout_7")
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.verticalLayout_3 = QVBoxLayout()
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.label = QLabel(self)
-        self.label.setObjectName("label")
-        self.label.setStyleSheet("text-align: right;")
-        self.label.setPixmap(QPixmap(":/ /images/logo.png"))
+        self.navbar_vlayout = QVBoxLayout(self)
+        self.navbar_vlayout.setObjectName("navbar_vlayout")
 
-        self.verticalLayout_3.addWidget(self.label)
+        self.inner_cont_hlayout = QHBoxLayout()
+        self.inner_cont_hlayout.setObjectName("inner_cont_hlayout")
 
-        self.horizontalLayout_2.addLayout(self.verticalLayout_3)
+        self.app_logo_vlayout = QVBoxLayout()
+        self.app_logo_vlayout.setObjectName("app_logo_vlayout")
+
+        self.app_logo = QLabel(self)
+        self.app_logo.setObjectName("app_logo")
+        self.app_logo.setStyleSheet("text-align: right;")
+        self.app_logo.setPixmap(QPixmap(":/ /images/logo.png"))
+
+        self.app_logo_vlayout.addWidget(self.app_logo)
 
         self.horizontalSpacer_3 = QSpacerItem(
             558, 18, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
         )
 
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_3)
+        self.inner_cont_hlayout.addLayout(self.app_logo_vlayout)
+        self.inner_cont_hlayout.addItem(self.horizontalSpacer_3)
 
         self.lineEdit = QLineEdit(self)
         self.lineEdit.setObjectName("lineEdit")
@@ -62,7 +69,7 @@ class HeaderNavBar(QWidget):
             "}"
         )
 
-        self.horizontalLayout_2.addWidget(self.lineEdit)
+        self.inner_cont_hlayout.addWidget(self.lineEdit)
 
         self.hamburger_icon_btn = QPushButton(self)
         self.hamburger_icon_btn.setObjectName("hamburger-icon-btn")
@@ -80,11 +87,6 @@ class HeaderNavBar(QWidget):
         self.hamburger_icon_btn.setIconSize(QSize(29, 35))
         self.hamburger_icon_btn.setCheckable(True)
 
-        self.horizontalLayout_2.addWidget(self.hamburger_icon_btn)
+        self.inner_cont_hlayout.addWidget(self.hamburger_icon_btn)
 
-        self.verticalLayout_7.addLayout(self.horizontalLayout_2)
-
-        self.hamburger_icon_btn.toggled.connect(self.hamburger_icon_btn_toggled)
-
-    def hamburger_icon_btn_toggled(self):
-        self.hamburger_signal.emit(self.hamburger_icon_btn.isChecked())
+        self.navbar_vlayout.addLayout(self.inner_cont_hlayout)
