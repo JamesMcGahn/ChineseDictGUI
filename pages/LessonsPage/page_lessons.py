@@ -1,9 +1,13 @@
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 
-from components.dialogs import AddLessonsDialog, AddWordsDialog, IncreaseLvlsDialog
+from components.dialogs import (
+    AddLessonsDialog,
+    AddWordsDialog,
+    IncreaseLvlsDialog,
+    MultiWordDialog,
+)
 from lesson_scrape_thread import LessonScraperThread
-from multiword_dialog import MultiWordDialog
 from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread
 from word_table_model import WordTableModel

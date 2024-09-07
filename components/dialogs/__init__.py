@@ -6,3 +6,6 @@ from .AddWordDialog import AddWordsDialog
 
 # trunk-ignore(ruff/F401)
 from .IncreaseLvlsDialog import IncreaseLvlsDialog
+
+# trunk-ignore(ruff/F401)
+from .MultiWordDialog import MultiWordDialog
