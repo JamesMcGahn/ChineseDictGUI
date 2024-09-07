@@ -65,7 +65,7 @@ class WebScrape:
                     "Expansion": "expansion",
                     "Grammar": "lesson-grammar",
                 }
-                self.driver.implicitly_wait(20)
+                self.driver.implicitly_wait(120)
                 self.driver.find_element(By.ID, ids[content])
 
             for link in ("Dialogue", "Vocabulary", "Expansion", "Grammar"):

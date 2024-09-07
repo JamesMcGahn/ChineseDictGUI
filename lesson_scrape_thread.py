@@ -54,9 +54,10 @@ class LessonScraperThread(QThread):
 
                 while self._paused:
                     self._wait_condition.wait(self._mutex)  # Wait until resumed
-            print("herre")
+
             wb.run_webdriver(c_lesson)
             lesson = wb.get_source()
+
             tempfile_path = WriteFile.write_file(
                 "./data/temp/temp.html", lesson["source"]
             )
@@ -65,28 +66,34 @@ class LessonScraperThread(QThread):
             soup = BeautifulSoup(data, "html.parser")
             wcpod = ScrapeCpod(soup)
 
-            wcpod.scrape_dialogues()
-            dialogues = wcpod.get_dialogues()
-            print(dialogues)
-            self.send_sents_sig.emit(dialogues)
+            sentences = []
 
-            if "Vocabulary" not in lesson["not_available"]:
-                words = wcpod.scrape_lesson_vocab()
-                print(words)
-                # TODO check for duplicates here or somewhere else
-                # TODO send back words to page ->new thread to better definitions/audio
-                self.send_words_sig.emit(words)
+            if "Dialogue" not in lesson["not_available"]:
+                wcpod.scrape_dialogues()
+                dialogues = wcpod.get_dialogues()
+                sentences.extend(dialogues)
 
             if "Expansion" not in lesson["not_available"]:
                 wcpod.scrape_expansion()
                 expand = wcpod.get_expansion()
                 # TODO send sentences
-                self.send_sents_sig.emit(expand)
+                sentences.extend(expand)
 
             if "Grammar" not in lesson["not_available"]:
                 wcpod.scrape_lesson_grammar()
                 grammar = wcpod.get_grammar()
-                self.send_sents_sig.emit(grammar)
+                sentences.extend(grammar)
+
+            self.send_sents_sig.emit(sentences)
+
+            if "Vocabulary" not in lesson["not_available"]:
+                words = wcpod.scrape_lesson_vocab()
+
+                # TODO check for duplicates here or somewhere else
+                # TODO send back words to page ->new thread to better definitions/audio
+                self.send_words_sig.emit(words)
+            else:
+                self.send_words_sig.emit([])
 
             try:
                 os.remove(tempfile_path)

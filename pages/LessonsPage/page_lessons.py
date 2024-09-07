@@ -32,10 +32,12 @@ class PageLessons(QWidget):
         self.ui.table_view_s.setModel(self.table_sentmodel)
         self.ui.table_view_w.setModel(self.table_wordmodel)
         self.dialog = AddLessonsDialog()
+        self.dialog.add_lesson_submited_signal.connect(self.get_dialog_submitted)
+        self.dialog.add_lesson_closed.connect(self.add_word_dialog_closed)
 
         self.ui.stacked_widget.setCurrentIndex(1)
         self.ui.addwords_btn.clicked.connect(self.addwords_btn_clicked)
-        self.dialog.add_lesson_submited_signal.connect(self.get_dialog_submitted)
+
         self.ui.words_table_btn.clicked.connect(self.change_table)
         self.ui.sents_table_btn.clicked.connect(self.change_table)
 
@@ -62,6 +64,10 @@ class PageLessons(QWidget):
         self.lesson_scrape_thread.send_sents_sig.connect(
             self.get_sentences_from_thread_loop
         )
+
+    @Slot()
+    def add_word_dialog_closed(self):
+        self.lesson_scrape_thread.deleteLater()
 
     @Slot(list)
     def get_dialog_mdmulti(self, words):
@@ -94,14 +100,14 @@ class PageLessons(QWidget):
         print("page-word-received", words)
         if len(words) == 0:
             self.lesson_scrape_thread.deleteLater()
-            return
-        selection = "".join(f"{word.chinese}\n" for word in words)
-        self.wdialog = AddWordsDialog(selection)
-        self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)
-        self.lesson_scrape_thread.deleteLater()
-        # TODO Filter words out that arent already in db
-        self.wdialog.exec()
-        # self.table_wordmodel.add_word(word)
+        else:
+            selection = "".join(f"{word.chinese}\n" for word in words)
+            self.wdialog = AddWordsDialog(selection)
+            self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)
+
+            # TODO Filter words out that arent already in db
+            self.wdialog.exec()
+            # self.table_wordmodel.add_word(word)
 
     @Slot(object)
     def get_word_from_thread_loop(self, word):
@@ -118,7 +124,7 @@ class PageLessons(QWidget):
             form_data["level_selection"],
         )
         # TODO add list to the screen
-
+        self.lesson_scrape_thread.deleteLater()
         self.word_scrape_thread.start()
         self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
         self.md_multi_selection_sig.connect(self.word_scrape_thread.get_md_user_select)

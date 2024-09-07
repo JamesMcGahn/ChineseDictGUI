@@ -6,6 +6,7 @@ from .add_lessons_dialog_ui import AddLessonsDialogView
 
 class AddLessonsDialog(QWidget):
     add_lesson_submited_signal = Signal(list)
+    add_lesson_closed = Signal()
 
     def __init__(self):
         super().__init__()
