@@ -1,11 +1,11 @@
-# trunk-ignore(ruff/F401)
 from .AddLessonDialog import AddLessonsDialog
-
-# trunk-ignore(ruff/F401)
 from .AddWordDialog import AddWordsDialog
-
-# trunk-ignore(ruff/F401)
 from .IncreaseLvlsDialog import IncreaseLvlsDialog
-
-# trunk-ignore(ruff/F401)
 from .MultiWordDialog import MultiWordDialog
+
+__all__ = [
+    "AddLessonsDialog",
+    "AddWordsDialog",
+    "IncreaseLvlsDialog",
+    "MultiWordDialog",
+]
