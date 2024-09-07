@@ -1,15 +1,5 @@
-from PySide6.QtCore import QRect, Signal, Slot
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QLabel,
-    QMessageBox,
-    QPushButton,
-    QStackedWidget,
-    QTableView,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtCore import Signal, Slot
+from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 
 from audio_thread import AudioThread
 from components.dialogs import AddWordsDialog, IncreaseLvlsDialog
@@ -21,6 +11,8 @@ from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread
 from word_table_model import WordTableModel
 
+from .page_words_ui import PageWordsView
+
 
 class PageWords(QWidget):
     md_multi_selection_sig = Signal(int)
@@ -29,96 +21,41 @@ class PageWords(QWidget):
 
     def __init__(self):
         super().__init__()
-
+        self.ui = PageWordsView()
         self.audio_threads = []
 
-        self.setObjectName("words_page")
-        with open("./styles/main_screen_widget.css", "r") as ss:
-            self.setStyleSheet(ss.read())
-        self.label_6 = QLabel()
-        self.label_6.setObjectName("label_6")
-        self.label_6.setGeometry(QRect(280, 330, 221, 81))
-        self.label_6.setText("words page")
-        font1 = QFont()
-
-        font1.setPointSize(25)
-        self.label_6.setFont(font1)
-
-        self.addwords_btn = QPushButton("Add words")
-
-        self.words_page_vlayout = QVBoxLayout(self)
-        self.words_page_vlayout.addWidget(self.addwords_btn)
-        self.words_page_vlayout.addWidget(self.label_6)
-
-        self.horizontal_btn_layout = QHBoxLayout()
-        self.words_table_btn = QPushButton("Words")
-        self.words_table_btn.setObjectName("words_table_btn")
-        self.sents_table_btn = QPushButton("Sents")
-        self.sents_table_btn.setObjectName("sents_table_btn")
-        self.horizontal_btn_layout.addWidget(self.words_table_btn)
-        self.horizontal_btn_layout.addWidget(self.sents_table_btn)
-
-        self.words_page_vlayout.addLayout(self.horizontal_btn_layout)
-        # Stacked Widget
-        self.stacked_widget = QStackedWidget()
-
-        # WordsTable
-        self.words_table = QWidget()
-        self.save_btn_words = QPushButton("Save Selected")
-        self.select_all_w = QPushButton("Select All")
-        self.words_table_vlayout = QVBoxLayout(self.words_table)
-        self.words_table_vlayout.addWidget(self.save_btn_words)
-        self.words_table_vlayout.addWidget(self.select_all_w)
         self.table_wordmodel = WordTableModel()
-        self.table_view_w = QTableView()
-        self.table_view_w.setSelectionBehavior(QTableView.SelectRows)
-        self.table_view_w.setModel(self.table_wordmodel)
-        self.table_view_w.show()
-        self.words_table_vlayout.addWidget(self.table_view_w)
-        self.stacked_widget.addWidget(self.words_table)
-
-        # SentenceTable
-        self.sents_table = QWidget()
-        self.label = QLabel("dsd")
-        self.save_btn_sents = QPushButton("Save Selected")
-        self.select_all_s = QPushButton("Select All")
-
-        self.sents_table_vlayout = QVBoxLayout(self.sents_table)
-        self.sents_table_vlayout.addWidget(self.save_btn_sents)
-        self.sents_table_vlayout.addWidget(self.select_all_s)
         self.table_sentmodel = SentenceTableModel()
-        self.table_view_s = QTableView()
-        self.table_view_s.setSelectionBehavior(QTableView.SelectRows)
-        self.table_view_s.setModel(self.table_sentmodel)
-        self.table_view_s.show()
-        self.sents_table_vlayout.addWidget(self.label)
-        self.sents_table_vlayout.addWidget(self.table_view_s)
-        self.stacked_widget.addWidget(self.sents_table)
+        self.ui.table_view_w.setModel(self.table_wordmodel)
+        self.ui.table_view_s.setModel(self.table_sentmodel)
 
-        self.words_page_vlayout.addWidget(self.stacked_widget)
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.ui)
+        self.setLayout(self.layout)
+
         self.dialog = AddWordsDialog()
 
-        self.stacked_widget.setCurrentIndex(0)
-        self.addwords_btn.clicked.connect(self.addwords_btn_clicked)
+        self.ui.stacked_widget.setCurrentIndex(0)
+        self.ui.addwords_btn.clicked.connect(self.addwords_btn_clicked)
         self.dialog.add_words_submited_signal.connect(self.get_dialog_submitted)
-        self.words_table_btn.clicked.connect(self.change_table)
-        self.sents_table_btn.clicked.connect(self.change_table)
-        self.save_btn_words.clicked.connect(self.save_selected_words)
-        self.save_btn_sents.clicked.connect(self.save_selected_sents)
-        self.select_all_w.clicked.connect(self.select_all_words)
-        self.select_all_s.clicked.connect(self.select_all_sents)
+        self.ui.words_table_btn.clicked.connect(self.change_table)
+        self.ui.sents_table_btn.clicked.connect(self.change_table)
+        self.ui.save_btn_words.clicked.connect(self.save_selected_words)
+        self.ui.save_btn_sents.clicked.connect(self.save_selected_sents)
+        self.ui.select_all_w.clicked.connect(self.select_all_words)
+        self.ui.select_all_s.clicked.connect(self.select_all_sents)
 
         self.dbw = DatabaseManager("chineseDict.db")
         self.dbs = DatabaseManager("chineseDict.db")
 
     def select_all_words(self):
-        self.table_view_w.selectAll()
+        self.ui.table_view_w.selectAll()
 
     def select_all_sents(self):
-        self.table_view_s.selectAll()
+        self.ui.table_view_s.selectAll()
 
     def save_selected_words(self):
-        selection_model = self.table_view_w.selectionModel()
+        selection_model = self.ui.table_view_w.selectionModel()
         selected_rows = selection_model.selectedRows()
         words = [
             self.table_wordmodel.get_row_data(index.row()) for index in selected_rows
@@ -162,7 +99,7 @@ class PageWords(QWidget):
             self.upsThread.finished.connect(self.upsThread.deleteLater)
 
     def save_selected_sents(self):
-        selection_model = self.table_view_s.selectionModel()
+        selection_model = self.ui.table_view_s.selectionModel()
         selected_rows = selection_model.selectedRows()
         sents = [
             self.table_sentmodel.get_row_data(index.row()) for index in selected_rows
@@ -179,9 +116,9 @@ class PageWords(QWidget):
         btn_name = self.sender().objectName()
 
         if btn_name == "words_table_btn":
-            self.stacked_widget.setCurrentIndex(0)
+            self.ui.stacked_widget.setCurrentIndex(0)
         else:
-            self.stacked_widget.setCurrentIndex(1)
+            self.ui.stacked_widget.setCurrentIndex(1)
 
     def addwords_btn_clicked(self):
         self.dialog.exec()
@@ -195,8 +132,8 @@ class PageWords(QWidget):
             form_data["level_selection"],
         )
         # TODO add list to the screen
-        # TODO disable the add words button when starting thread
-        self.addwords_btn.setDisabled(True)
+
+        self.ui.addwords_btn.setDisabled(True)
         self.word_scrape_thread.start()
         self.word_scrape_thread.finished.connect(self.word_scrape_thread.deleteLater)
         self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
@@ -230,7 +167,6 @@ class PageWords(QWidget):
 
     @Slot(object)
     def get_user_choice_usecpod(self, word):
-        print("herer")
         ret = QMessageBox.question(
             self,
             "No MDBG definition available.",
@@ -271,4 +207,4 @@ class PageWords(QWidget):
     @Slot(bool)
     def thread_finished(self, isFinished):
         if isFinished:
-            self.addwords_btn.setDisabled(False)
+            self.ui.addwords_btn.setDisabled(False)
