@@ -35,46 +35,7 @@ class MainWindow(QMainWindow):
     def setup_database(self):
         db = DatabaseManager("chineseDict.db")
         db.connect()
-        db.execute_query(
-            """
-            CREATE TABLE IF NOT EXISTS words (
-             id INTEGER PRIMARY KEY AUTOINCREMENT,
-             chinese TEXT NOT NULL,
-             pinyin TEXT NOT NULL,
-             definition TEXT NOT NULL,
-             audio TEXT,
-             level TEXT,
-             anki_audio TEXT,
-             anki_id INTEGER,
-             anki_update INTEGER,
-             local_update INTEGER)
-            """
-        )
-        db.execute_query(
-            """
-            CREATE TABLE IF NOT EXISTS sentences (
-             id INTEGER PRIMARY KEY AUTOINCREMENT,
-             chinese TEXT NOT NULL,
-             english TEXT NOT NULL,
-             pinyin TEXT NOT NULL,
-             audio TEXT,
-             level TEXT,
-             anki_audio TEXT,
-             anki_id INTEGER,
-             anki_update INTEGER,
-             local_update INTEGER
-             )
-            """
-        )
-
-        db.execute_query(
-            """
-            CREATE TABLE IF NOT EXISTS anki_integration (
-            id TEXT PRIMARY KEY,
-            anki_update INTEGER,
-            local_update INTEGER)
-             """
-        )
+        db.create_tables_if_not_exist()
         db.disconnect()
 
     def setup_session(self):
