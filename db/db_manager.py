@@ -24,6 +24,7 @@ class DatabaseManager(QObject):
                 return cursor
             except sqlite3.Error as e:
                 # TODO: do something with error
+                print(e)
                 return None
 
     def begin_transaction(self):

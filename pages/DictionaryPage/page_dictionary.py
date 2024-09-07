@@ -1,7 +1,7 @@
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from db_manager import DatabaseManager
+from db.db_manager import DatabaseManager
 from db_query_thread import DatabaseQueryThread
 from qtoast import QToast
 from sents_table_model import SentenceTableModel

@@ -5,8 +5,6 @@ from PySide6.QtCore import QThread, Signal, Slot
 
 from db_query_worker import DBQueryWorker
 from dictionary import Sentence, Word
-from sentsDAL import SentsDAL
-from wordsDAL import WordsDAL
 
 
 class DatabaseQueryThread(QThread):
