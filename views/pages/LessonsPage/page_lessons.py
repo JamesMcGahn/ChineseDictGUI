@@ -25,6 +25,8 @@ class PageLessons(QWidget):
         self.layout = self.ui.layout()
         self.setLayout(self.layout)
 
+        self.setObjectName("lessons_page")
+
         self.table_wordmodel = WordTableModel()
         self.table_sentmodel = SentenceTableModel()
         self.ui.table_view_s.setModel(self.table_sentmodel)

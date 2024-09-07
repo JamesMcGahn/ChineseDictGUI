@@ -2,8 +2,7 @@ from PySide6.QtCore import QRect, QSize
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget
 
-from page_settings import PageSettings
-from views.pages import PageDictionary, PageLessons, PageWords
+from views.pages import PageDictionary, PageLessons, PageSettings, PageWords
 
 
 class MainScreenView(QWidget):
