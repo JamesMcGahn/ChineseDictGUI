@@ -60,7 +60,7 @@ class PageDictionary(QWidget):
     @Slot(object)
     def word_updated(self, word):
         self.upwThread = DatabaseQueryThread(
-            self.dbw, "update_word", id=word.id, updates=vars(word)
+            self.dbw, "words", "update_word", id=word.id, updates=vars(word)
         )
         self.upwThread.start()
         self.upwThread.message.connect(self.toast_message)
@@ -72,7 +72,9 @@ class PageDictionary(QWidget):
             self.table_wordmodel.get_row_data(index.row()).id for index in selected_rows
         ]
 
-        self.del_words = DatabaseQueryThread(self.dbw, "delete_words", ids=words)
+        self.del_words = DatabaseQueryThread(
+            self.dbw, "words", "delete_words", ids=words
+        )
         self.del_words.start()
         self.table_wordmodel.remove_selected(selected_rows)
         self.del_words.message.connect(self.toast_message)
@@ -84,7 +86,9 @@ class PageDictionary(QWidget):
             self.table_sentmodel.get_row_data(index.row()).id for index in selected_rows
         ]
 
-        self.del_sents = DatabaseQueryThread(self.dbs, "delete_sentences", ids=sents)
+        self.del_sents = DatabaseQueryThread(
+            self.dbs, "sents", "delete_sentences", ids=sents
+        )
         self.del_sents.start()
         self.table_sentmodel.remove_selected(selected_rows)
         self.del_sents.message.connect(self.toast_message)
@@ -117,14 +121,14 @@ class PageDictionary(QWidget):
 
     def get_page_words(self, page, limit):
         self.threader = DatabaseQueryThread(
-            self.dbw, "get_pagination_words", page=page, limit=limit
+            self.dbw, "words", "get_pagination_words", page=page, limit=limit
         )
         self.threader.start()
         self.threader.pagination.connect(self.load_words_page)
 
     def get_page_sents(self, page, limit):
         self.sthreader = DatabaseQueryThread(
-            self.dbs, "get_pagination_sentences", page=page, limit=limit
+            self.dbs, "sents", "get_pagination_sentences", page=page, limit=limit
         )
         self.sthreader.start()
         self.sthreader.pagination.connect(self.load_sents_page)

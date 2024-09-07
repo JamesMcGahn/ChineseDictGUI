@@ -7,7 +7,7 @@ from db.dals import SentsDAL, WordsDAL
 from models.dictionary import Sentence, Word
 
 
-class DBQueryWorker(QObject):
+class WordsQueryWorker(QObject):
     finished = Signal()
     result_ready = Signal((object,), (bool,))
     pagination = Signal(object, int, int, int, bool, bool)

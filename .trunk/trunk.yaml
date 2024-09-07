@@ -13,7 +13,9 @@ runtimes:
     - node@18.12.1
     - python@3.10.8
 lint:
+  disabled:
   enabled:
+    - ruff@0.6.4
     - bandit@1.7.5
     - black@23.9.1
     - checkov@3.0.12
@@ -21,7 +23,6 @@ lint:
     - isort@5.12.0
     - markdownlint@0.37.0
     - prettier@3.0.3
-    - ruff@0.1.3
     - trivy@0.46.0
     - trufflehog@3.60.4
     - yamllint@1.32.0

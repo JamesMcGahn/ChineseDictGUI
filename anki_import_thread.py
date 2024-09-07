@@ -5,7 +5,6 @@ from PySide6.QtCore import QObject, QThread, Signal, Slot
 
 from db.dals import SentsDAL, WordsDAL
 from db.db_manager import DatabaseManager
-from db_query_worker import DBQueryWorker
 from models.dictionary import Sentence, Word
 from network_thread import NetworkWorker
 from session_manager import SessionManger

@@ -3,7 +3,7 @@ import sqlite3
 
 from PySide6.QtCore import QThread, Signal, Slot
 
-from db_query_worker import DBQueryWorker
+from db.workers import SentsQueryWorker, WordsQueryWorker
 from models.dictionary import Sentence, Word
 
 
@@ -15,14 +15,26 @@ class DatabaseQueryThread(QThread):
     message = Signal(str)
     insertIds = Signal(list)
 
-    def __init__(self, db_manager, operation, **kwargs):
+    def __init__(self, db_manager, dtype, operation, **kwargs):
         super().__init__()
         self.db_manager = db_manager
         self.operation = operation
         self.kwargs = kwargs
 
+        if dtype in ["words", "sents"]:
+            self.dtype = dtype
+        else:
+            raise ValueError("dtype must be one of 'words' or 'sents'")
+
     def run(self):
-        self.worker = DBQueryWorker(self.db_manager, self.operation, **self.kwargs)
+        if self.dtype == "words":
+            self.worker = WordsQueryWorker(
+                self.db_manager, self.operation, **self.kwargs
+            )
+        elif self.dtype == "sents":
+            self.worker = SentsQueryWorker(
+                self.db_manager, self.operation, **self.kwargs
+            )
         self.worker.moveToThread(self)
         self.worker.finished.connect(self.quit)
         self.worker.finished.connect(self.finished)
