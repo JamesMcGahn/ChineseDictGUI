@@ -1,9 +1,9 @@
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
+from components.toasts import QToast
 from db.db_manager import DatabaseManager
 from db_query_thread import DatabaseQueryThread
-from qtoast import QToast
 from sents_table_model import SentenceTableModel
 from word_table_model import WordTableModel
 
@@ -166,9 +166,5 @@ class PageDictionary(QWidget):
 
     @Slot(str)
     def toast_message(self, message):
-        toast = QToast(self)
-
-        toast.setTitle("Success!")
-        toast.setText(message)
-
+        toast = QToast(self, status="success", title="Success!", message=message)
         toast.show()
