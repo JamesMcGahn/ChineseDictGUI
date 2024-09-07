@@ -15,7 +15,6 @@ from components.dialogs import AddWordsDialog
 from db_manager import DatabaseManager
 from db_query_thread import DatabaseQueryThread
 from multiword_dialog import MultiWordDialog
-from nosents_inclvl_dialog import IncreaseLvlsDialog
 from qtoast import QToast
 from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread

@@ -1,10 +1,10 @@
 from PySide6.QtCore import QFile, QIODevice, QTextStream, Signal
-from PySide6.QtWidgets import QDialog, QFileDialog
+from PySide6.QtWidgets import QFileDialog, QWidget
 
 from .add_words_dialog_ui import AddWordsDialogView
 
 
-class AddWordsDialog(QDialog):
+class AddWordsDialog(QWidget):
     add_words_submited_signal = Signal(dict)
 
     def __init__(self, word_list=None):

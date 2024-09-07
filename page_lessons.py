@@ -11,10 +11,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from components.dialogs import AddLessonsDialog, AddWordsDialog
+from components.dialogs import AddLessonsDialog, AddWordsDialog, IncreaseLvlsDialog
 from lesson_scrape_thread import LessonScraperThread
 from multiword_dialog import MultiWordDialog
-from nosents_inclvl_dialog import IncreaseLvlsDialog
 from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread
 from word_table_model import WordTableModel

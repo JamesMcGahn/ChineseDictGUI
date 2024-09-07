@@ -12,12 +12,11 @@ from PySide6.QtWidgets import (
 )
 
 from audio_thread import AudioThread
-from components.dialogs import AddWordsDialog
+from components.dialogs import AddWordsDialog, IncreaseLvlsDialog
 from db_manager import DatabaseManager
 from db_query_thread import DatabaseQueryThread
 from dictionary import Sentence
 from multiword_dialog import MultiWordDialog
-from nosents_inclvl_dialog import IncreaseLvlsDialog
 from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread
 from word_table_model import WordTableModel
