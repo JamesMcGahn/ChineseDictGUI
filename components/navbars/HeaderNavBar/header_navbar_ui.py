@@ -20,13 +20,7 @@ class HeaderNavBarView(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.setMaximumSize(QSize(16777215, 175))
-        self.setAttribute(Qt.WA_StyledBackground, True)
-        module_dir = os.path.dirname(os.path.realpath(__file__))
-        file_path = os.path.join(module_dir, "header_navbar.css")
-
-        with open(file_path, "r") as ss:
-            self.setStyleSheet(ss.read())
+        self.setObjectName("header_widget_ui")
 
         sizePolicy = QSizePolicy(
             QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred

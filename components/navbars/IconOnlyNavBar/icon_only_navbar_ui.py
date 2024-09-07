@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSize, Qt, Signal, Slot
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QPushButton,
@@ -9,19 +9,16 @@ from PySide6.QtWidgets import (
 )
 
 
-class IconOnlyNavBar(QWidget):
-    btn_checked_ico = Signal(bool, QPushButton)
-    btn_clicked_page = Signal(QPushButton)
-
+class IconOnlyNavBarView(QWidget):
     def __init__(self):
         super().__init__()
+        self.init_ui()
+        self.setObjectName("icon_only_widget_ui")
 
-        self.setObjectName("icon_only_widget")
+    def init_ui(self):
         self.setMaximumSize(QSize(70, 16777215))
+        self.setMinimumSize(QSize(70, 16777215))
         self.setAttribute(Qt.WA_StyledBackground, True)
-        with open("./styles/icon_only_navbar.css", "r") as ss:
-            self.setStyleSheet(ss.read())
-
         self.icon_nav_vlayout = QVBoxLayout(self)
         self.icon_nav_vlayout.setObjectName("icon_nav_vlayout")
         self.icon_btn_layout = QVBoxLayout()
@@ -129,43 +126,3 @@ class IconOnlyNavBar(QWidget):
         self.signout_btn_ico.setAutoExclusive(True)
 
         self.icon_nav_vlayout.addWidget(self.signout_btn_ico)
-
-        self.words_btn_ico.toggled.connect(self.btn_checked)
-        self.sents_btn_ico.toggled.connect(self.btn_checked)
-        self.dictionary_btn_ico.toggled.connect(self.btn_checked)
-        self.audio_btn_ico.toggled.connect(self.btn_checked)
-        self.settings_btn_ico.toggled.connect(self.btn_checked)
-        self.signout_btn_ico.toggled.connect(self.btn_checked)
-
-        self.words_btn_ico.clicked.connect(self.btn_clicked)
-        self.sents_btn_ico.clicked.connect(self.btn_clicked)
-        self.dictionary_btn_ico.clicked.connect(self.btn_clicked)
-        self.audio_btn_ico.clicked.connect(self.btn_clicked)
-        self.settings_btn_ico.clicked.connect(self.btn_clicked)
-        self.signout_btn_ico.clicked.connect(self.btn_clicked)
-
-    @Slot(bool)
-    def hide_nav(self, checked):
-        self.setHidden(checked)
-
-    def btn_checked(self, checked):
-        self.btn_checked_ico.emit(checked, self.sender())
-
-    def btn_clicked(self):
-        self.btn_clicked_page.emit(self.sender())
-
-    @Slot(bool, QPushButton)
-    def btns_set_checked(self, checked, btn):
-        match btn.objectName():
-            case "words_btn_ict":
-                self.words_btn_ico.setChecked(checked)
-            case "sents_btn_ict":
-                self.sents_btn_ico.setChecked(checked)
-            case "audio_btn_ict":
-                self.audio_btn_ico.setChecked(checked)
-            case "dictionary_btn_ict":
-                self.dictionary_btn_ico.setChecked(checked)
-            case "settings_btn_ict":
-                self.settings_btn_ico.setChecked(checked)
-            case "signout_btn_ict":
-                self.signout_btn_ico.setChecked(checked)

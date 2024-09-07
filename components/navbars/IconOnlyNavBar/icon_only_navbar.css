@@ -1,21 +1,23 @@
-QWidget#icon_text_widget {
+QWidget#icon_only_widget {
   background-color: black;
   border: 1px solid red;
   border-bottom-left-radius: 9px;
-  padding: 2px;
+  /* padding: 2px; */
+  margin: 0px;
+  padding: 0px;
 }
 
 QPushButton {
   border: none;
   background-color: black;
-  padding: 1em 0.5em 0.5em 0.5em;
-  text-align: left;
   color: white;
+  padding: 1em;
 }
 
 QPushButton:checked {
+  border: none;
   background-color: white;
   border-radius: 4px;
-  height: 2em;
+  /* height: 2em; */
   color: black;
 }

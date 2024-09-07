@@ -1,3 +1,5 @@
+import os
+
 from PySide6.QtCore import QObject, QSize, Qt, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
@@ -20,6 +22,13 @@ class HeaderNavBar(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("header_widget")
+        self.setMaximumSize(QSize(16777215, 175))
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        module_dir = os.path.dirname(os.path.realpath(__file__))
+        file_path = os.path.join(module_dir, "header_navbar.css")
+
+        with open(file_path, "r") as ss:
+            self.setStyleSheet(ss.read())
 
         self.ui = HeaderNavBarView()
         self.layout = QVBoxLayout()
