@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGridLayout, QWidget
 
-from main_screen_widget import MainScreenWidget
+from views import MainScreen
 from views.navbars import HeaderNavBar, IconOnlyNavBar, IconTextNavBar
 
 
@@ -24,7 +24,7 @@ class CentralWidget(QWidget):
         self.icon_text_widget = IconTextNavBar()
 
         self.header_widget = HeaderNavBar()
-        self.main_screen_widget = MainScreenWidget()
+        self.main_screen_widget = MainScreen()
         self.gridLayout.addWidget(self.main_screen_widget, 2, 3, 1, 1)
         self.gridLayout.addWidget(self.icon_only_widget, 0, 1, 3, 1)
         self.gridLayout.addWidget(self.icon_text_widget, 0, 2, 3, 1)

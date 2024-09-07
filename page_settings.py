@@ -25,8 +25,8 @@ class PageSettings(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("settings_page")
-        with open("./styles/main_screen_widget.css", "r") as ss:
-            self.setStyleSheet(ss.read())
+        # with open("./styles/main_screen_widget.css", "r") as ss:
+        #     self.setStyleSheet(ss.read())
         self.label_6 = QLabel()
         self.label_6.setObjectName("label_6")
         self.label_6.setGeometry(QRect(280, 330, 221, 81))

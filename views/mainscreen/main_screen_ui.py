@@ -1,25 +1,18 @@
-from PySide6.QtCore import QRect, QSize, Slot
+from PySide6.QtCore import QRect, QSize
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (
-    QLabel,
-    QPushButton,
-    QSizePolicy,
-    QStackedWidget,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QLabel, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget
 
 from page_settings import PageSettings
 from views.pages import PageDictionary, PageLessons, PageWords
 
 
-class MainScreenWidget(QWidget):
+class MainScreenView(QWidget):
     def __init__(self):
         super().__init__()
+        self.init_ui()
 
-        self.setObjectName("main_screen_widget")
-        with open("./styles/main_screen_widget.css", "r") as ss:
-            self.setStyleSheet(ss.read())
+    def init_ui(self):
+        self.setObjectName("main_screen_ui")
         sizePolicy = QSizePolicy(
             QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred
         )
@@ -29,11 +22,11 @@ class MainScreenWidget(QWidget):
         self.setSizePolicy(sizePolicy)
         self.setMaximumSize(QSize(16777215, 16777215))
 
-        self.verticalLayout_6 = QVBoxLayout(self)
-        self.verticalLayout_6.setObjectName("verticalLayout_6")
-        self.verticalLayout_6.setContentsMargins(1, 1, 1, 1)
+        self.main_screen_container_v = QVBoxLayout(self)
+        self.main_screen_container_v.setObjectName("main_screen_container_v")
+        self.main_screen_container_v.setContentsMargins(1, 1, 1, 1)
         self.stackedWidget = QStackedWidget(self)
-        self.stackedWidget.setObjectName("stackedWidget")
+        self.stackedWidget.setObjectName("main_screen_stacked")
         self.words_page = PageWords()
         font1 = QFont()
 
@@ -59,19 +52,4 @@ class MainScreenWidget(QWidget):
 
         self.stackedWidget.addWidget(self.settings_page)
 
-        self.verticalLayout_6.addWidget(self.stackedWidget)
-
-    @Slot(QPushButton)
-    def change_page(self, btn):
-        btn_name = btn.objectName()
-
-        if btn_name.startswith("words_btn_"):
-            self.stackedWidget.setCurrentIndex(0)
-        elif btn_name.startswith("sents_btn_"):
-            self.stackedWidget.setCurrentIndex(1)
-        elif btn_name.startswith("audio_btn_"):
-            self.stackedWidget.setCurrentIndex(2)
-        elif btn_name.startswith("dictionary_btn_"):
-            self.stackedWidget.setCurrentIndex(3)
-        elif btn_name.startswith("settings_btn_"):
-            self.stackedWidget.setCurrentIndex(4)
+        self.main_screen_container_v.addWidget(self.stackedWidget)

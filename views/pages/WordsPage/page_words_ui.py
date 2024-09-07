@@ -17,9 +17,8 @@ class PageWordsView(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        self.setObjectName("words_page")
-        with open("./styles/main_screen_widget.css", "r") as ss:
-            self.setStyleSheet(ss.read())
+        self.setObjectName("words_page_ui")
+
         self.label_6 = QLabel()
         self.label_6.setObjectName("label_6")
         self.label_6.setGeometry(QRect(280, 330, 221, 81))
