@@ -2,8 +2,8 @@ from urllib.parse import unquote
 
 import regex
 
-from logger import Logger
 from models.dictionary import Sentence, Word
+from services import Logger
 from utils import strip_string
 
 # from terminal_opts import TerminalOptions

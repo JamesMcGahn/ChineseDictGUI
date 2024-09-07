@@ -1,6 +1,6 @@
 import logging
 
-from singleton import Singleton
+from utils import Singleton
 from write_file import WriteFile
 
 

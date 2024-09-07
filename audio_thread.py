@@ -6,8 +6,8 @@ import google
 from google.cloud import texttospeech
 from PySide6.QtCore import QThread, Signal
 
-from logger import Logger
 from models.dictionary import Sentence
+from services import Logger
 from write_file import WriteFile
 
 

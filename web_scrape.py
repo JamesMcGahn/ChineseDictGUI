@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
 from keys import keys
-from logger import Logger
+from services import Logger
 
 
 class WebScrape:

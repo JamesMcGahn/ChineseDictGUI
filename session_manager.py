@@ -6,8 +6,8 @@ import requests
 from bs4 import BeautifulSoup
 from PySide6.QtCore import QObject
 
-from logger import Logger
 from open_file import OpenFile
+from services import Logger
 from write_file import WriteFile
 
 
