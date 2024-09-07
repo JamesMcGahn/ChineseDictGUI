@@ -1,15 +1,5 @@
-from PySide6.QtCore import QRect, Signal, Slot
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QLabel,
-    QMessageBox,
-    QPushButton,
-    QStackedWidget,
-    QTableView,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtCore import Signal, Slot
+from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 
 from components.dialogs import AddLessonsDialog, AddWordsDialog, IncreaseLvlsDialog
 from lesson_scrape_thread import LessonScraperThread
@@ -17,6 +7,8 @@ from multiword_dialog import MultiWordDialog
 from sents_table_model import SentenceTableModel
 from word_scrape_thread import WordScraperThread
 from word_table_model import WordTableModel
+
+from .page_lessons_ui import PageLessonsView
 
 
 class PageLessons(QWidget):
@@ -26,74 +18,31 @@ class PageLessons(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.setObjectName("lessons_page")
-        with open("./styles/main_screen_widget.css", "r") as ss:
-            self.setStyleSheet(ss.read())
-        self.label_6 = QLabel()
-        self.label_6.setObjectName("label_6")
-        self.label_6.setGeometry(QRect(280, 330, 221, 81))
-        self.label_6.setText("Lessons page")
-        font1 = QFont()
+        self.ui = PageLessonsView()
 
-        font1.setPointSize(25)
-        self.label_6.setFont(font1)
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.ui)
+        self.setLayout(self.layout)
 
-        self.addwords_btn = QPushButton("Add words")
-
-        self.words_page_vlayout = QVBoxLayout(self)
-        self.words_page_vlayout.addWidget(self.addwords_btn)
-        self.words_page_vlayout.addWidget(self.label_6)
-
-        self.horizontal_btn_layout = QHBoxLayout()
-        self.words_table_btn = QPushButton("Words")
-        self.words_table_btn.setObjectName("words_table_btn")
-        self.sents_table_btn = QPushButton("Sents")
-        self.sents_table_btn.setObjectName("sents_table_btn")
-        self.horizontal_btn_layout.addWidget(self.words_table_btn)
-        self.horizontal_btn_layout.addWidget(self.sents_table_btn)
-
-        self.words_page_vlayout.addLayout(self.horizontal_btn_layout)
-        # Stacked Widget
-        self.stacked_widget = QStackedWidget()
-
-        # WordsTable
-        self.words_table = QWidget()
-        self.words_table_vlayout = QVBoxLayout(self.words_table)
         self.table_wordmodel = WordTableModel()
-        self.table_view = QTableView()
-        self.table_view.setModel(self.table_wordmodel)
-        self.table_view.show()
-        self.words_table_vlayout.addWidget(self.table_view)
-        self.stacked_widget.addWidget(self.words_table)
-
-        # SentenceTable
-        self.sents_table = QWidget()
-        self.label = QLabel("dsd")
-        self.sents_table_vlayout = QVBoxLayout(self.sents_table)
         self.table_sentmodel = SentenceTableModel()
-        self.table_view = QTableView()
-        self.table_view.setModel(self.table_sentmodel)
-        self.table_view.show()
-        self.sents_table_vlayout.addWidget(self.label)
-        self.sents_table_vlayout.addWidget(self.table_view)
-        self.stacked_widget.addWidget(self.sents_table)
-
-        self.words_page_vlayout.addWidget(self.stacked_widget)
+        self.ui.table_view_s.setModel(self.table_sentmodel)
+        self.ui.table_view_w.setModel(self.table_wordmodel)
         self.dialog = AddLessonsDialog()
 
-        self.stacked_widget.setCurrentIndex(1)
-        self.addwords_btn.clicked.connect(self.addwords_btn_clicked)
+        self.ui.stacked_widget.setCurrentIndex(1)
+        self.ui.addwords_btn.clicked.connect(self.addwords_btn_clicked)
         self.dialog.add_lesson_submited_signal.connect(self.get_dialog_submitted)
-        self.words_table_btn.clicked.connect(self.change_table)
-        self.sents_table_btn.clicked.connect(self.change_table)
+        self.ui.words_table_btn.clicked.connect(self.change_table)
+        self.ui.sents_table_btn.clicked.connect(self.change_table)
 
     def change_table(self):
         btn_name = self.sender().objectName()
 
         if btn_name == "words_table_btn":
-            self.stacked_widget.setCurrentIndex(0)
+            self.ui.stacked_widget.setCurrentIndex(0)
         else:
-            self.stacked_widget.setCurrentIndex(1)
+            self.ui.stacked_widget.setCurrentIndex(1)
 
     def addwords_btn_clicked(self):
         self.dialog.exec()

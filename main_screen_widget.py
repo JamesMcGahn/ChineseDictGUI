@@ -10,9 +10,8 @@ from PySide6.QtWidgets import (
 )
 
 from page_dictionary import PageDictionary
-from page_lessons import PageLessons
 from page_settings import PageSettings
-from pages import PageWords
+from pages import PageLessons, PageWords
 
 
 class MainScreenWidget(QWidget):
