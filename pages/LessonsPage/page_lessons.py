@@ -1,5 +1,5 @@
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QMessageBox, QWidget
 
 from components.dialogs import (
     AddLessonsDialog,
@@ -22,9 +22,7 @@ class PageLessons(QWidget):
     def __init__(self):
         super().__init__()
         self.ui = PageLessonsView()
-
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.ui)
+        self.layout = self.ui.layout()
         self.setLayout(self.layout)
 
         self.table_wordmodel = WordTableModel()

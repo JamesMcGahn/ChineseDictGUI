@@ -1,7 +1,7 @@
 import os
 
-from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
+from PySide6.QtCore import QSize, Qt, Signal, Slot
+from PySide6.QtWidgets import QPushButton, QWidget
 
 from .icon_only_navbar_ui import IconOnlyNavBarView
 
@@ -13,7 +13,7 @@ class IconOnlyNavBar(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("icon_only_widget")
-
+        self.setMaximumSize(QSize(70, 16777215))
         self.setAttribute(Qt.WA_StyledBackground, True)
 
         module_dir = os.path.dirname(os.path.realpath(__file__))
@@ -22,8 +22,7 @@ class IconOnlyNavBar(QWidget):
             self.setStyleSheet(ss.read())
 
         self.ui = IconOnlyNavBarView()
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.ui)
+        self.layout = self.ui.layout()
         self.setLayout(self.layout)
 
         self.ui.words_btn_ico.setChecked(True)

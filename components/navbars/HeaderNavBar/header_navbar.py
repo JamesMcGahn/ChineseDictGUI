@@ -1,17 +1,7 @@
 import os
 
-from PySide6.QtCore import QObject, QSize, Qt, Signal
-from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import (
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QSizePolicy,
-    QSpacerItem,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtWidgets import QWidget
 
 from .header_navbar_ui import HeaderNavBarView
 
@@ -31,8 +21,7 @@ class HeaderNavBar(QWidget):
             self.setStyleSheet(ss.read())
 
         self.ui = HeaderNavBarView()
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.ui)
+        self.layout = self.ui.layout()
         self.setLayout(self.layout)
 
         self.ui.hamburger_icon_btn.toggled.connect(self.hamburger_icon_btn_toggled)

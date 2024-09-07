@@ -1,5 +1,5 @@
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QMessageBox, QWidget
 
 from audio_thread import AudioThread
 from components.dialogs import AddWordsDialog, IncreaseLvlsDialog, MultiWordDialog
@@ -20,16 +20,14 @@ class PageWords(QWidget):
     def __init__(self):
         super().__init__()
         self.ui = PageWordsView()
+        self.layout = self.ui.layout()
+        self.setLayout(self.layout)
         self.audio_threads = []
 
         self.table_wordmodel = WordTableModel()
         self.table_sentmodel = SentenceTableModel()
         self.ui.table_view_w.setModel(self.table_wordmodel)
         self.ui.table_view_s.setModel(self.table_sentmodel)
-
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.ui)
-        self.setLayout(self.layout)
 
         self.dialog = AddWordsDialog()
 

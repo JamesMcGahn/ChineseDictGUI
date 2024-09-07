@@ -1,7 +1,7 @@
 import os
 
 from PySide6.QtCore import QSize, Qt, Signal, Slot
-from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QPushButton, QWidget
 
 from .icon_text_navbar_ui import IconTextNavBarView
 
@@ -23,8 +23,7 @@ class IconTextNavBar(QWidget):
             self.setStyleSheet(ss.read())
 
         self.ui = IconTextNavBarView()
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.ui)
+        self.layout = self.ui.layout()
         self.setLayout(self.layout)
 
         self.ui.words_btn_ict.toggled.connect(self.btn_checked)
@@ -40,8 +39,9 @@ class IconTextNavBar(QWidget):
         self.ui.audio_btn_ict.clicked.connect(self.btn_clicked)
         self.ui.settings_btn_ict.clicked.connect(self.btn_clicked)
         self.ui.signout_btn_ict.clicked.connect(self.btn_clicked)
-        self.setHidden(True)
+
         self.ui.words_btn_ict.setChecked(True)
+        self.setHidden(True)
 
     def btn_checked(self, checked):
         self.btn_checked_ict.emit(checked, self.sender())

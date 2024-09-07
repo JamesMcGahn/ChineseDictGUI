@@ -1,5 +1,5 @@
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QWidget
 
 from components.toasts import QToast
 from db.db_manager import DatabaseManager
@@ -20,8 +20,7 @@ class PageDictionary(QWidget):
         self.sent_table_page = 1
 
         self.ui = PageDictionaryView()
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.ui)
+        self.layout = self.ui.layout()
         self.setLayout(self.layout)
 
         self.setObjectName("dictionary_page")
