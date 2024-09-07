@@ -17,7 +17,7 @@ class MainWindow(QMainWindow):
         self.app = app
         self.setWindowTitle("Custom MainWindow")
         self.setObjectName("MainWindow")
-        self.resize(1286, 962)
+        self.resize(1286, 985)
         self.setMaximumSize(QSize(16777215, 16777215))
         font = QFont()
         font.setFamilies([".AppleSystemUIFont"])
