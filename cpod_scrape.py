@@ -2,10 +2,13 @@ from urllib.parse import unquote
 
 import regex
 
-from dictionary import Dictionary, Sentence, Word
 from logger import Logger
+from models.dictionary import Sentence, Word
+from utils import strip_string
 
 # from terminal_opts import TerminalOptions
+
+# TODO modalize
 
 
 class ScrapeCpod:
@@ -105,8 +108,8 @@ class ScrapeCpod:
             pinyin_sent = sent_cont.find(class_="dict-pinyin-cont").get_text()
             english_sent = sent_cont.find(class_="dict-pinyin-cont").next_sibling
             audio = self.scrape_audio(sentence)
-            english_sent = Dictionary.strip_string(english_sent)
-            pinyin_sent = Dictionary.strip_string(pinyin_sent)
+            english_sent = strip_string(english_sent)
+            pinyin_sent = strip_string(pinyin_sent)
             example_sentence = Sentence(
                 char_sent,
                 english_sent,
@@ -127,84 +130,6 @@ class ScrapeCpod:
             ):
                 self.word_example_sentences.append(example_sentence)
 
-    # def selection(self, type_select, level_selection=False):
-    #     select = {
-    #         "Expansion": "expand_sentences",
-    #         "Dialogue": "dialogue",
-    #         "Examples": "word_example_sentences",
-    #         "Grammar": "grammar_sentences",
-    #     }
-
-    #     if level_selection is not False:
-    #         level = [
-    #             x for x in self.word_example_sentences if x.level in level_selection
-    #         ]
-
-    #     if level_selection is False or level_selection is not False and len(level) > 0:
-    #         keepAll = TerminalOptions(
-    #             ["Yes", "No"],
-    #             f"Do You Want to Keep All the {type_select} Sentences?",
-    #             False,
-    #         ).get_selected()
-    #         if keepAll == "Yes":
-    #             Logger().insert("Keeping All", "INFO")
-    #             return
-
-    #     if level_selection is False:
-    #         for i, x in enumerate(self[select[type_select]]):
-    #             if type_select == "Dialogue":
-    #                 print(f"{i+1}. \n{x.chinese} \n{x.english}\n")
-    #             elif type_select == "Expansion":
-    #                 print(f"{i+1}. {x.word} \n{x.chinese} \n{x.english}\n")
-    #             elif type_select == "Examples":
-    #                 print(f"{i+1}. {x.level}\n{x.chinese} \n{x.english}\n")
-    #             elif type_select == "Grammar":
-    #                 print(f"{i+1}. {x.word}\n\n{x.chinese} \n{x.english}\n")
-    #             sentence_display = [
-    #                 f"{i+1}-{x.chinese}"[0:30]
-    #                 for i, x in enumerate(self[select[type_select]])
-    #             ]
-
-    #     elif level_selection is not False:
-    #         print(len(level), "len")
-    #         if len(level) == 0:
-    #             add_levels = TerminalOptions(
-    #                 ["Yes", "No"],
-    #                 "There arent sentences for the level(s) selected. Add more levels?:",
-    #             ).get_selected()
-    #             if add_levels == "Yes":
-    #                 level_new_selection = TerminalOptions(
-    #                     [
-    #                         "Newbie",
-    #                         "Elementary",
-    #                         "Pre-Intermediate",
-    #                         "Intermediate",
-    #                         "Advanced",
-    #                     ],
-    #                     "Please Select More Levels:",
-    #                     True,
-    #                 ).get_selected()
-    #                 return self.selection("Examples", level_new_selection)
-    #             else:
-    #                 self[select[type_select]] = []
-    #                 return
-
-    #         for i, x in enumerate(level):
-    #             print(f"{i+1}. {x.chinese} \n{x.english}\n{x.level}")
-    #         sentence_display = [
-    #             f"{i+1} - {x.chinese}"[0:30] for i, x in enumerate(level)
-    #         ]
-
-    #     term_selection = TerminalOptions(
-    #         sentence_display,
-    #         "Which the Sentences Do You Want to Keep?",
-    #         True,
-    #     ).indexes
-
-    #     self[select[type_select]] = [
-    #         self[select[type_select]][i] for i in term_selection
-    #     ]
-
     def scrape_dialogues(self):
         dialogue_cont = self.soup.find("div", id="dialogue")
         if dialogue_cont is None:
@@ -217,11 +142,11 @@ class ScrapeCpod:
             chinese = sentence.find("p", class_="click-to-add").get_text()
             pinyin = sentence.find("p", class_="show-pinyin").get_text()
             english = sentence.find("p", class_="translation-container").get_text()
-            title = Dictionary.strip_string(title)
+            title = strip_string(title)
             audio = self.scrape_audio(sentence)
-            chinese = Dictionary.strip_string(chinese)
-            pinyin = Dictionary.strip_string(pinyin)
-            english = Dictionary.strip_string(english)
+            chinese = strip_string(chinese)
+            pinyin = strip_string(pinyin)
+            english = strip_string(english)
 
             dialogue_sent = Sentence(chinese, english, pinyin, audio, badge)
             dialogue_sent.word = title
@@ -243,9 +168,9 @@ class ScrapeCpod:
                 pinyin = sent.find("p", class_="show-pinyin").get_text()
                 english = sent.find("p", class_="translation-container").get_text()
                 audio = self.scrape_audio(sent)
-                pinyin = Dictionary.strip_string(pinyin)
-                chinese = Dictionary.strip_string(chinese)
-                english = Dictionary.strip_string(english)
+                pinyin = strip_string(pinyin)
+                chinese = strip_string(chinese)
+                english = strip_string(english)
 
                 expand_sentence = Sentence(chinese, english, pinyin, audio, badge)
                 expand_sentence.word = word
@@ -261,9 +186,9 @@ class ScrapeCpod:
             tds = vocab.find_all("td")
             chinese = tds[1].get_text()
             pinyin = tds[2].get_text()
-            chinese = Dictionary.strip_string(chinese)
+            chinese = strip_string(chinese)
             chinese = chinese.replace(" ", "")
-            pinyin = Dictionary.strip_string(pinyin)
+            pinyin = strip_string(pinyin)
 
             word = Word(chinese, "", pinyin, "")
             words.append(word)
@@ -277,7 +202,7 @@ class ScrapeCpod:
         for gram in gram_card:
             # title = gram.find("h3", class_="panel-title").get_text()
             description = gram.find("div", class_="panel-body").find("p").get_text()
-            title_n_des = Dictionary.strip_string(description)
+            title_n_des = strip_string(description)
             sent_cont = gram.find("div", id="grammar_sentence")
             sents = sent_cont.find_all("tr")
             for sent in sents:
@@ -285,9 +210,9 @@ class ScrapeCpod:
                 pinyin = sent.find("p", class_="show-pinyin").get_text()
                 english = sent.find("p", class_="translation-container").get_text()
                 audio = self.scrape_audio(sent)
-                pinyin = Dictionary.strip_string(pinyin)
-                chinese = Dictionary.strip_string(chinese)
-                english = Dictionary.strip_string(english)
+                pinyin = strip_string(pinyin)
+                chinese = strip_string(chinese)
+                english = strip_string(english)
 
                 grammar_sent = Sentence(chinese, english, pinyin, audio, badge)
                 grammar_sent.word = title_n_des

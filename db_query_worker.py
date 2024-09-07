@@ -4,7 +4,7 @@ import sqlite3
 from PySide6.QtCore import QObject, Signal, Slot
 
 from db.dals import SentsDAL, WordsDAL
-from dictionary import Sentence, Word
+from models.dictionary import Sentence, Word
 
 
 class DBQueryWorker(QObject):

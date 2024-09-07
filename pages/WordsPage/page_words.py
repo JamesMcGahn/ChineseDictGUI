@@ -5,7 +5,7 @@ from audio_thread import AudioThread
 from components.dialogs import AddWordsDialog, IncreaseLvlsDialog, MultiWordDialog
 from db.db_manager import DatabaseManager
 from db_query_thread import DatabaseQueryThread
-from dictionary import Sentence
+from models.dictionary import Sentence
 from models.table import SentenceTableModel, WordTableModel
 from word_scrape_thread import WordScraperThread
 

@@ -2,7 +2,7 @@ from time import time
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
 
-from dictionary import Sentence
+from models.dictionary import Sentence
 
 
 class SentenceTableModel(QAbstractTableModel):

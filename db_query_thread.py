@@ -4,7 +4,7 @@ import sqlite3
 from PySide6.QtCore import QThread, Signal, Slot
 
 from db_query_worker import DBQueryWorker
-from dictionary import Sentence, Word
+from models.dictionary import Sentence, Word
 
 
 class DatabaseQueryThread(QThread):

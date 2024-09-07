@@ -1,4 +1,4 @@
-from dictionary import Word
+from models.dictionary import Word
 
 
 class ScrapeMd:
