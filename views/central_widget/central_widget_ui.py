@@ -1,8 +1,8 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGridLayout, QWidget
 
-from views import MainScreen
-from views.navbars import HeaderNavBar, IconOnlyNavBar, IconTextNavBar
+from ..mainscreen import MainScreen
+from ..navbars import HeaderNavBar, IconOnlyNavBar, IconTextNavBar
 
 
 class CentralWidgetView(QWidget):

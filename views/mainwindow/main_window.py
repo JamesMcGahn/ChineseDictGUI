@@ -7,7 +7,8 @@ from db.db_manager import DatabaseManager
 from keys import keys
 from network_thread import NetworkThread
 from session_manager import SessionManger
-from views.central_widget import CentralWidget
+
+from ..central_widget import CentralWidget
 
 
 class MainWindow(QMainWindow):
