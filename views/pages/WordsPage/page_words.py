@@ -61,7 +61,7 @@ class PageWords(QWidget):
         )
         self.save_selwords.start()
         self.table_wordmodel.remove_selected(selected_rows)
-        self.save_selwords.insertIds.connect(self.download_audio)
+        self.save_selwords.result.connect(self.download_audio)
 
     @Slot(list)
     def download_audio(self, audlist):
@@ -84,14 +84,14 @@ class PageWords(QWidget):
     def update_anki_audio(self, obj):
         if isinstance(obj, Sentence):
             self.upwThread = DatabaseQueryThread(
-                self.dbw, "sents", "update_sentence", id=obj.id, updates=vars(obj)
+                self.dbs, "sents", "update_sentence", id=obj.id, updates=vars(obj)
             )
             self.upwThread.start()
             self.upwThread.finished.connect(self.upwThread.deleteLater)
 
         else:
             self.upsThread = DatabaseQueryThread(
-                self.dbs, "words", "update_word", id=obj.id, updates=vars(obj)
+                self.dbw, "words", "update_word", id=obj.id, updates=vars(obj)
             )
             self.upsThread.start()
             self.upsThread.finished.connect(self.upsThread.deleteLater)
@@ -103,11 +103,11 @@ class PageWords(QWidget):
             self.table_sentmodel.get_row_data(index.row()) for index in selected_rows
         ]
         self.save_selsents = DatabaseQueryThread(
-            self.dbs, "words", "insert_sentences", sentences=sents
+            self.dbs, "sents", "insert_sentences", sentences=sents
         )
         self.save_selsents.start()
         self.table_sentmodel.remove_selected(selected_rows)
-        self.save_selsents.insertIds.connect(self.download_audio)
+        self.save_selsents.result.connect(self.download_audio)
         self.save_selsents.finished.connect(self.save_selsents.deleteLater)
 
     def change_table(self):

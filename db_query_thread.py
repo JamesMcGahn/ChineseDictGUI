@@ -9,11 +9,10 @@ from models.dictionary import Sentence, Word
 
 class DatabaseQueryThread(QThread):
     finished = Signal()
-    result_ready = Signal((object,), (bool,))
     pagination = Signal(object, int, int, int, bool, bool)
     error_occurred = Signal(str)
     message = Signal(str)
-    insertIds = Signal(list)
+    result = Signal(list)
 
     def __init__(self, db_manager, dtype, operation, **kwargs):
         super().__init__()
@@ -39,11 +38,10 @@ class DatabaseQueryThread(QThread):
         self.worker.finished.connect(self.quit)
         self.worker.finished.connect(self.finished)
 
-        self.worker.result_ready[bool].connect(self.res_ready)
         self.worker.pagination.connect(self.send_pagination)
         self.worker.error_occurred.connect(self.send_error)
         self.worker.message.connect(self.send_message)
-        self.worker.insertIds.connect(self.send_insertIds)
+        self.worker.result.connect(self.send_result)
 
         self.worker.do_work()
 
@@ -60,12 +58,8 @@ class DatabaseQueryThread(QThread):
         )
 
     @Slot(list)
-    def send_insertIds(self, ids):
-        self.insertIds.emit(ids)
-
-    @Slot(bool)
-    def res_ready(self, res):
-        self.result_ready[bool].emit(res)
+    def send_result(self, ids):
+        self.result.emit(ids)
 
     @Slot(str)
     def send_error(self, err):
