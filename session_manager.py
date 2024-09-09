@@ -40,9 +40,10 @@ class SessionManger(QObject):
                 return False
             else:
                 self.set_cookies(cookies)
+                Logger().insert("Session Loaded...", "INFO")
                 return True
         except ValueError:
-            Logger().insert("Error loading session", "ERROR")
+            Logger().insert("Error loading session - Filepath doesn't exist", "ERROR")
             return False
 
     def save_session(self):
