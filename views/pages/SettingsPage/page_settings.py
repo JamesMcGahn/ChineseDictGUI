@@ -26,6 +26,7 @@ class PageSettings(QWidget):
         self.import_anki_w.run()
         self.import_anki_w.finished.connect(self.import_anki_sents)
 
+    # TODO: Refesh dictionary view when loaded
     def import_anki_sents(self):
         self.import_anki_s = AnkiImportThread("Mandarin 10k Sentences", "sents")
         self.import_anki_s.run()

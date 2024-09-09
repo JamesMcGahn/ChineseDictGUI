@@ -3,8 +3,7 @@ from PySide6.QtWidgets import QMessageBox, QWidget
 
 from audio_thread import AudioThread
 from components.dialogs import AddWordsDialog, IncreaseLvlsDialog, MultiWordDialog
-from db import DatabaseManager
-from db_query_thread import DatabaseQueryThread
+from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Sentence
 from models.table import SentenceTableModel, WordTableModel
 from word_scrape_thread import WordScraperThread

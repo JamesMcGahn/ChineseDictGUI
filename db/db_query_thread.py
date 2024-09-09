@@ -1,10 +1,6 @@
-import math
-import sqlite3
-
 from PySide6.QtCore import QThread, Signal, Slot
 
 from db.workers import SentsQueryWorker, WordsQueryWorker
-from models.dictionary import Sentence, Word
 
 
 class DatabaseQueryThread(QThread):
@@ -36,7 +32,7 @@ class DatabaseQueryThread(QThread):
             )
         self.worker.moveToThread(self)
         self.worker.finished.connect(self.quit)
-        self.worker.finished.connect(self.finished)
+        self.worker.finished.connect(self.worker_finished)
 
         self.worker.pagination.connect(self.send_pagination)
         self.worker.error_occurred.connect(self.send_error)
@@ -45,7 +41,7 @@ class DatabaseQueryThread(QThread):
 
         self.worker.do_work()
 
-    def finished(self):
+    def worker_finished(self):
         self.worker.deleteLater()
         self.finished.emit()
 
