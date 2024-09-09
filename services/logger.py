@@ -1,7 +1,6 @@
 import logging
 
-from utils import Singleton
-from write_file import WriteFile
+from utils import PathManager, Singleton
 
 
 class Logger(Singleton):
@@ -10,8 +9,8 @@ class Logger(Singleton):
         self.format = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 
     def insert(self, msg, level="INFO", print_msg=True):
-        path = WriteFile.regex_path(self.filename)
-        if not WriteFile.path_exists(path["path"], True):
+        path = PathManager.regex_path(self.filename)
+        if not PathManager.path_exists(path["path"], True):
             return
         logfile = logging.FileHandler(self.filename)
         logfile.setFormatter(self.format)

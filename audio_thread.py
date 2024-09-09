@@ -8,7 +8,7 @@ from PySide6.QtCore import QThread, Signal
 
 from models.dictionary import Sentence
 from services import Logger
-from write_file import WriteFile
+from utils import PathManager
 
 
 class AudioThread(QThread):
@@ -49,7 +49,7 @@ class AudioThread(QThread):
             )
 
             if self.folder_path is not None:
-                path = WriteFile.check_dup(self.folder_path, filename, ".mp3")
+                path = PathManager.check_dup(self.folder_path, filename, ".mp3")
             else:
                 path = "./"
 
@@ -87,7 +87,7 @@ class AudioThread(QThread):
                         pass  # TODO notify user / logger
                     continue
 
-                path = WriteFile.check_dup(self.folder_path, filename, ".mp3")
+                path = PathManager.check_dup(self.folder_path, filename, ".mp3")
 
                 checkHttp = x.audio.replace("http://", "https://")
                 urllib.request.urlretrieve(checkHttp, path)

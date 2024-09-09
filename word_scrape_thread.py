@@ -10,6 +10,8 @@ from keys import keys
 from md_scrape import ScrapeMd
 from services.network.session_manager import SessionManager
 
+# TODO: Refactor this
+
 
 class WordScraperThread(QThread):
     finished = Signal()
