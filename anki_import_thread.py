@@ -3,8 +3,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
+from db import DatabaseManager
 from db.dals import SentsDAL, WordsDAL
-from db.db_manager import DatabaseManager
 from db.workers import SentsQueryWorker, WordsQueryWorker
 from models.dictionary import Sentence, Word
 from services.network import NetworkWorker, SessionManager

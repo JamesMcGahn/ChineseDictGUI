@@ -3,7 +3,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QMainWindow
 
 import resources_rc as resources_rc
-from db.db_manager import DatabaseManager
+from db import DatabaseManager
 from keys import keys
 from services.network import NetworkThread
 from services.network.session_manager import SessionManager

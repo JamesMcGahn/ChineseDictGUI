@@ -2,7 +2,7 @@ from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QWidget
 
 from components.toasts import QToast
-from db.db_manager import DatabaseManager
+from db import DatabaseManager
 from db_query_thread import DatabaseQueryThread
 from models.table import SentenceTableModel, WordTableModel
 
