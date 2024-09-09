@@ -1,7 +1,8 @@
 from csv import DictWriter
 
 import services.logger
-from utils import PathManager
+
+from .path_manager import PathManager
 
 
 class WriteFile:

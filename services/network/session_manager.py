@@ -6,9 +6,8 @@ import requests
 from bs4 import BeautifulSoup
 from PySide6.QtCore import QObject
 
-from open_file import OpenFile
 from services import Logger
-from write_file import WriteFile
+from utils import OpenFile, WriteFile
 
 
 class SessionManager(QObject):

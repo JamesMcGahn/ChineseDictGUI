@@ -8,8 +8,8 @@ from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal
 from cpod_scrape import ScrapeCpod
 from keys import keys
 from services.network import SessionManager
+from utils import WriteFile
 from web_scrape import WebScrape
-from write_file import WriteFile
 
 
 class LessonScraperThread(QThread):

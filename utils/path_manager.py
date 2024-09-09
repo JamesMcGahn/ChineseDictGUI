@@ -1,17 +1,24 @@
 import os
 import re
 
+import services.logger
+
 
 class PathManager:
     @staticmethod
-    def path_exists(path, makepath):
+    def path_exists(path, makepath, raiseError=False):
         if os.path.exists(path):
             return True
         elif not os.path.exists(path) and makepath:
             os.makedirs(path)
             return True
         else:
-            return False
+            if raiseError:
+                log = services.logger.Logger()
+                log.insert("Filepath does not exist", "WARN")
+                raise ValueError("Filepath does not exist")
+            else:
+                return False
 
     @staticmethod
     def regex_path(path):

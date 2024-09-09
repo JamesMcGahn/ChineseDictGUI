@@ -1,31 +1,23 @@
-import os
 import pickle
 from csv import DictReader
 
-from services import Logger
+import services.logger
+
+from .path_manager import PathManager
 
 
 class OpenFile:
-    @staticmethod
-    def check_file(filepath):
-        if os.path.exists(filepath):
-            return True
-        else:
-            log = Logger()
-            log.insert("Filepath does not exist", "WARN")
-            raise ValueError("Filepath does not exist")
-
     def open_pickle(path):
-        if OpenFile.check_file(path):
+        if PathManager.path_exists(path, makepath=False, raiseError=True):
             with open(path, "rb") as infile:
                 dill = pickle.load(infile)
             return dill
 
     @staticmethod
     def open_file(filepath, csv=False, split=False):
-        log = Logger()
+        log = services.logger.Logger()
         log.insert(f"Opening {filepath}", "INFO")
-        if OpenFile.check_file(filepath):
+        if PathManager.path_exists(filepath, makepath=False, raiseError=True):
             with open(filepath, "r", encoding="utf-8-sig") as file:
                 if csv:
                     csv_reader = DictReader(file)

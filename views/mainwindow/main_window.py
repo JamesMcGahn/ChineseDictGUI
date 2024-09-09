@@ -5,8 +5,7 @@ from PySide6.QtWidgets import QLabel, QMainWindow
 import resources_rc as resources_rc
 from db import DatabaseManager
 from keys import keys
-from services.network import NetworkThread
-from services.network.session_manager import SessionManager
+from services.network import NetworkThread, SessionManager
 
 from ..central_widget import CentralWidget
 
