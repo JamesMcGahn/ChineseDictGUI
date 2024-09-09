@@ -8,7 +8,7 @@ from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal
 from cpod_scrape import ScrapeCpod
 from keys import keys
 from md_scrape import ScrapeMd
-from session_manager import SessionManger
+from services.network.session_manager import SessionManager
 
 
 class WordScraperThread(QThread):
@@ -57,7 +57,7 @@ class WordScraperThread(QThread):
                 while self._paused:
                     self._wait_condition.wait(self._mutex)  # Wait until resumed
             # TODO remove keys.py file
-            sess = SessionManger()
+            sess = SessionManager()
             try:
                 cp_res = sess.get(f"{keys['url']}/dictionary/english-chinese/{word}")
                 c_soup = BeautifulSoup(cp_res.text, "html.parser")

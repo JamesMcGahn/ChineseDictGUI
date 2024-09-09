@@ -6,7 +6,7 @@ import resources_rc as resources_rc
 from db.db_manager import DatabaseManager
 from keys import keys
 from services.network import NetworkThread
-from session_manager import SessionManger
+from services.network.session_manager import SessionManager
 
 from ..central_widget import CentralWidget
 
@@ -14,7 +14,7 @@ from ..central_widget import CentralWidget
 class MainWindow(QMainWindow):
     def __init__(self, app):
         super().__init__()
-        self.session_manager = SessionManger()
+        self.session_manager = SessionManager()
         self.app = app
         self.setWindowTitle("Custom MainWindow")
         self.setObjectName("MainWindow")
@@ -57,12 +57,7 @@ class MainWindow(QMainWindow):
             self.network_thread.start()
 
     def session_response(self, status, response):
-        print(response)
         self.session_manager.save_session()
-
-        print("cook", self.session_manager.get_cookies())
-        self.session2 = SessionManger()
-        print("cook2", self.session2.get_cookies())
 
     def session_error(self, status, message):
         print(status)

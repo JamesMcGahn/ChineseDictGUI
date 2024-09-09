@@ -11,17 +11,17 @@ from services import Logger
 from write_file import WriteFile
 
 
-class SessionManger(QObject):
+class SessionManager(QObject):
     session = requests.Session()
 
     def __init__(self):
         super().__init__()
 
     def post(self, url, data=None, json=None, timeout=10):
-        return SessionManger.session.post(url, data=data, json=json, timeout=timeout)
+        return SessionManager.session.post(url, data=data, json=json, timeout=timeout)
 
     def get(self, url, data=None, json=None, timeout=10):
-        return SessionManger.session.get(url, data=data, json=json, timeout=timeout)
+        return SessionManager.session.get(url, data=data, json=json, timeout=timeout)
 
     # TODO used in web_scrape - need to remove
     def get_session_url(self):
@@ -53,15 +53,15 @@ class SessionManger(QObject):
         )
 
     def set_cookies(self, cookies):
-        SessionManger.session.cookies = cookies
+        SessionManager.session.cookies = cookies
 
     def get_cookies(self):
-        return SessionManger.session.cookies
+        return SessionManager.session.cookies
 
     # TODO remove from session
     def get_html(self, url):
         Logger().insert("Getting HTML...", "INFO")
-        req = SessionManger.session.get(f"{url}")
+        req = SessionManager.session.get(f"{url}")
         soup = BeautifulSoup(req.text, "html.parser")
         sleep(randint(6, 15))
         return soup

@@ -7,10 +7,10 @@ from db.dals import SentsDAL, WordsDAL
 from db.db_manager import DatabaseManager
 from db.workers import SentsQueryWorker, WordsQueryWorker
 from models.dictionary import Sentence, Word
-from services.network import NetworkWorker
-from session_manager import SessionManger
+from services.network import NetworkWorker, SessionManager
 
 
+# TODO Refactor this into worker and thread
 class FindAnkiInLocal(QObject):
     response_sig = Signal(str, object, str)
 
@@ -54,7 +54,7 @@ class FindAnkiInLocal(QObject):
             self.finished.emit()
             return
 
-        sess = SessionManger()
+        sess = SessionManager()
         self.net_worker = NetworkWorker(
             sess, "GET", "http://127.0.0.1:8765", json=json, timeout=60
         )
@@ -86,7 +86,7 @@ class AnkiImportThread(QThread):
         self.dname = dname
 
     def run(self):
-        sess = SessionManger()
+        sess = SessionManager()
         json = {
             "action": "findNotes",
             "version": 6,

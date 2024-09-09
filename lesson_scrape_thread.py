@@ -7,7 +7,7 @@ from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal
 
 from cpod_scrape import ScrapeCpod
 from keys import keys
-from session_manager import SessionManger
+from services.network import SessionManager
 from web_scrape import WebScrape
 from write_file import WriteFile
 
@@ -41,7 +41,7 @@ class LessonScraperThread(QThread):
     def run(self):
         print("starting thread")
         print(self.lesson_list)
-        sess = SessionManger()
+        sess = SessionManager()
         # TODO remove keys.py file
         wb = WebScrape(sess, keys["url"])
         wb.init_driver()
