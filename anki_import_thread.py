@@ -7,7 +7,7 @@ from db.dals import SentsDAL, WordsDAL
 from db.db_manager import DatabaseManager
 from db.workers import SentsQueryWorker, WordsQueryWorker
 from models.dictionary import Sentence, Word
-from network_thread import NetworkWorker
+from services.network import NetworkWorker
 from session_manager import SessionManger
 
 

@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QLabel, QMainWindow
 import resources_rc as resources_rc
 from db.db_manager import DatabaseManager
 from keys import keys
-from network_thread import NetworkThread
+from services.network import NetworkThread
 from session_manager import SessionManger
 
 from ..central_widget import CentralWidget
@@ -45,6 +45,7 @@ class MainWindow(QMainWindow):
         else:
             # TODO: remove py email and password dict - use keyring
             # TODO: check for keyring - if it doesnt exist -> notify user -> send them to settings page
+
             self.network_thread = NetworkThread(
                 self.session_manager,
                 "SESSION",
