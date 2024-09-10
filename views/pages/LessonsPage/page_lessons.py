@@ -7,7 +7,7 @@ from components.dialogs import (
     IncreaseLvlsDialog,
     MultiWordDialog,
 )
-from lesson_scrape_thread import LessonScraperThread
+from core.scrapers.cpod.lessons import LessonScraperThread
 from models.table import SentenceTableModel, WordTableModel
 from word_scrape_thread import WordScraperThread
 
@@ -124,7 +124,7 @@ class PageLessons(QWidget):
             form_data["level_selection"],
         )
         # TODO add list to the screen
-        self.lesson_scrape_thread.deleteLater()
+
         self.word_scrape_thread.start()
         self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
         self.md_multi_selection_sig.connect(self.word_scrape_thread.get_md_user_select)

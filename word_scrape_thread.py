@@ -65,13 +65,14 @@ class WordScraperThread(QThread):
                 c_soup = BeautifulSoup(cp_res.text, "html.parser")
                 print("here 1")
                 cpod = ScrapeCpod(c_soup, word)
-                cpod.scrape_defintion()
-                print("here 2")
+
+                cpod.scrape_definition()
+
                 if self.save_sentences:
                     cpod.scrape_sentences()
 
-                self.cpod_word = cpod.get_defintion()
-                print("save-senteces?", self.save_sentences)
+                self.cpod_word = cpod.get_definition()
+
                 if self.save_sentences:
                     print("heree - enter")
                     example_sentences = cpod.get_sentences()

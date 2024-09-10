@@ -6,10 +6,6 @@ from models.dictionary import Sentence, Word
 from services import Logger
 from utils import strip_string
 
-# from terminal_opts import TerminalOptions
-
-# TODO modalize
-
 
 class ScrapeCpod:
     def __init__(self, soup, word=""):
@@ -22,24 +18,21 @@ class ScrapeCpod:
         self.word = word
 
     def __getitem__(self, key):
-        if key == "word_example_sentences":
-            return self.word_example_sentences
-        elif key == "dialogue":
-            return self.dialogue
-        elif key == "expand_sentences":
-            return self.expand_sentences
-        elif key == "grammar_sentences":
-            return self.grammar_sentences
+        return {
+            "word_example_sentences": self.word_example_sentences,
+            "dialogue": self.dialogue,
+            "expand_sentences": self.expand_sentences,
+            "grammar_sentences": self.grammar_sentences,
+        }.get(key, None)
 
     def __setitem__(self, key, value):
-        if key == "word_example_sentences":
-            self.word_example_sentences = value
-        elif key == "dialogue":
-            self.dialogue = value
-        elif key == "expand_sentences":
-            self.expand_sentences = value
-        elif key == "grammar_sentences":
-            self.grammar_sentences = value
+        if key in [
+            "word_example_sentences",
+            "dialogue",
+            "expand_sentences",
+            "grammar_sentences",
+        ]:
+            setattr(self, key, value)
 
     def get_sentences(self):
         return self.word_example_sentences
@@ -49,9 +42,6 @@ class ScrapeCpod:
 
     def get_expansion(self):
         return self.expand_sentences
-
-    def get_defintion(self):
-        return self.definition
 
     def get_dialogues(self):
         return self.dialogue
@@ -68,7 +58,7 @@ class ScrapeCpod:
         audio_file = audio_file.replace("http://", "https://")
         return audio_file
 
-    def scrape_defintion(self):
+    def scrape_definition(self):
         search_table = self.soup.find("div", class_="sample-search")
         if search_table is None:
             return None
@@ -97,7 +87,7 @@ class ScrapeCpod:
 
         sample_sentences_table = self.soup.find("table", class_="table-grossary")
         if sample_sentences_table is None:
-            return []
+            return None
 
         all_sample_sentences = sample_sentences_table.find_all("tr")
         for sentence in all_sample_sentences:

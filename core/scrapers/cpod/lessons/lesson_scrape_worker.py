@@ -3,60 +3,37 @@ import time
 from random import randint
 
 from bs4 import BeautifulSoup
-from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal, Slot
+from PySide6.QtCore import QMutexLocker, QObject, Signal
 
 from cpod_scrape import ScrapeCpod
-from keys import keys
-from services.network import SessionManager
 from utils import WriteFile
-from web_scrape import WebScrape
 
 
-class LessonScraperThread(QThread):
+class LessonScraperWorker(QObject):
     finished = Signal()
-    data_scraped = Signal(str)
-    md_thd_multi_words_sig = Signal(list)
-    md_use_cpod_w_sig = Signal(object)
-    send_words_sig = Signal(list)
-    no_sents_inc_levels = Signal(list)
     send_sents_sig = Signal(object)
+    send_words_sig = Signal(list)
 
-    def __init__(self, lesson_list):
+    def __init__(self, web_driver, lesson_list, mutex, wait_condition, parent_thread):
         super().__init__()
+        self.web_driver = web_driver
         self.lesson_list = lesson_list
+        self._mutex = mutex
+        self._wait_condition = wait_condition
+        self.parent_thread = parent_thread
 
-        self.user_use_cpod_sel = False
-
-        self.cpod_word = None
-        self.user_md_multi = None
-        self.scraped_data = set()
-        self._mutex = QMutex()
-
-        self._wait_condition = QWaitCondition()
-        self._stop = False
-        self._paused = False
-        self.user_update_levels = False
-        self.new_level_selection = None
-
-    def run(self):
-        print("starting thread")
-        print(self.lesson_list)
-        sess = SessionManager()
-        # TODO remove keys.py file
-        wb = WebScrape(sess, keys["url"])
-        wb.init_driver()
-
+    def do_work(self):
         for i, c_lesson in enumerate(self.lesson_list):
             print(i)
             with QMutexLocker(self._mutex):
-                if self._stop:
+                if self.parent_thread._stop:
                     break
 
-                while self._paused:
+                while self.parent_thread._paused:
                     self._wait_condition.wait(self._mutex)  # Wait until resumed
 
-            wb.run_webdriver(c_lesson)
-            lesson = wb.get_source()
+            self.web_driver.run_webdriver(c_lesson)
+            lesson = self.web_driver.get_source()
 
             tempfile_path = WriteFile.write_file(
                 "./data/temp/temp.html", lesson["source"]
@@ -98,34 +75,7 @@ class LessonScraperThread(QThread):
             try:
                 os.remove(tempfile_path)
             except OSError as error:
-                raise RuntimeError(error)
+                # TODO handle error
+                print(error)
             time.sleep(randint(6, 15))
-        wb.close()
         self.finished.emit()
-
-    def scrape_word(self, word):
-        return f"Scraped result for {word}"
-
-    def resume(self):
-        self.mutex.lock()
-        self.paused = False
-        self.wait_condition.wakeAll()
-        self.mutex.unlock()
-
-    @Slot(int)
-    def get_md_user_select(self, int):
-        self.user_md_multi = int
-        self._wait_condition.wakeAll()
-
-    @Slot(bool)
-    def get_use_cpod_w(self, decision):
-        self.user_use_cpod_sel = decision
-        self._wait_condition.wakeAll()
-
-    @Slot(bool, list)
-    def get_updated_sents_levels(self, changed, levels):
-        if changed:
-            self.user_update_levels = True
-            self.new_level_selection = levels
-
-        self._wait_condition.wakeAll()
