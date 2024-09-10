@@ -2,9 +2,9 @@ from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal
 
 from keys import keys
 from services.network import SessionManager
-from web_scrape import WebScrape
 
 from .lesson_scrape_worker import LessonScraperWorker
+from .web_scrape import WebScrape
 
 
 class LessonScraperThread(QThread):
