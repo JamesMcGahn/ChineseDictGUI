@@ -1,6 +1,6 @@
 import time
 from random import randint
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 from bs4 import BeautifulSoup
 from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal, Slot
@@ -61,7 +61,10 @@ class WordScraperThread(QThread):
             # TODO remove keys.py file
             sess = SessionManager()
             try:
-                cp_res = sess.get(f"{keys['url']}/dictionary/english-chinese/{word}")
+                encoded_word = quote(word)
+                cp_res = sess.get(
+                    f"{keys['url']}/dictionary/english-chinese/{encoded_word}"
+                )
                 c_soup = BeautifulSoup(cp_res.text, "html.parser")
                 print("here 1")
                 cpod = ScrapeCpod(c_soup, word)
