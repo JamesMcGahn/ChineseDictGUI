@@ -11,6 +11,7 @@ from word_scrape_thread import WordScraperThread
 from .page_words_ui import PageWordsView
 
 
+# TODO: Clean up
 class PageWords(QWidget):
     md_multi_selection_sig = Signal(int)
     use_cpod_def_sig = Signal(bool)
@@ -74,8 +75,10 @@ class PageWords(QWidget):
             audio_thread.start()
 
     def remove_thread(self, thread):
-        thread.deleteLater()
-        self.audio_threads.remove(thread)
+        if thread in self.audio_threads:
+            print(f"removing thread {thread} from audio thread queue")
+            self.audio_threads.remove(thread)
+            thread.deleteLater()
         if self.audio_threads:
             self.audio_threads[0].start()
 
