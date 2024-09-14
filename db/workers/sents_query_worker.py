@@ -110,35 +110,38 @@ class SentsQueryWorker(QObject):
         self.message.emit(f" {len(ids)} Sentence{"s" if len(ids) > 1 else "" } Deleted.")
 
     def handle_pagination(self):
-        page = self.kwargs.get("page", None)
+        page = self.kwargs.get("page", 1)
         limit = self.kwargs.get("limit", 25)
         table_count_result = self.dals.get_sentences_table_count()
-        table_count_result = table_count_result.fetchone()[0]
-        total_pages = math.ceil(table_count_result / limit)
-        hasNextPage = total_pages > page
-        hasPrevPage = page > 1
-        result = self.dals.get_sentences_paginate(page, limit)
-        if result is not None:
-            sentences = [
-                Sentence(
-                    sent[1], sent[2], sent[3], sent[4], sent[5], sent[0]
-                )
-                for sent in result.fetchall()
-            ]
-            self.pagination.emit(
-                sentences,
-                table_count_result,
-                total_pages,
-                page,
-                hasPrevPage,
-                hasNextPage,
-            )
+        if table_count_result is None:
+            self.error_occurred.emit("Table not created for Sentences")
         else:
-            self.pagination.emit(
-                None,
-                table_count_result,
-                total_pages,
-                page,
-                hasPrevPage,
-                hasNextPage,
-            )
+            table_count_result = table_count_result.fetchone()[0]
+            total_pages = math.ceil(table_count_result / limit)
+            hasNextPage = total_pages > page
+            hasPrevPage = page > 1
+            result = self.dals.get_sentences_paginate(page, limit)
+            if result is not None:
+                sentences = [
+                    Sentence(
+                        sent[1], sent[2], sent[3], sent[4], sent[5], sent[0]
+                    )
+                    for sent in result.fetchall()
+                ]
+                self.pagination.emit(
+                    sentences,
+                    table_count_result,
+                    total_pages,
+                    page,
+                    hasPrevPage,
+                    hasNextPage,
+                )
+            else:
+                self.pagination.emit(
+                    None,
+                    table_count_result,
+                    total_pages,
+                    page,
+                    hasPrevPage,
+                    hasNextPage,
+                )

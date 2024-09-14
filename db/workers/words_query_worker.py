@@ -115,30 +115,33 @@ class WordsQueryWorker(QObject):
         page = self.kwargs.get("page", None)
         limit = self.kwargs.get("limit", 25)
         table_count_result = self.dalw.get_words_table_count()
-        table_count_result = table_count_result.fetchone()[0]
-        total_pages = math.ceil(table_count_result / limit)
-        hasNextPage = total_pages > page
-        hasPrevPage = page > 1
-        result = self.dalw.get_words_paginate(page, limit)
-        if result is not None:
-            words = [
-                Word(word[1], word[3], word[2], word[4], word[5], word[0])
-                for word in result.fetchall()
-            ]
-            self.pagination.emit(
-                words,
-                table_count_result,
-                total_pages,
-                page,
-                hasPrevPage,
-                hasNextPage,
-            )
+        if table_count_result is None:
+            self.error_occurred.emit("Table not created for Sentences")
         else:
-            self.pagination.emit(
-                None,
-                table_count_result,
-                total_pages,
-                page,
-                hasPrevPage,
-                hasNextPage,
-                        )
+            table_count_result = table_count_result.fetchone()[0]
+            total_pages = math.ceil(table_count_result / limit)
+            hasNextPage = total_pages > page
+            hasPrevPage = page > 1
+            result = self.dalw.get_words_paginate(page, limit)
+            if result is not None:
+                words = [
+                    Word(word[1], word[3], word[2], word[4], word[5], word[0])
+                    for word in result.fetchall()
+                ]
+                self.pagination.emit(
+                    words,
+                    table_count_result,
+                    total_pages,
+                    page,
+                    hasPrevPage,
+                    hasNextPage,
+                )
+            else:
+                self.pagination.emit(
+                    None,
+                    table_count_result,
+                    total_pages,
+                    page,
+                    hasPrevPage,
+                    hasNextPage,
+                            )
