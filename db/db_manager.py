@@ -107,7 +107,9 @@ class DatabaseManager(QObject):
             CREATE TABLE IF NOT EXISTS anki_integration (
             id TEXT PRIMARY KEY,
             anki_update INTEGER,
-            local_update INTEGER)
-             """
+            local_update INTEGER,
+            initial_import_done INTEGER DEFAULT 0
+            )
+            """
         )
         self.execute_query("COMMIT;")
