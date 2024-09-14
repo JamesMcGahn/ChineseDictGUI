@@ -1,3 +1,4 @@
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from PySide6.QtCore import QThread, Signal
@@ -20,7 +21,9 @@ class AnkiInitialImportThread(QThread):
         self.deckName = deckName
 
     def run(self):
-        print(f"starting import thread - {self.thread()}")
+        print(
+            f"Starting Anki Initial Import Thread: {threading.get_ident()} - {self.thread()}"
+        )
         self.noteIDWorker = AnkiGetNoteIDsWorker(self.deckName)
         self.noteIDWorker.moveToThread(self.thread())
         self.noteIDWorker.received_response.connect(self.received_response)
@@ -32,10 +35,10 @@ class AnkiInitialImportThread(QThread):
             print(status, response, errorType)
         else:
             ankiIds = response.json()["result"]
-            print(ankiIds)
+            # print(ankiIds)
             db = DatabaseManager("chineseDict.db")
             self.worker = FindAnkiIDsInLocalWorker(db, ankiIds, dtype=self.dtype)
-            self.worker.moveToThread(self.thread())
+            self.worker.moveToThread(self)
             self.worker.ids_not_in_local.connect(self.ids_not_found)
 
             # self.worker.do_work
@@ -100,7 +103,7 @@ class AnkiInitialImportThread(QThread):
                 sentences=sents,
             )
 
-        self.dbworker.moveToThread(self.thread())
+        self.dbworker.moveToThread(self)
         self.dbworker.do_work()
         self.dbworker.finished.connect(self.quit)
         self.dbworker.error_occurred.emit(self.error_occured)

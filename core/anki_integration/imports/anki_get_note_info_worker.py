@@ -1,6 +1,6 @@
 import threading
 
-from PySide6.QtCore import QObject, QThread, Signal, Slot
+from PySide6.QtCore import QObject, Signal, Slot
 
 from services.network import NetworkWorker, SessionManager
 
@@ -17,8 +17,10 @@ class AnkiGetNoteInfoWorker(QObject):
 
     @Slot()
     def do_work(self):
-        print(f"Current thread ID -- find: {threading.get_ident()}")
-        print(f"Anki running in thread: {QThread.currentThread()}")
+        print(
+            f"Starting Anki Note Info worker in thread: {threading.get_ident()} - {self.thread()}"
+        )
+
         json = {
             "action": "notesInfo",
             "version": 6,

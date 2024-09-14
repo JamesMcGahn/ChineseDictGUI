@@ -1,7 +1,7 @@
 import threading
 
 import requests
-from PySide6.QtCore import QObject, QThread, Signal, Slot
+from PySide6.QtCore import QObject, Signal, Slot
 
 
 class NetworkWorker(QObject):
@@ -22,8 +22,9 @@ class NetworkWorker(QObject):
 
     @Slot()
     def do_work(self):
-        print(f"Current thread ID: {threading.get_ident()}")
-        print(f"NetworkWorker running in thread: {QThread.currentThread()}")
+        print(
+            f"Starting NetworkWorker in thread: {threading.get_ident()} - {self.thread()}"
+        )
 
         try:
             if self.operation == "POST":

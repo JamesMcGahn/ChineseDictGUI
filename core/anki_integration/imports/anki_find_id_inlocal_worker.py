@@ -1,6 +1,6 @@
 import threading
 
-from PySide6.QtCore import QObject, QThread, Signal, Slot
+from PySide6.QtCore import QObject, Signal, Slot
 
 from db.dals import SentsDAL, WordsDAL
 
@@ -18,8 +18,10 @@ class FindAnkiIDsInLocalWorker(QObject):
 
     @Slot()
     def do_work(self):
-        print(f"Current thread ID -- find: {threading.get_ident()}")
-        print(f"Anki running in thread: {QThread.currentThread()}")
+        print(
+            f"Find Anki Ids in Local running in thread: {threading.get_ident()} - {self.thread()}"
+        )
+
         self.db_manager.connect()
 
         no_db_matches = []

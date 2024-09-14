@@ -1,3 +1,5 @@
+import threading
+
 from PySide6.QtCore import QObject, Signal
 
 from services.network import NetworkWorker, SessionManager
@@ -12,7 +14,10 @@ class AnkiGetNoteIDsWorker(QObject):
         self.deckName = deckName
 
     def do_work(self):
-        print(f"starting anki get ID worker in thread - {self.thread()}")
+        print(
+            f"Starting anki get ID worker in thread: {threading.get_ident()} - {self.thread()}"
+        )
+
         sess = SessionManager()
         json = {
             "action": "findNotes",
