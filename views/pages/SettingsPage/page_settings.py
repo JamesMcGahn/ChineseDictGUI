@@ -1,7 +1,7 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 
-from anki_import_thread import AnkiImportThread
+from core.anki_integration.imports import AnkiInitialImportThread
 
 from .page_settings_ui import PageSettingsUI
 
@@ -22,11 +22,12 @@ class PageSettings(QWidget):
         self.ui.import_deck_btn.clicked.connect(self.import_anki_deck)
 
     def import_anki_deck(self):
-        self.import_anki_w = AnkiImportThread("Mandarin Words", "words")
+        self.import_anki_w = AnkiInitialImportThread("Mandarin Words", "words")
         self.import_anki_w.run()
         self.import_anki_w.finished.connect(self.import_anki_sents)
 
     # TODO: Refesh dictionary view when loaded
+    # TODO: Remove threads
     def import_anki_sents(self):
-        self.import_anki_s = AnkiImportThread("Mandarin 10k Sentences", "sents")
+        self.import_anki_s = AnkiInitialImportThread("Mandarin 10k Sentences", "sents")
         self.import_anki_s.run()
