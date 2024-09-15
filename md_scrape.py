@@ -24,7 +24,7 @@ class ScrapeMd:
 
     def scrape_definition(self):
         results_table = self.soup.find("td", class_="resultswrap")
-        print(results_table)
+
         if results_table is None:
             return None
         results = results_table.find_all("tr", class_="row")

@@ -134,8 +134,6 @@ class PageWords(QWidget):
         # TODO add list to the screen
 
         self.ui.addwords_btn.setDisabled(True)
-        self.word_scrape_thread.start()
-        self.word_scrape_thread.finished.connect(self.word_scrape_thread.deleteLater)
         self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
         self.md_multi_selection_sig.connect(self.word_scrape_thread.get_md_user_select)
         self.use_cpod_def_sig.connect(self.word_scrape_thread.get_use_cpod_w)
@@ -151,7 +149,8 @@ class PageWords(QWidget):
         self.word_scrape_thread.send_sents_sig.connect(
             self.get_sentences_from_thread_loop
         )
-        self.word_scrape_thread.thread_finished.connect(self.thread_finished)
+        self.word_scrape_thread.finished.connect(self.thread_finished)
+        self.word_scrape_thread.start()
 
     @Slot(list)
     def get_dialog_mdmulti(self, words):
@@ -205,6 +204,6 @@ class PageWords(QWidget):
         [self.table_sentmodel.add_sentence(x) for x in sentences]
 
     @Slot(bool)
-    def thread_finished(self, isFinished):
-        if isFinished:
-            self.ui.addwords_btn.setDisabled(False)
+    def thread_finished(self):
+        self.word_scrape_thread.deleteLater()
+        self.ui.addwords_btn.setDisabled(False)
