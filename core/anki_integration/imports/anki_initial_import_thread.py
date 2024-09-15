@@ -1,10 +1,11 @@
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 from PySide6.QtCore import QThread, Signal
 
 from db import DatabaseManager
-from db.workers import SentsQueryWorker, WordsQueryWorker
+from db.workers import AnkiIntQueryWorker, SentsQueryWorker, WordsQueryWorker
 from models.dictionary import Sentence, Word
 
 from .anki_find_id_inlocal_worker import FindAnkiIDsInLocalWorker
@@ -104,15 +105,27 @@ class AnkiInitialImportThread(QThread):
             )
 
         self.dbworker.moveToThread(self)
-        self.dbworker.do_work()
-        self.dbworker.finished.connect(self.quit)
+        self.dbworker.finished.connect(self.update_db_integration_record)
         self.dbworker.error_occurred.emit(self.error_occured)
         self.dbworker.finished.connect(self.dbworker.deleteLater)
+        self.dbworker.do_work()
+
+    def update_db_integration_record(self):
+        db = DatabaseManager("chineseDict.db")
+
+        timestamp = int(time.time())
+        self.ankiDb = AnkiIntQueryWorker(
+            db,
+            "update_integration",
+            updates={"anki_update": timestamp, "initial_import_done": 1},
+        )
+        self.ankiDb.finished.connect(self.quit)
+        self.ankiDb.moveToThread(self)
+        self.ankiDb.error_occurred.emit(self.error_occured)
+        self.ankiDb.finished.connect(self.ankiDb.deleteLater)
         self.finished.emit()
+        self.ankiDb.do_work()
 
     def error_occured(self, message):
         print(message)
-
-    def update_db_integration_record(self):
-        pass
-        # TODO: update integration table with initial_import_done
+        # TODO: do something about error - Toast?
