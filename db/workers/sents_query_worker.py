@@ -3,8 +3,9 @@ import sqlite3
 
 from PySide6.QtCore import QObject, Signal, Slot
 
-from db.dals import SentsDAL
 from models.dictionary import Sentence
+
+from ..dals import SentsDAL
 
 
 class SentsQueryWorker(QObject):
