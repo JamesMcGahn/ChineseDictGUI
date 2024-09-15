@@ -1,5 +1,6 @@
 import math
 import sqlite3
+import time
 
 from PySide6.QtCore import QObject, Signal, Slot
 
@@ -21,6 +22,7 @@ class WordsQueryWorker(QObject):
         self.db_manager = db_manager
         self.operation = operation
         self.kwargs = kwargs
+        self.retry_pagination  = 0
 
     @Slot()
     def do_work(self):
@@ -45,6 +47,14 @@ class WordsQueryWorker(QObject):
 
                 case "get_pagination_words":
                     self.handle_pagination()
+        except sqlite3.OperationalError as e:
+            if 'no such table' in str(e):
+                if self.operation == "get_pagination_words" and self.retry_pagination < 2:
+                    time.sleep(10)
+                    self.handle_pagination()
+                    self.retry_pagination += 1
+                else:
+                    self.error_occurred.emit(f"An error occurred: {e}")
 
         except sqlite3.Error as e:
             self.db_manager.rollback_transaction()
