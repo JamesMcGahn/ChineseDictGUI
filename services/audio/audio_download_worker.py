@@ -6,7 +6,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 
 from models.dictionary import Sentence
 from services import Logger
-from utils import PathManager
+from utils.files import PathManager
 
 from .google_audio_worker import GoogleAudioWorker
 

@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from PySide6.QtCore import QObject
 
 from services import Logger
-from utils import OpenFile, WriteFile
+from utils.files import OpenFile, WriteFile
 
 
 class SessionManager(QObject):

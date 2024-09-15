@@ -5,7 +5,7 @@ from google.cloud import texttospeech
 from PySide6.QtCore import QObject, Signal
 
 from services import Logger
-from utils import PathManager
+from utils.files import PathManager
 
 
 class GoogleAudioWorker(QObject):

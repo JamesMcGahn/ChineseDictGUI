@@ -1,6 +1,7 @@
 import logging
 
-from utils import PathManager, Singleton
+from utils import Singleton
+from utils.files import PathManager
 
 
 class Logger(Singleton):

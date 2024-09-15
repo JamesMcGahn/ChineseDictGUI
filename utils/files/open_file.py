@@ -1,7 +1,7 @@
 import pickle
 from csv import DictReader
 
-import services.logger
+import services.logger.logger
 
 from .path_manager import PathManager
 
@@ -15,7 +15,7 @@ class OpenFile:
 
     @staticmethod
     def open_file(filepath, csv=False, split=False):
-        log = services.logger.Logger()
+        log = services.logger.logger.Logger()
         log.insert(f"Opening {filepath}", "INFO")
         if PathManager.path_exists(filepath, makepath=False, raiseError=True):
             with open(filepath, "r", encoding="utf-8-sig") as file:

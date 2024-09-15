@@ -1,8 +1,6 @@
 import os
 import re
 
-import services.logger
-
 
 class PathManager:
     @staticmethod
@@ -14,7 +12,9 @@ class PathManager:
             return True
         else:
             if raiseError:
-                log = services.logger.Logger()
+                import services.logger
+
+                log = services.Logger()
                 log.insert("Filepath does not exist", "WARN")
                 raise ValueError("Filepath does not exist")
             else:
