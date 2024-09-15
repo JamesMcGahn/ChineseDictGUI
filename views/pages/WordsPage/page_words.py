@@ -2,11 +2,11 @@ from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 from components.dialogs import AddWordsDialog, IncreaseLvlsDialog, MultiWordDialog
+from core.scrapers.words import WordScraperThread
 from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Sentence
 from models.table import SentenceTableModel, WordTableModel
 from services.audio import AudioThread
-from word_scrape_thread import WordScraperThread
 
 from .page_words_ui import PageWordsView
 

@@ -5,12 +5,11 @@ from urllib.parse import quote, urlencode
 from bs4 import BeautifulSoup
 from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal, Slot
 
-from cpod_scrape import ScrapeCpod
 from keys import keys
-from md_scrape import ScrapeMd
-from services.network.session_manager import SessionManager
+from services.network import NetworkWorker, SessionManager
 
-# TODO: Refactor this
+from ..cpod import ScrapeCpod
+from ..mdgb.md_scrape import ScrapeMd
 
 
 class WordScraperThread(QThread):
@@ -21,7 +20,6 @@ class WordScraperThread(QThread):
     send_word_sig = Signal(object)
     no_sents_inc_levels = Signal(list)
     send_sents_sig = Signal(object)
-    thread_finished = Signal(bool)
 
     def __init__(
         self, word_list, definition_source, save_sentences, level_selection=False
@@ -34,6 +32,8 @@ class WordScraperThread(QThread):
 
         self.cpod_word = None
         self.m_defined_word = None
+        self.c_soup = None
+        self.m_soup = None
 
         # Thread Control
         self._mutex = QMutex()
@@ -53,54 +53,99 @@ class WordScraperThread(QThread):
             if word.strip() == "":
                 continue
             print(i, len(self.word_list), word)
-            # TODO emit progess
-            with QMutexLocker(self._mutex):
-                if self._stop:
-                    break
 
-                while self._paused:
-                    self._wait_condition.wait(self._mutex)  # Wait until resumed
+            self.pause_if_needed(self._stop)
+
+            encoded_word = quote(word)
             # TODO remove keys.py file
+            self.get_soup(
+                f"{keys['url']}/dictionary/english-chinese/{encoded_word}",
+                self.received_csoup,
+            )
 
-            try:
-                encoded_word = quote(word)
-                cp_res = self.session.get(
-                    f"{keys['url']}/dictionary/english-chinese/{encoded_word}"
+            # TODO emit progess
+            self.pause_if_needed(self.c_soup is None)
+            self.scrape_cpod(word)
+            self.scrape_sentences()
+
+            if self.definition_source == "Cpod" and self.cpod_word is not None:
+                self.send_word_sig.emit(self.cpod_word)
+            else:
+                params = {"page": "worddict", "wdrst": "0", "wdqb": word}
+                encoded_params = urlencode(params)
+                self.get_soup(
+                    f"{keys['murl']}/dictionary/english-chinese?{encoded_params}",
+                    self.received_msoup,
                 )
-                c_soup = BeautifulSoup(cp_res.text, "html.parser")
+                self.pause_if_needed(self.m_soup is None)
+                self.scrape_mgdb(word)
+                self.send_mgdb()
 
-                self.cpod = ScrapeCpod(c_soup, word)
-                self.cpod.scrape_definition()
-
-                self.cpod_word = self.cpod.get_definition()
-
-                self.scrape_sentences()
-
-                if self.definition_source == "Cpod" and self.cpod_word is not None:
-                    self.send_word_sig.emit(self.cpod_word)
-                else:
-                    self.scrape_mgdb(word)
-                    self.send_mgdb()
-
-            except Exception as e:
-                print(e)
             # trunk-ignore(bandit/B311)
             time.sleep(randint(6, 15))
+
             self.cpod_word = None
             self.m_defined_word = None
+            self.c_soup = None
+            self.m_soup = None
 
         self.finished.emit()
         self.quit()
 
-    def scrape_mgdb(self, word):
-        params = {"page": "worddict", "wdrst": "0", "wdqb": word}
-        encoded_params = urlencode(params)
-        md_res = self.session.get(
-            f"{keys['murl']}/dictionary/english-chinese?{encoded_params}"
+    def pause_if_needed(self, checkVar):
+        with QMutexLocker(self._mutex):
+            if checkVar:
+                self._paused = True
+
+            while self._paused:
+                self._wait_condition.wait(self._mutex)  # Wait until resumed
+
+    def resume(self):
+        with QMutexLocker(self._mutex):  # Automatic lock and unlock
+            self._paused = False
+            self._wait_condition.wakeOne()
+
+    def get_soup(self, url, receiver):
+        self.net_worker = NetworkWorker(
+            self.session,
+            "GET",
+            url,
         )
-        m_soup = BeautifulSoup(md_res.text, "html.parser")
-        md = ScrapeMd(m_soup)
-        print("here 3")
+        self.net_worker.response_sig.connect(receiver)
+        self.net_worker.error_sig.connect(receiver)
+        self.net_worker.moveToThread(self)
+        self.net_worker.do_work()
+
+    def received_csoup(self, status, response, errorType=None):
+        print("here")
+        if status == "error":
+            print("error")
+            # TODO: do something
+            self.cpod_word = None
+        else:
+            self.c_soup = BeautifulSoup(response.text, "html.parser")
+
+        self.resume()
+        self.net_worker.deleteLater()
+
+    def received_msoup(self, status, response, errorType=None):
+        print("here")
+        if status == "error":
+            print("error")
+            self.m_defined_word = None
+        else:
+            self.m_soup = BeautifulSoup(response.text, "html.parser")
+
+        self.resume()
+        self.net_worker.deleteLater()
+
+    def scrape_cpod(self, word):
+        self.cpod = ScrapeCpod(self.c_soup, word)
+        self.cpod.scrape_definition()
+        self.cpod_word = self.cpod.get_definition()
+
+    def scrape_mgdb(self, word):
+        md = ScrapeMd(self.m_soup)
         md.scrape_definition()
         results = md.get_results_words()
 
@@ -173,11 +218,6 @@ class WordScraperThread(QThread):
                 self.user_update_levels = False
             else:
                 self.send_sents_sig.emit(example_sentences)
-
-    def resume(self):
-        with QMutexLocker(self._mutex):  # Automatic lock and unlock
-            self._paused = False
-            self._wait_condition.wakeOne()
 
     @Slot(int)
     def get_md_user_select(self, int):

@@ -2,9 +2,8 @@ from urllib.parse import unquote
 
 import regex
 
+import utils
 from models.dictionary import Sentence, Word
-from services import Logger
-from utils import strip_string
 
 
 class ScrapeCpod:
@@ -98,8 +97,8 @@ class ScrapeCpod:
             pinyin_sent = sent_cont.find(class_="dict-pinyin-cont").get_text()
             english_sent = sent_cont.find(class_="dict-pinyin-cont").next_sibling
             audio = self.scrape_audio(sentence)
-            english_sent = strip_string(english_sent)
-            pinyin_sent = strip_string(pinyin_sent)
+            english_sent = utils.strip_string(english_sent)
+            pinyin_sent = utils.strip_string(pinyin_sent)
             example_sentence = Sentence(
                 char_sent,
                 english_sent,
@@ -132,11 +131,11 @@ class ScrapeCpod:
             chinese = sentence.find("p", class_="click-to-add").get_text()
             pinyin = sentence.find("p", class_="show-pinyin").get_text()
             english = sentence.find("p", class_="translation-container").get_text()
-            title = strip_string(title)
+            title = utils.strip_string(title)
             audio = self.scrape_audio(sentence)
-            chinese = strip_string(chinese)
-            pinyin = strip_string(pinyin)
-            english = strip_string(english)
+            chinese = utils.strip_string(chinese)
+            pinyin = utils.strip_string(pinyin)
+            english = utils.strip_string(english)
 
             dialogue_sent = Sentence(chinese, english, pinyin, audio, badge)
             dialogue_sent.word = title
@@ -158,9 +157,9 @@ class ScrapeCpod:
                 pinyin = sent.find("p", class_="show-pinyin").get_text()
                 english = sent.find("p", class_="translation-container").get_text()
                 audio = self.scrape_audio(sent)
-                pinyin = strip_string(pinyin)
-                chinese = strip_string(chinese)
-                english = strip_string(english)
+                pinyin = utils.strip_string(pinyin)
+                chinese = utils.strip_string(chinese)
+                english = utils.strip_string(english)
 
                 expand_sentence = Sentence(chinese, english, pinyin, audio, badge)
                 expand_sentence.word = word
@@ -176,9 +175,9 @@ class ScrapeCpod:
             tds = vocab.find_all("td")
             chinese = tds[1].get_text()
             pinyin = tds[2].get_text()
-            chinese = strip_string(chinese)
+            chinese = utils.strip_string(chinese)
             chinese = chinese.replace(" ", "")
-            pinyin = strip_string(pinyin)
+            pinyin = utils.strip_string(pinyin)
 
             word = Word(chinese, "", pinyin, "")
             words.append(word)
@@ -192,7 +191,7 @@ class ScrapeCpod:
         for gram in gram_card:
             # title = gram.find("h3", class_="panel-title").get_text()
             description = gram.find("div", class_="panel-body").find("p").get_text()
-            title_n_des = strip_string(description)
+            title_n_des = utils.strip_string(description)
             sent_cont = gram.find("div", id="grammar_sentence")
             sents = sent_cont.find_all("tr")
             for sent in sents:
@@ -200,9 +199,9 @@ class ScrapeCpod:
                 pinyin = sent.find("p", class_="show-pinyin").get_text()
                 english = sent.find("p", class_="translation-container").get_text()
                 audio = self.scrape_audio(sent)
-                pinyin = strip_string(pinyin)
-                chinese = strip_string(chinese)
-                english = strip_string(english)
+                pinyin = utils.strip_string(pinyin)
+                chinese = utils.strip_string(chinese)
+                english = utils.strip_string(english)
 
                 grammar_sent = Sentence(chinese, english, pinyin, audio, badge)
                 grammar_sent.word = title_n_des

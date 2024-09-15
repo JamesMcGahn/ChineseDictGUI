@@ -5,8 +5,9 @@ from random import randint
 from bs4 import BeautifulSoup
 from PySide6.QtCore import QMutexLocker, QObject, Signal
 
-from cpod_scrape import ScrapeCpod
-from utils import WriteFile
+from utils.files import WriteFile
+
+from ..cpod_scrape import ScrapeCpod
 
 
 class LessonScraperWorker(QObject):
