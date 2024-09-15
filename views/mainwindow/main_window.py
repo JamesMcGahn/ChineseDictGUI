@@ -36,6 +36,7 @@ class MainWindow(QMainWindow):
         db = DatabaseManager("chineseDict.db")
         db.connect()
         db.create_tables_if_not_exist()
+        db.create_anki_integration_record()
         db.disconnect()
 
     def setup_session(self):

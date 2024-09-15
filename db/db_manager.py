@@ -22,10 +22,9 @@ class DatabaseManager(QObject):
                     cursor.execute(query)
 
                 return cursor
-            except sqlite3.Error as e:
-                # TODO: do something with error
-                print(e)
-                return None
+            except sqlite3.Error:
+                # TODO add logging
+                raise
 
     def begin_transaction(self):
         """Begin a database transaction."""
@@ -105,7 +104,7 @@ class DatabaseManager(QObject):
         self.execute_query(
             """
             CREATE TABLE IF NOT EXISTS anki_integration (
-            id TEXT PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             anki_update INTEGER,
             local_update INTEGER,
             initial_import_done INTEGER DEFAULT 0
@@ -113,3 +112,15 @@ class DatabaseManager(QObject):
             """
         )
         self.execute_query("COMMIT;")
+
+    def create_anki_integration_record(self):
+        result = self.execute_query("SELECT * FROM anki_integration WHERE id = 1")
+        result = result.fetchone()
+
+        if result is None:
+            self.execute_query("BEGIN;")
+            self.execute_query(
+                "INSERT INTO anki_integration (anki_update, local_update, initial_import_done) VALUES (?,?,?)",
+                (None, None, 0),
+            )
+            self.execute_query("COMMIT;")
