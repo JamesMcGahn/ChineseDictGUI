@@ -4,7 +4,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 
 from components.toasts import QToast
-from core.anki_integration.imports import AnkiInitialImportThread
+from core.anki_integration.imports import AnkiInitialImportThread, AnkiSyncImportThread
 from services.network import NetworkThread, SessionManager
 from services.settings import AppSettings
 
@@ -48,6 +48,8 @@ class PageSettings(QWidget):
                 checked, caller
             )
         )
+
+        self.ui.sync_import_btn.clicked.connect(self.anki_sync_import)
 
     def get_deck_names(self):
         self.settings.begin_group("deckNames")
@@ -130,3 +132,8 @@ class PageSettings(QWidget):
                 "Anki API Error",
                 "Make sure that you have Anki Opened",
             ).show()
+
+    def anki_sync_import(self):
+        self.sync_thread = AnkiSyncImportThread()
+        self.sync_thread.start()
+        print("Sync Import")

@@ -33,7 +33,7 @@ class PageSettingsUI(QWidget):
         hspacer = QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         vspacer = QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
-        colored_spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        # colored_spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.anki_deck_widget = QWidget()
         self.anki_deck_widget.setObjectName("anki_deck_widget")
@@ -102,4 +102,8 @@ class PageSettingsUI(QWidget):
         self.import_deck_btn = QPushButton("Import Deck From Anki")
 
         self.settings_page_vlayout.addWidget(self.import_deck_btn)
+
+        self.sync_import_btn = QPushButton("Test Import Sync")
+
+        self.settings_page_vlayout.addWidget(self.sync_import_btn)
         self.settings_page_vlayout.addItem(vspacer)
