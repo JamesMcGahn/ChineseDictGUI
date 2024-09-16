@@ -57,12 +57,14 @@ class PageSettings(QWidget):
         self.ui.lineEdit_anki_words_deck.setText(self.settings.get_value("words", ""))
         words_verified = self.settings.get_value("words-verified", False)
         sents_verified = self.settings.get_value("sents-verified", False)
-        self.ui.label_anki_sents_deck_verfied.setText(
-            f"{'OK' if sents_verified else 'X' }"
+
+        self.ui.label_anki_words_deck_verfied.setIcon(
+            self.ui.check_icon if words_verified else self.ui.x_icon
         )
-        self.ui.label_anki_words_deck_verfied.setText(
-            f"{'OK' if words_verified else 'X' }"
+        self.ui.label_anki_sents_deck_verfied.setIcon(
+            self.ui.check_icon if sents_verified else self.ui.x_icon
         )
+
         self.ui.label_anki_sents_verify_btn.setDisabled(sents_verified)
         self.ui.label_anki_words_verify_btn.setDisabled(words_verified)
 

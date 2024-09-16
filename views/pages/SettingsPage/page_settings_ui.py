@@ -1,5 +1,5 @@
 from PySide6.QtCore import QRect, QSize, Qt
-from PySide6.QtGui import QColor, QFont, QPainter
+from PySide6.QtGui import QColor, QFont, QIcon, QPainter
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -48,8 +48,22 @@ class PageSettingsUI(QWidget):
         self.label_anki_words_deck.setMinimumWidth(143)
         self.lineEdit_anki_words_deck = QLineEdit()
         self.lineEdit_anki_words_deck.setMaximumWidth(230)
-        self.label_anki_words_deck_verfied = QLabel()
+        self.label_anki_words_deck_verfied = QPushButton()
         self.label_anki_words_deck_verfied.setMinimumWidth(20)
+        self.label_anki_words_deck_verfied.setObjectName("anki_verify_icon_w")
+        self.x_icon = QIcon()
+        self.x_icon.addFile(
+            ":/ /images/red_check.png",
+            QSize(),
+            QIcon.Mode.Normal,
+        )
+        self.check_icon = QIcon()
+        self.check_icon.addFile(
+            ":/ /images/green_check.png",
+            QSize(),
+            QIcon.Mode.Normal,
+        )
+
         self.label_anki_words_verify_btn = QPushButton("Verify Deck")
 
         self.anki_words_deck_hlayout = QHBoxLayout()
@@ -66,8 +80,9 @@ class PageSettingsUI(QWidget):
         self.label_anki_sents_deck.setMinimumWidth(143)
         self.lineEdit_anki_sents_deck = QLineEdit()
         self.lineEdit_anki_sents_deck.setMaximumWidth(230)
-        self.label_anki_sents_deck_verfied = QLabel()
+        self.label_anki_sents_deck_verfied = QPushButton()
         self.label_anki_sents_deck_verfied.setMinimumWidth(20)
+        self.label_anki_sents_deck_verfied.setObjectName("anki_verify_icon_s")
         self.label_anki_sents_verify_btn = QPushButton("Verify Deck")
 
         self.anki_sents_deck_hlayout = QHBoxLayout()

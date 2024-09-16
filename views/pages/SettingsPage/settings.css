@@ -4,3 +4,9 @@ QWidget#anki_deck_widget {
   border-bottom-left-radius: 9px;
   border-bottom-right-radius: 9px;
 }
+
+QPushButton#anki_verify_icon_w,
+QPushButton#anki_verify_icon_s {
+  background: black;
+  border: none;
+}
