@@ -96,11 +96,17 @@ class PageSettings(QWidget):
                 status, response, errorType, caller
             )
         )
+        self.net_thread.error_sig.connect(
+            lambda status, err, errorType, caller=caller: self.verify_decks_response(
+                status, err, errorType, caller
+            )
+        )
+        self.net_thread.finished.connect(self.net_thread.deleteLater)
         self.net_thread.start()
 
     def verify_decks_response(self, status, response, errorType, caller):
-        response = response.json()
         if status == "success":
+            response = response.json()
             deckName = self.settings.get_value(f"deckNames/{caller}", None)
             if deckName in response["result"]:
                 self.change_deck_names(deckName, caller, True)
@@ -117,3 +123,10 @@ class PageSettings(QWidget):
                     "Deck Name Not Found",
                     "Deck Name not found in Anki, please make sure you have it typed correctly.",
                 ).show()
+        else:
+            QToast(
+                self,
+                "error",
+                "Anki API Error",
+                "Make sure that you have Anki Opened",
+            ).show()
