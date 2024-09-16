@@ -3,7 +3,9 @@ import os
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 
+from components.toasts import QToast
 from core.anki_integration.imports import AnkiInitialImportThread
+from services.network import NetworkThread, SessionManager
 from services.settings import AppSettings
 
 from .page_settings_ui import PageSettingsUI
@@ -36,6 +38,17 @@ class PageSettings(QWidget):
             lambda word, caller="words": self.change_deck_names(word, caller)
         )
 
+        self.ui.label_anki_sents_verify_btn.clicked.connect(
+            lambda checked, caller="sents": self.clicked_verify_deck_names(
+                checked, caller
+            )
+        )
+        self.ui.label_anki_words_verify_btn.clicked.connect(
+            lambda checked, caller="words": self.clicked_verify_deck_names(
+                checked, caller
+            )
+        )
+
     def get_deck_names(self):
         self.settings.begin_group("deckNames")
         self.ui.lineEdit_anki_sents_deck.setText(self.settings.get_value("sents", ""))
@@ -48,15 +61,15 @@ class PageSettings(QWidget):
         self.ui.label_anki_words_deck_verfied.setText(
             f"{'OK' if words_verified else 'X' }"
         )
-        self.ui.label_anki_sents_verify_btn.setHidden(sents_verified)
-        self.ui.label_anki_words_verify_btn.setHidden(words_verified)
+        self.ui.label_anki_sents_verify_btn.setDisabled(sents_verified)
+        self.ui.label_anki_words_verify_btn.setDisabled(words_verified)
 
         self.settings.end_group()
 
-    def change_deck_names(self, word, caller):
+    def change_deck_names(self, deckName, caller, verified=False):
         self.settings.begin_group("deckNames")
-        self.settings.set_value(caller, word)
-        self.settings.set_value(f"{caller}-verified", False)
+        self.settings.set_value(caller, deckName)
+        self.settings.set_value(f"{caller}-verified", verified)
         self.settings.end_group()
         self.get_deck_names()
 
@@ -70,3 +83,37 @@ class PageSettings(QWidget):
     def import_anki_sents(self):
         self.import_anki_s = AnkiInitialImportThread("Mandarin 10k Sentences", "sents")
         self.import_anki_s.run()
+
+    def clicked_verify_deck_names(self, _, caller):
+        print("sss", caller)
+        sess = SessionManager()
+        json = {"action": "deckNames", "version": 6}
+        self.net_thread = NetworkThread(
+            sess, "GET", "http://127.0.0.1:8765/", json=json
+        )
+        self.net_thread.response_sig.connect(
+            lambda status, response, errorType=None, caller=caller: self.verify_decks_response(
+                status, response, errorType, caller
+            )
+        )
+        self.net_thread.start()
+
+    def verify_decks_response(self, status, response, errorType, caller):
+        response = response.json()
+        if status == "success":
+            deckName = self.settings.get_value(f"deckNames/{caller}", None)
+            if deckName in response["result"]:
+                self.change_deck_names(deckName, caller, True)
+                QToast(
+                    self,
+                    "success",
+                    "Deck Name Verified",
+                    "Deck Name found in Anki, verify all decks and then start the integration!",
+                ).show()
+            else:
+                QToast(
+                    self,
+                    "error",
+                    "Deck Name Not Found",
+                    "Deck Name not found in Anki, please make sure you have it typed correctly.",
+                ).show()
