@@ -1,4 +1,4 @@
-from pyqttoast import Toast, ToastPreset
+from pyqttoast import Toast, ToastPosition, ToastPreset
 from PySide6.QtGui import QColor, QFont
 
 
@@ -32,9 +32,11 @@ class QToast(Toast):
         self.setDurationBarColor(QColor("#ff0000"))
         self.setIconSeparatorColor(QColor("#000000"))
         self.setIconColor(QColor("#ff0000"))
+        self.setCloseButtonIconColor(QColor("#ff0000"))
         self.setMinimumWidth(300)
+        self.setMaximumWidth(350)
         self.setMinimumHeight(55)
         self.setBorderRadius(3)
-
+        self.setPosition(ToastPosition.TOP_RIGHT)
         self.setTitle(self.title)
         self.setText(self.message)
