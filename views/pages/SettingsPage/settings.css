@@ -1,0 +1,10 @@
+QWidget#anki_deck_widget {
+  padding: 1em;
+  border: 1px solid red;
+  border-bottom-left-radius: 9px;
+  border-bottom-right-radius: 9px;
+}
+
+QSpacerItem#colored_spacer {
+  background-color: red;
+}

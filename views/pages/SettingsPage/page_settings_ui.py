@@ -1,6 +1,18 @@
-from PySide6.QtCore import QRect
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtGui import QColor, QFont, QPainter
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSizePolicy,
+    QSpacerItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from components.utils import ColoredSpacer
 
 
 class PageSettingsUI(QWidget):
@@ -19,10 +31,74 @@ class PageSettingsUI(QWidget):
         font1.setPointSize(25)
         self.label_6.setFont(font1)
 
-        self.settings_page_vlayout = QVBoxLayout(self)
+        hspacer = QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        vspacer = QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
+        colored_spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.anki_deck_widget = QWidget()
+        self.anki_deck_widget.setObjectName("anki_deck_widget")
+        # self.anki_deck_widget.setMaximumSize(QSize(700, 200))
+        self.anki_deck_widget.setMinimumSize(QSize(500, 200))
+        # Anki Deck Layout
+        self.anki_deck_vlayout = QVBoxLayout()
+        self.anki_deck_vlayout.setSpacing(5)
+
+        # Words Deck Labels
+        self.label_anki_words_deck = QLabel("Word's Deck Name:")
+        self.label_anki_words_deck.setMinimumWidth(142)
+        self.lineEdit_anki_words_deck = QLineEdit()
+        self.lineEdit_anki_words_deck.setMaximumWidth(220)
+        self.label_anki_words_deck_verfied = QLabel()
+        self.label_anki_words_verify_btn = QPushButton("Verify Deck")
+
+        self.anki_words_deck_hlayout = QHBoxLayout()
+        self.anki_words_deck_hlayout.setSpacing(10)
+        # self.anki_words_deck_hlayout.addItem(hspacer)
+        self.anki_words_deck_hlayout.addWidget(self.label_anki_words_deck)
+        self.anki_words_deck_hlayout.addWidget(self.lineEdit_anki_words_deck)
+        self.anki_words_deck_hlayout.addWidget(self.label_anki_words_deck_verfied)
+        self.anki_words_deck_hlayout.addWidget(self.label_anki_words_verify_btn)
+        # self.anki_words_deck_hlayout.addItem(hspacer)
+
+        # Sents Deck Labels
+        self.label_anki_sents_deck = QLabel("Sentence's Deck Name:")
+        self.label_anki_sents_deck.setMinimumWidth(142)
+        self.lineEdit_anki_sents_deck = QLineEdit()
+        self.lineEdit_anki_sents_deck.setMaximumWidth(250)
+        self.label_anki_sents_deck_verfied = QLabel()
+        self.label_anki_sents_verify_btn = QPushButton("Verify Deck")
+
+        self.anki_sents_deck_hlayout = QHBoxLayout()
+        self.anki_sents_deck_hlayout.setSpacing(10)
+        # self.anki_sents_deck_hlayout.addItem(hspacer)
+        self.anki_sents_deck_hlayout.addWidget(self.label_anki_sents_deck)
+        self.anki_sents_deck_hlayout.addWidget(self.lineEdit_anki_sents_deck)
+        self.anki_sents_deck_hlayout.addWidget(self.label_anki_sents_deck_verfied)
+        self.anki_sents_deck_hlayout.addWidget(self.label_anki_sents_verify_btn)
+        # self.anki_sents_deck_hlayout.addItem(hspacer)
+
+        # self.anki_deck_vlayout.addItem(vspacer)
+        spacer1 = ColoredSpacer(
+            "red", 400, 1, QSizePolicy.Expanding, QSizePolicy.Minimum
+        )
+        self.anki_deck_vlayout.addWidget(spacer1)
+        self.anki_deck_vlayout.addLayout(self.anki_words_deck_hlayout)
+        self.anki_deck_vlayout.addLayout(self.anki_sents_deck_hlayout)
+        self.anki_deck_vlayout.addItem(vspacer)
+
+        self.anki_deck_widget.setLayout(self.anki_deck_vlayout)
+
+        self.settings_page_vlayout = QVBoxLayout(self)
+        self.settings_page_vlayout.setSpacing(2)
         self.settings_page_vlayout.addWidget(self.label_6)
+        anki_widget_hlayout = QHBoxLayout()
+        anki_widget_hlayout.addItem(hspacer)
+        anki_widget_hlayout.addWidget(self.anki_deck_widget)
+        anki_widget_hlayout.addItem(hspacer)
+        self.settings_page_vlayout.addLayout(anki_widget_hlayout)
 
         self.import_deck_btn = QPushButton("Import Deck From Anki")
 
         self.settings_page_vlayout.addWidget(self.import_deck_btn)
+        self.settings_page_vlayout.addItem(vspacer)
