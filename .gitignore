@@ -17,7 +17,6 @@ test.py
 .DS_Store
 .venv/*
 
-designer-files/images/*
 
 chineseDict.db
 test/*

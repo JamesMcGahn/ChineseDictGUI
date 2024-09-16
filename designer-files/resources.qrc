@@ -4,6 +4,7 @@
     <file>images/audio_file_on.png</file>
     <file>images/settings_off.png</file>
     <file>images/settings_on.png</file>
+    <file>images/green_check.png</file>
     <file>images/hamburger_on.png</file>
     <file>images/hamburger_off.png</file>
     <file>images/signout_off.png</file>
@@ -15,5 +16,6 @@
     <file>images/dialogs_on.png</file>
     <file>images/list_off.png</file>
     <file>images/list_on.png</file>
+    <file>images/red_check.png</file>
   </qresource>
 </RCC>
