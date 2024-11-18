@@ -31,7 +31,7 @@ class AnkiGetNoteInfoWorker(QObject):
             self.response_sig.emit("success", None, None)
             self.finished.emit()
             return
-
+        print("Start")
         sess = SessionManager()
         self.net_worker = NetworkWorker(
             sess, "GET", "http://127.0.0.1:8765", json=json, timeout=60
@@ -44,10 +44,12 @@ class AnkiGetNoteInfoWorker(QObject):
 
     @Slot(str, object, str)
     def notes_response(self, status, response, errorType=None):
+        print("here - ttt")
         res = response
-        if status == "error" or res.json()["error"] is not None:
+        error = res.json()["error"]
+        if status == "error" or error is not None:
             print(status, response, errorType)
-            self.response_sig.emit(status, None, errorType)
+            self.response_sig.emit("error", error, error)
         else:
             print(res)
             self.response_sig.emit(status, res.json(), errorType)
