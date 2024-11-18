@@ -22,15 +22,11 @@ class PathManager:
 
     @staticmethod
     def regex_path(path):
-        path_reg = re.compile(
-            r"^(?P<path>(\.*[\/[\d\w\s-]+\/]*)|\.+\/)(?P<filename>[\d\w\s-]*)(?P<ext>\.[\w]+)$"
-        )
-        matches = path_reg.search(path)
-        return {
-            "path": matches.group("path"),
-            "filename": matches.group("filename"),
-            "ext": matches.group("ext"),
-        }
+        directory = os.path.dirname(path)
+        filename = os.path.basename(path)
+        name, ext = os.path.splitext(filename)
+
+        return {"path": directory, "filename": name, "ext": ext}
 
     @staticmethod
     def check_dup(folderpath, filename, ext):
