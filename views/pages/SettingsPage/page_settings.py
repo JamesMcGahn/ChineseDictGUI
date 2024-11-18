@@ -53,20 +53,22 @@ class PageSettings(QWidget):
 
     def get_deck_names(self):
         self.settings.begin_group("deckNames")
-        self.ui.lineEdit_anki_sents_deck.setText(self.settings.get_value("sents", ""))
-        self.ui.lineEdit_anki_words_deck.setText(self.settings.get_value("words", ""))
-        words_verified = self.settings.get_value("words-verified", False)
-        sents_verified = self.settings.get_value("sents-verified", False)
+        self.sents_deck = self.settings.get_value("sents", "")
+        self.words_deck = self.settings.get_value("words", "")
+        self.ui.lineEdit_anki_sents_deck.setText(self.sents_deck)
+        self.ui.lineEdit_anki_words_deck.setText(self.words_deck)
+        self.words_verified = self.settings.get_value("words-verified", False)
+        self.sents_verified = self.settings.get_value("sents-verified", False)
 
         self.ui.label_anki_words_deck_verfied.setIcon(
-            self.ui.check_icon if words_verified else self.ui.x_icon
+            self.ui.check_icon if self.words_verified else self.ui.x_icon
         )
         self.ui.label_anki_sents_deck_verfied.setIcon(
-            self.ui.check_icon if sents_verified else self.ui.x_icon
+            self.ui.check_icon if self.sents_verified else self.ui.x_icon
         )
 
-        self.ui.label_anki_sents_verify_btn.setDisabled(sents_verified)
-        self.ui.label_anki_words_verify_btn.setDisabled(words_verified)
+        self.ui.label_anki_sents_verify_btn.setDisabled(self.sents_verified)
+        self.ui.label_anki_words_verify_btn.setDisabled(self.words_verified)
 
         self.settings.end_group()
 
@@ -136,6 +138,12 @@ class PageSettings(QWidget):
             ).show()
 
     def anki_sync_import(self):
-        self.sync_thread = AnkiSyncImportThread()
-        self.sync_thread.start()
-        print("Sync Import")
+        if (
+            self.sents_deck
+            and self.words_deck
+            and self.words_verified
+            and self.sents_verified
+        ):
+            self.sync_thread = AnkiSyncImportThread(self.words_deck, self.sents_deck)
+            self.sync_thread.start()
+            print("Sync Import")
