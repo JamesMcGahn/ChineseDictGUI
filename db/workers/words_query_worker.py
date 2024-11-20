@@ -39,6 +39,9 @@ class WordsQueryWorker(QObject):
                 case "update_word":
                     self.handle_update_word()
 
+                case "update_words":
+                    self.handle_update_words()
+
                 case "delete_word":
                     self.handle_delete_word()
 
@@ -98,6 +101,21 @@ class WordsQueryWorker(QObject):
         if updates is None or id is None:
             raise ValueError("word and id must be specified as kwarg")
         self.db_manager.begin_transaction()
+        suc = self.dalw.update_word(id, updates)
+        if suc.rowcount == 1:
+            self.message.emit("Update Saved.")
+        self.db_manager.commit_transaction()
+
+    def handle_update_words(self):
+        words = self.kwargs.get("words", None)
+        if words is None:
+            raise ValueError("words must be specified as kwarg")
+        self.db_manager.begin_transaction()
+
+        for word in words:
+            id = word["id"]
+            updates = word["updates"]
+            print(id, updates)
         suc = self.dalw.update_word(id, updates)
         if suc.rowcount == 1:
             self.message.emit("Update Saved.")

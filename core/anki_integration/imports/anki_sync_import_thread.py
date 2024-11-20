@@ -7,7 +7,7 @@ from functools import partial
 from PySide6.QtCore import QThread, Signal
 
 from db import DatabaseManager
-from db.dals import AnkiIntegrationDAL, SentsDAL
+from db.dals import AnkiIntegrationDAL, SentsDAL, WordsDAL
 from db.workers import AnkiIntQueryWorker, SentsQueryWorker, WordsQueryWorker
 from models.dictionary import Sentence, Word
 from services.network import NetworkWorker, SessionManager
@@ -47,7 +47,7 @@ class AnkiSyncImportThread(QThread):
 
         # step 4 figure out the time difference between last sync and current time in days
         else:
-            self.get_edited_words("sents")
+            self.get_edited_words("words")
 
         # step 6 get notes info for these ids
 
@@ -62,12 +62,14 @@ class AnkiSyncImportThread(QThread):
         self.session = SessionManager()
         # TODO REMOVE hardcoded test time
         print("days", last_edited_days)
+        deck_name = (
+            self.sents_deckName if self.deck_type == "sents" else self.words_deckName
+        )
+
         json = {
             "action": "findNotes",
             "version": 6,
-            "params": {
-                "query": f'deck:"{self.sents_deckName}" edited:{last_edited_days}'
-            },
+            "params": {"query": f'deck:"{deck_name}" edited:{last_edited_days}'},
         }
         self.networker_w = NetworkWorker(
             self.session, "GET", "http://127.0.0.1:8765", json=json
@@ -139,7 +141,7 @@ class AnkiSyncImportThread(QThread):
                     print(sents_to_update)
                     print("******************************")
                     print(sents_to_add)
-
+                    # step 9.a insert new sentences
                     if sents_to_add:
                         self.dbworker = SentsQueryWorker(
                             self.db,
@@ -150,7 +152,8 @@ class AnkiSyncImportThread(QThread):
                         self.dbworker.error_occurred.emit(self.error_occured)
                         self.dbworker.finished.connect(self.dbworker.deleteLater)
                         self.dbworker.do_work()
-                    elif sents_to_update:
+                    # step 10.a update sentences already in the database
+                    if sents_to_update:
                         print("updating ====================")
                         self.updatedbworker = SentsQueryWorker(
                             self.db,
@@ -164,8 +167,59 @@ class AnkiSyncImportThread(QThread):
                         )
                         self.updatedbworker.do_work()
 
-        # step 9 insert new words and sentences
-        # step 10 update words and sentences already in the database
+                elif self.deck_type == "words":
+                    wordsDAL = WordsDAL(self.db)
+                    words_to_add = []
+                    words_to_update = []
+                    for word in self.cards_to_sync:
+                        cha = wordsDAL.get_word_by_ankiid(word["noteId"])
+                        word_fields = word["fields"]
+                        word = Word(
+                            chinese=word_fields["中文"]["value"],
+                            definition=word_fields["English"]["value"],
+                            pinyin=word_fields["Pinyin"]["value"],
+                            audio=None,
+                            level=word_fields["Notes"]["value"],
+                            anki_audio=word_fields["audio"]["value"],
+                            anki_id=word["noteId"],
+                            anki_update=word["mod"],
+                        )
+                        word_in_db = cha.fetchone()
+                        if word_in_db:
+                            print(word_in_db)
+                            id, *_ = word_in_db
+                            word.id = id
+                            words_to_update.append(
+                                {"id": word.id, "updates": vars(word)}
+                            )
+                        else:
+                            words_to_add.append(word)
+                    # step 9.b insert new words
+                    if words_to_add:
+                        self.w_dbworker = WordsQueryWorker(
+                            self.db,
+                            "insert_words",
+                            words=words_to_add,
+                        )
+                        self.w_dbworker.moveToThread(self)
+                        self.w_dbworker.error_occurred.emit(self.error_occured)
+                        self.w_dbworker.finished.connect(self.w_dbworker.deleteLater)
+                        self.w_dbworker.do_work()
+                    # step 10.b update words already in the database
+                    if words_to_update:
+                        print("updating ====================")
+                        self.w_updatedbworker = WordsQueryWorker(
+                            self.db,
+                            "update_words",
+                            words=words_to_update,
+                        )
+                        self.w_updatedbworker.moveToThread(self)
+                        self.w_updatedbworker.error_occurred.emit(self.error_occured)
+                        self.w_updatedbworker.finished.connect(
+                            self.w_updatedbworker.deleteLater
+                        )
+                        self.w_updatedbworker.do_work()
+
         # step 11 get all ids from anki database
         # step 12 get all anki IDs from local database
         # step 13 compare and delete anki IDs from localthat arent in anki anymore
