@@ -1,3 +1,5 @@
+import threading
+
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QMainWindow
@@ -31,6 +33,9 @@ class MainWindow(QMainWindow):
 
         self.setup_session()
         self.setup_database()
+        print(
+            f"Starting MainWindow in thread: {threading.get_ident()} - {self.thread()}"
+        )
 
     def setup_database(self):
         db = DatabaseManager("chineseDict.db")

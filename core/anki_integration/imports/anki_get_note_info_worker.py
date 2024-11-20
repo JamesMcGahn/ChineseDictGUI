@@ -7,13 +7,14 @@ from services.network import NetworkWorker, SessionManager
 
 class AnkiGetNoteInfoWorker(QObject):
     response_sig = Signal(str, object, str)
-
     finished = Signal()
+    start_work = Signal()
 
     def __init__(self, ankiIds, dtype="words"):
         super().__init__()
         self.ankiIds = ankiIds
         self.dtype = dtype
+        self.start_work.connect(self.do_work)
 
     @Slot()
     def do_work(self):
