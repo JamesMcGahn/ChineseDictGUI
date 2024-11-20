@@ -38,6 +38,9 @@ class SentsQueryWorker(QObject):
                 case "update_sentence":
                     self.handle_update_sent()
 
+                case "update_sentences":
+                    self.handle_update_sents()
+
                 case "delete_sentence":
                     self.handle_delete_sent()
 
@@ -98,6 +101,18 @@ class SentsQueryWorker(QObject):
             raise ValueError("updates and id must be specified as kwarg")
         self.db_manager.begin_transaction()
         self.dals.update_sentence(id, updates)
+        self.db_manager.commit_transaction()
+    def handle_update_sents(self):
+        sentences = self.kwargs.get("sentences", None)
+        if sentences is None:
+            raise ValueError("updates specified as kwarg")
+        self.db_manager.begin_transaction()
+        for sent in sentences:
+
+            id = sent["id"]
+            updates = sent["updates"]
+            print(id,updates)
+            self.dals.update_sentence(id, updates)
         self.db_manager.commit_transaction()
 
     def handle_delete_sent(self):

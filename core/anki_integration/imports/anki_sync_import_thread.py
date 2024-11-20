@@ -124,8 +124,14 @@ class AnkiSyncImportThread(QThread):
                             anki_id=sent["noteId"],
                             anki_update=sent["mod"],
                         )
-                        if che.fetchone():
-                            sents_to_update.append(sentence)
+                        sent_in_db = che.fetchone()
+                        if sent_in_db:
+                            print(sent_in_db)
+                            id, *_ = sent_in_db
+                            sentence.id = id
+                            sents_to_update.append(
+                                {"id": sentence.id, "updates": vars(sentence)}
+                            )
                         else:
                             sents_to_add.append(sentence)
 
@@ -144,6 +150,19 @@ class AnkiSyncImportThread(QThread):
                         self.dbworker.error_occurred.emit(self.error_occured)
                         self.dbworker.finished.connect(self.dbworker.deleteLater)
                         self.dbworker.do_work()
+                    elif sents_to_update:
+                        print("updating ====================")
+                        self.updatedbworker = SentsQueryWorker(
+                            self.db,
+                            "update_sentences",
+                            sentences=sents_to_update,
+                        )
+                        self.updatedbworker.moveToThread(self)
+                        self.updatedbworker.error_occurred.emit(self.error_occured)
+                        self.updatedbworker.finished.connect(
+                            self.updatedbworker.deleteLater
+                        )
+                        self.updatedbworker.do_work()
 
         # step 9 insert new words and sentences
         # step 10 update words and sentences already in the database
