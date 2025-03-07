@@ -2,6 +2,8 @@
 
 ## Todos
 
+## TODO: change database operations from multiple threads to use one thread.
+
 ### TODO - Create Worker Class with common singals and logging functions
 
 ### TODO - ask user for login information for cpood and store in keyring, remove using key.py for storage
