@@ -11,7 +11,14 @@ class NetworkWorker(QObject):
     start_work = Signal()
 
     def __init__(
-        self, session_mangager, operation, url, data=None, json=None, timeout=10
+        self,
+        session_mangager,
+        operation,
+        url,
+        data=None,
+        json=None,
+        timeout=10,
+        retry=0,
     ):
         super().__init__()
         self.session_mangager = session_mangager
@@ -21,6 +28,7 @@ class NetworkWorker(QObject):
         self.json = json
         self.timeout = timeout
         self.start_work.connect(self.do_work)
+        self.retry = retry
 
     @Slot()
     def do_work(self):
@@ -42,18 +50,22 @@ class NetworkWorker(QObject):
                     raise requests.exceptions.RequestException
 
             elif self.operation == "GET":
-                print("here")
-                response = self.session_mangager.get(
-                    self.url, data=self.data, json=self.json, timeout=self.timeout
-                )
+                print(f"getting {self.url}")
 
-            if response.status_code in (200, 201):
-                self.response_sig.emit("success", response)
-                print("suc1", response.json())
-
-            else:
-                self.error_sig.emit("success", response)
-                print("suc2", response.json())
+                for attempt in range(self.retry + 1):
+                    response = self.operation_get()
+                    print("status check")
+                    if response.status_code in (200, 201):
+                        print("status check - 200 or 201")
+                        self.response_sig.emit("success", response)
+                        break
+                    else:
+                        if attempt < self.retry:
+                            print(f"Retrying... ({attempt + 1}/{self.retry})")
+                            continue
+                        else:
+                            print("status check - error")
+                            self.error_sig.emit("error", response)
 
         except requests.exceptions.ConnectionError as e:
             # TODO - handle error
@@ -68,3 +80,8 @@ class NetworkWorker(QObject):
 
         finally:
             self.finished.emit()
+
+    def operation_get(self):
+        return self.session_mangager.get(
+            self.url, data=self.data, json=self.json, timeout=self.timeout
+        )
