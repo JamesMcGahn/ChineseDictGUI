@@ -1,5 +1,6 @@
-from pyqttoast import Toast, ToastPosition, ToastPreset
 from PySide6.QtGui import QColor, QFont
+
+from .pyqttoast import Toast, ToastPosition, ToastPreset
 
 
 class QToast(Toast):
