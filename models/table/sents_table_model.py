@@ -7,6 +7,7 @@ from models.dictionary import Sentence
 
 class SentenceTableModel(QAbstractTableModel):
     dataChanged = Signal()
+    sentUpdated = Signal(object)
 
     def __init__(self, sentences=None):
         super().__init__()
@@ -108,6 +109,7 @@ class SentenceTableModel(QAbstractTableModel):
                 sentence.audio = value
             sentence.local_update = self.current_timestamp()
             self.dataChanged.emit()
+            self.sentUpdated.emit(sentence)
             return True
         return False
 

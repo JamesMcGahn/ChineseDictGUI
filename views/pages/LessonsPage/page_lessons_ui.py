@@ -48,8 +48,12 @@ class PageLessonsView(QWidget):
         # WordsTable
         self.words_table = QWidget()
         self.words_table_vlayout = QVBoxLayout(self.words_table)
-
+        self.save_btn_words = QPushButton("Save Selected")
+        self.select_all_w = QPushButton("Select All")
+        self.words_table_vlayout.addWidget(self.save_btn_words)
+        self.words_table_vlayout.addWidget(self.select_all_w)
         self.table_view_w = QTableView()
+        self.table_view_w.setSelectionBehavior(QTableView.SelectRows)
         self.table_view_w.show()
 
         self.words_table_vlayout.addWidget(self.table_view_w)
@@ -57,9 +61,13 @@ class PageLessonsView(QWidget):
 
         # SentenceTable
         self.sents_table = QWidget()
+        self.save_btn_sents = QPushButton("Save Selected")
+        self.select_all_s = QPushButton("Select All")
         self.sents_table_vlayout = QVBoxLayout(self.sents_table)
-
+        self.sents_table_vlayout.addWidget(self.save_btn_sents)
+        self.sents_table_vlayout.addWidget(self.select_all_s)
         self.table_view_s = QTableView()
+        self.table_view_s.setSelectionBehavior(QTableView.SelectRows)
         self.table_view_s.show()
 
         self.sents_table_vlayout.addWidget(self.table_view_s)

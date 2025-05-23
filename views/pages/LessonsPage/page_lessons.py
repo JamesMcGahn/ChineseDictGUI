@@ -1,3 +1,5 @@
+import time
+
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QMessageBox, QWidget
 
@@ -9,7 +11,10 @@ from components.dialogs import (
 )
 from core.scrapers.cpod.lessons import LessonScraperThread
 from core.scrapers.words.word_scrape_thread import WordScraperThread
+from db import DatabaseManager, DatabaseQueryThread
+from models.dictionary import Sentence
 from models.table import SentenceTableModel, WordTableModel
+from services.audio import AudioThread
 
 from .page_lessons_ui import PageLessonsView
 
@@ -24,7 +29,7 @@ class PageLessons(QWidget):
         self.ui = PageLessonsView()
         self.layout = self.ui.layout()
         self.setLayout(self.layout)
-
+        self.audio_threads = []
         self.setObjectName("lessons_page")
 
         self.table_wordmodel = WordTableModel()
@@ -40,6 +45,84 @@ class PageLessons(QWidget):
 
         self.ui.words_table_btn.clicked.connect(self.change_table)
         self.ui.sents_table_btn.clicked.connect(self.change_table)
+        self.ui.save_btn_words.clicked.connect(self.save_selected_words)
+        self.ui.save_btn_sents.clicked.connect(self.save_selected_sents)
+        self.ui.select_all_w.clicked.connect(self.select_all_words)
+        self.ui.select_all_s.clicked.connect(self.select_all_sents)
+
+        self.dbw = DatabaseManager("chineseDict.db")
+        self.dbs = DatabaseManager("chineseDict.db")
+
+    def select_all_words(self):
+        self.ui.table_view_w.selectAll()
+
+    def select_all_sents(self):
+        self.ui.table_view_s.selectAll()
+
+    def save_selected_words(self):
+        selection_model = self.ui.table_view_w.selectionModel()
+        selected_rows = selection_model.selectedRows()
+        words = [
+            self.table_wordmodel.get_row_data(index.row()) for index in selected_rows
+        ]
+        for word in words:
+            word["local_update"] = int(time())
+
+        self.save_selwords = DatabaseQueryThread(
+            self.dbw, "words", "insert_words", words=words
+        )
+        self.save_selwords.start()
+        self.table_wordmodel.remove_selected(selected_rows)
+        self.save_selwords.result.connect(self.download_audio)
+
+    @Slot(list)
+    def download_audio(self, audlist):
+        # TODO get audio folder path from settings
+        audio_thread = AudioThread(audlist, "./test/")
+
+        audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
+        audio_thread.finished.connect(lambda: self.remove_thread(audio_thread))
+        self.audio_threads.append(audio_thread)
+        if len(self.audio_threads) == 1:
+            audio_thread.start()
+
+    def remove_thread(self, thread):
+        if thread in self.audio_threads:
+            print(f"removing thread {thread} from audio thread queue")
+            self.audio_threads.remove(thread)
+            thread.deleteLater()
+        if self.audio_threads:
+            self.audio_threads[0].start()
+
+    @Slot(object)
+    def update_anki_audio(self, obj):
+        if isinstance(obj, Sentence):
+            self.upwThread = DatabaseQueryThread(
+                self.dbs, "sents", "update_sentence", id=obj.id, updates=vars(obj)
+            )
+            self.upwThread.start()
+            self.upwThread.finished.connect(self.upwThread.deleteLater)
+
+        else:
+            self.upsThread = DatabaseQueryThread(
+                self.dbw, "words", "update_word", id=obj.id, updates=vars(obj)
+            )
+            self.upsThread.start()
+            self.upsThread.finished.connect(self.upsThread.deleteLater)
+
+    def save_selected_sents(self):
+        selection_model = self.ui.table_view_s.selectionModel()
+        selected_rows = selection_model.selectedRows()
+        sents = [
+            self.table_sentmodel.get_row_data(index.row()) for index in selected_rows
+        ]
+        self.save_selsents = DatabaseQueryThread(
+            self.dbs, "sents", "insert_sentences", sentences=sents
+        )
+        self.save_selsents.start()
+        self.table_sentmodel.remove_selected(selected_rows)
+        self.save_selsents.result.connect(self.download_audio)
+        self.save_selsents.finished.connect(self.save_selsents.deleteLater)
 
     def change_table(self):
         btn_name = self.sender().objectName()
@@ -101,13 +184,34 @@ class PageLessons(QWidget):
         if len(words) == 0:
             self.lesson_scrape_thread.deleteLater()
         else:
-            selection = "".join(f"{word.chinese}\n" for word in words)
-            self.wdialog = AddWordsDialog(selection)
-            self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)
+            # dup_check = "".join(f"{word.chinese}" for word in words)
+            self.check_word_duplicates = DatabaseQueryThread(
+                self.dbw, "words", "check_for_duplicate_words", words=words
+            )
+            self.check_word_duplicates.start()
+            self.check_word_duplicates.result.connect(
+                lambda result: self.receive_duplicates(result, words)
+            )
+            self.check_word_duplicates.finished.connect(
+                self.check_word_duplicates.deleteLater
+            )
+
+    def receive_duplicates(self, result, words):
+        unique_words = [word for word in words if word.chinese not in result]
+        already_in_db_words = [word for word in words if word.chinese in result]
+        print("words already in db", already_in_db_words)
+        # unique_words = "".join(f"{word.chinese}\n" for word in words)
+
+        if len(unique_words) == 0:
+            print("No words to add")
+        else:
+            # self.wdialog = AddWordsDialog(unique_words)
+            # self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)
 
             # TODO Filter words out that arent already in db
-            self.wdialog.exec()
-            # self.table_wordmodel.add_word(word)
+            # self.wdialog.exec()
+            for word in unique_words:
+                self.table_wordmodel.add_word(word)
 
     @Slot(object)
     def get_word_from_thread_loop(self, word):
