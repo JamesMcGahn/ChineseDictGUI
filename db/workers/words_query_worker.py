@@ -30,6 +30,9 @@ class WordsQueryWorker(QObject):
         self.dalw = WordsDAL(self.db_manager)
         try:
             match (self.operation):
+                case "check_for_duplicate_words":
+                    self.handle_check_for_duplicate()
+
                 case "insert_word":
                     self.handle_insert_word()
 
@@ -69,6 +72,18 @@ class WordsQueryWorker(QObject):
             self.db_manager.disconnect()
             self.finished.emit()
 
+    def handle_check_for_duplicate(self):
+        words = self.kwargs.get("words", None)
+        if words is None:
+            raise ValueError("words must be specified as kwarg")
+        word_strings = [word.chinese for word in words]
+        print("word strings", word_strings)
+        rows = self.dalw.check_for_duplicate(word_strings)
+        print("rows",rows)
+        
+        existing_words = [row[0] for row in rows] if rows else []
+        print("existing",existing_words)
+        self.result.emit(existing_words)
 
     def handle_insert_word(self):
         word = self.kwargs.get("word", None)

@@ -53,6 +53,7 @@ class DatabaseManager(QObject):
         :param params: Optional tuple of parameters to use in the query.
         :return: A list of rows from the result set.
         """
+        print("fetch_all", query, params)
         cursor = self.execute_query(query, params)
         return cursor.fetchall() if cursor else []
 

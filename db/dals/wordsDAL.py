@@ -18,6 +18,15 @@ class WordsDAL:
             ),
         )
 
+    def check_for_duplicate(self, words):
+        placeholders = ",".join(["?"] * len(words))
+        print(placeholders, placeholders)
+        # trunk-ignore(bandit/B608)
+        query = f"SELECT chinese FROM words WHERE chinese IN ({placeholders})"
+        rows = self.db_manager.fetch_all(query, tuple(words))
+        print("rows", rows)
+        return rows
+
     def delete_word(self, id):
         query = "DELETE FROM words WHERE id = ?"
         return self.db_manager.execute_query(query, (id,))
