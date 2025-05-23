@@ -106,26 +106,24 @@ class WordScraperThread(QThread):
             self._wait_condition.wakeOne()
 
     def get_soup(self, url, receiver):
-        self.net_worker = NetworkWorker(
-            self.session,
-            "GET",
-            url,
-        )
+        self.net_worker = NetworkWorker(self.session, "GET", url, retry=2)
         self.net_worker.response_sig.connect(receiver)
         self.net_worker.error_sig.connect(receiver)
         self.net_worker.moveToThread(self)
         self.net_worker.do_work()
 
     def received_csoup(self, status, response, errorType=None):
-        print("here")
+        print("received soup")
+        print(response)
         if status == "error":
             print("error")
             # TODO: do something
+            self.c_soup = None
             self.cpod_word = None
         else:
             self.c_soup = BeautifulSoup(response.text, "html.parser")
 
-        self.resume()
+            self.resume()
         self.net_worker.deleteLater()
 
     def received_msoup(self, status, response, errorType=None):
@@ -166,6 +164,7 @@ class WordScraperThread(QThread):
             self.m_defined_word = None
 
     def send_mgdb(self):
+        print("sending mgdb")
         if self.cpod_word and self.m_defined_word is not None:
             if self.m_defined_word.pinyin == self.cpod_word.pinyin:
                 self.m_defined_word.audio = self.cpod_word.audio
