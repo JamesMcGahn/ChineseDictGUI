@@ -49,13 +49,21 @@ class ScrapeCpod:
         return self.definition
 
     def scrape_audio(self, element):
-        audio_table = element.find(class_="jp-type-single")
+        audio_table = element.find(class_="jplayer-audio-player")
         if audio_table is None:
             return ""
-        audio_file = unquote(audio_table.find("a", class_="download-link")["href"])
-        audio_file = audio_file.replace("/redirect/?url=", "")
-        audio_file = audio_file.replace("http://", "https://")
-        return audio_file
+        audio = audio_table.find("audio")
+        if audio and audio.has_attr("src"):
+            audio_file = audio["src"]
+            print("audio1", audio_file)
+            audio_file = audio_file.replace("http://", "https://")
+            print("audio2", audio_file)
+            return audio_file
+        else:
+            audio_file = unquote(audio_table.find("a", class_="download-link")["href"])
+            audio_file = audio_file.replace("/redirect/?url=", "")
+            audio_file = audio_file.replace("http://", "https://")
+            return audio_file
 
     def scrape_definition(self):
         search_table = self.soup.find("div", class_="sample-search")
@@ -175,11 +183,14 @@ class ScrapeCpod:
             tds = vocab.find_all("td")
             chinese = tds[1].get_text()
             pinyin = tds[2].get_text()
+            define = tds[3].get_text()
+            define = utils.strip_string(define)
             chinese = utils.strip_string(chinese)
             chinese = chinese.replace(" ", "")
             pinyin = utils.strip_string(pinyin)
+            audio = self.scrape_audio(vocab)
 
-            word = Word(chinese, "", pinyin, "")
+            word = Word(chinese, define, pinyin, audio)
             words.append(word)
         return words
 
