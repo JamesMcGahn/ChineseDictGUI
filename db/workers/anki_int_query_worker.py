@@ -3,6 +3,7 @@ import sqlite3
 from PySide6.QtCore import QObject, Signal, Slot
 
 from ..dals import AnkiIntegrationDAL
+from ..db_manager import DatabaseManager
 
 
 class AnkiIntQueryWorker(QObject):
@@ -13,7 +14,7 @@ class AnkiIntQueryWorker(QObject):
 
     def __init__(self, db_manager, operation, **kwargs):
         super().__init__()
-        self.db_manager = db_manager
+        self.db_manager = DatabaseManager("chineseDict.db")
         self.operation = operation
         self.kwargs = kwargs
 
@@ -42,6 +43,5 @@ class AnkiIntQueryWorker(QObject):
         updates = self.kwargs.get("updates", None)
         if updates is None:
             raise ValueError("updates must be specified as kwarg")
-        self.db_manager.begin_transaction()
+
         self.dala.update_anki_integration(updates)
-        self.db_manager.commit_transaction()

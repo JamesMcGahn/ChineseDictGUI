@@ -3,7 +3,7 @@ class WordsDAL:
         self.db_manager = db_manager
 
     def insert_word(self, word):
-        query = "INSERT INTO words (chinese, pinyin, definition, audio, level, anki_audio, anki_id, anki_update) VALUES (?,?,?,?,?,?,?,?)"
+        query = "INSERT INTO words (chinese, pinyin, definition, audio, level, anki_audio, anki_id, anki_update,local_update) VALUES (?,?,?,?,?,?,?,?,?)"
         return self.db_manager.execute_query(
             query,
             (
@@ -15,6 +15,7 @@ class WordsDAL:
                 word.anki_audio,
                 word.anki_id,
                 word.anki_update,
+                word.local_update,
             ),
         )
 
@@ -24,12 +25,11 @@ class WordsDAL:
         # trunk-ignore(bandit/B608)
         query = f"SELECT chinese FROM words WHERE chinese IN ({placeholders})"
         rows = self.db_manager.fetch_all(query, tuple(words))
-        print("rows", rows)
         return rows
 
     def delete_word(self, id):
         query = "DELETE FROM words WHERE id = ?"
-        return self.db_manager.execute_query(query, (id,))
+        return self.db_manager.execute_write_query(query, (id,))
 
     def update_word(self, id: int, updates: dict):
         """
@@ -43,7 +43,7 @@ class WordsDAL:
 
         # trunk-ignore(bandit/B608)
         query = f"UPDATE words SET {set_clause} WHERE id = ?"
-        return self.db_manager.execute_query(query, parameters)
+        return self.db_manager.execute_write_query(query, parameters)
 
     def get_words_paginate(self, page, limit=25):
         offset = (page - 1) * limit
@@ -63,3 +63,15 @@ class WordsDAL:
     def get_word_by_ankiid(self, anki_id):
         query = "SELECT * FROM words WHERE anki_id = ?"
         return self.db_manager.execute_query(query, (anki_id,))
+
+    def get_words_all_anki_ids(self):
+        query = "SELECT anki_id FROM words where anki_id not null"
+        return self.db_manager.execute_query(query)
+
+    def delete_words(self, ids):
+        if not ids:
+            return
+        placeholders = ",".join(["?"] * len(ids))
+        # trunk-ignore(bandit/B608)
+        query = f"DELETE FROM words WHERE anki_id IN ({placeholders})"
+        return self.db_manager.execute_write_query(query, tuple(ids))

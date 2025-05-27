@@ -7,6 +7,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 from models.dictionary import Sentence
 
 from ..dals import SentsDAL
+from ..db_manager import DatabaseManager
 
 
 class SentsQueryWorker(QObject):
@@ -16,13 +17,13 @@ class SentsQueryWorker(QObject):
     message = Signal(str)
     result = Signal(list)
 
-
     def __init__(self, db_manager, operation, **kwargs):
         super().__init__()
-        self.db_manager = db_manager
+        self.db_manager = DatabaseManager("chineseDict.db")
         self.operation = operation
         self.kwargs = kwargs
         self.retry_pagination = 0
+
     @Slot()
     def do_work(self):
         self.db_manager.connect()
@@ -51,8 +52,11 @@ class SentsQueryWorker(QObject):
                     self.handle_pagination()
 
         except sqlite3.OperationalError as e:
-            if 'no such table' in str(e):
-                if self.operation == "get_pagination_sentences" and self.retry_pagination < 2:
+            if "no such table" in str(e):
+                if (
+                    self.operation == "get_pagination_sentences"
+                    and self.retry_pagination < 2
+                ):
                     time.sleep(10)
                     self.handle_pagination()
                     self.retry_pagination += 1
@@ -73,25 +77,22 @@ class SentsQueryWorker(QObject):
         sentence = self.kwargs.get("sentence", None)
         if sentence is None:
             raise ValueError("sentence must be specified as kwarg")
-        self.db_manager.begin_transaction()
         result = self.dals.insert_word(sentence)
         id = result.lastrowid
         sentence.id = id
-        self.db_manager.commit_transaction()
         self.result.emit([sentence])
 
     def handle_insert_sents(self):
+        # TODO change to insert many instead of LOOP
         sentences = self.kwargs.get("sentences", None)
         if sentences is None:
             raise ValueError("sentences must be specified as kwarg")
-        self.db_manager.begin_transaction()
         id_sentences = []
         for x in sentences:
             result = self.dals.insert_sentence(x)
             id = result.lastrowid
             x.id = id
             id_sentences.append(x)
-        self.db_manager.commit_transaction()
         self.result.emit(id_sentences)
 
     def handle_update_sent(self):
@@ -99,29 +100,27 @@ class SentsQueryWorker(QObject):
         id = self.kwargs.get("id", None)
         if updates is None or id is None:
             raise ValueError("updates and id must be specified as kwarg")
-        self.db_manager.begin_transaction()
         self.dals.update_sentence(id, updates)
-        self.db_manager.commit_transaction()
+
     def handle_update_sents(self):
         sentences = self.kwargs.get("sentences", None)
         if sentences is None:
             raise ValueError("updates specified as kwarg")
-        self.db_manager.begin_transaction()
+
         for sent in sentences:
 
             id = sent["id"]
             updates = sent["updates"]
-            print(id,updates)
+            # print(id,updates)
             self.dals.update_sentence(id, updates)
-        self.db_manager.commit_transaction()
 
     def handle_delete_sent(self):
         id = self.kwargs.get("id", None)
         if id is None:
             raise ValueError("id must be specified as kwarg")
-        self.db_manager.begin_transaction()
+
         self.dals.delete_sentence(id)
-        self.db_manager.commit_transaction()
+
         self.message.emit("Sentence Deleted.")
 
     def handle_delete_sents(self):
@@ -129,11 +128,11 @@ class SentsQueryWorker(QObject):
         if ids is None:
             raise ValueError("id must be specified as kwarg")
 
-        self.db_manager.begin_transaction()
         for id in ids:
             self.dals.delete_sentence(id)
-        self.db_manager.commit_transaction()
-        self.message.emit(f" {len(ids)} Sentence{"s" if len(ids) > 1 else "" } Deleted.")
+        plural = "s" if len(ids) > 1 else ""
+        message = f"{len(ids)} Sentence{plural} Deleted."
+        self.message.emit(message)
 
     def handle_pagination(self):
         page = self.kwargs.get("page", 1)
@@ -149,9 +148,7 @@ class SentsQueryWorker(QObject):
             result = self.dals.get_sentences_paginate(page, limit)
             if result is not None:
                 sentences = [
-                    Sentence(
-                        sent[1], sent[2], sent[3], sent[4], sent[5], sent[0]
-                    )
+                    Sentence(sent[1], sent[2], sent[3], sent[4], sent[5], sent[0])
                     for sent in result.fetchall()
                 ]
                 self.pagination.emit(

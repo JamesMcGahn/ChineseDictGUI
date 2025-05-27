@@ -18,4 +18,4 @@ class AnkiIntegrationDAL:
 
         # trunk-ignore(bandit/B608)
         query = f"UPDATE anki_integration SET {set_clause} WHERE id = 1"
-        return self.db_manager.execute_query(query, parameters)
+        return self.db_manager.execute_write_query(query, parameters)

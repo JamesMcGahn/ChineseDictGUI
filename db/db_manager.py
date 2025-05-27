@@ -1,42 +1,60 @@
 import sqlite3
 
-from PySide6.QtCore import QMutex, QMutexLocker, QObject
+from PySide6.QtCore import QMutexLocker, QObject
+
+from .db_lock import global_db_mutex
 
 
 class DatabaseManager(QObject):
     def __init__(self, db_name):
         self.db_name = db_name
         self.connection = None
-        self.mutex = QMutex()
+        self.mutex = global_db_mutex
 
     def connect(self):
-        self.connection = sqlite3.connect(self.db_name, check_same_thread=False)
+        self.connection = sqlite3.connect(self.db_name, timeout=15)
 
     def execute_query(self, query, params=None):
+        try:
+            cursor = self.connection.cursor()
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+
+            return cursor
+        except sqlite3.Error as e:
+            print("SQL error ", e)
+            # TODO add logging
+
+    def execute_write_query(self, query, params=None):
         with QMutexLocker(self.mutex):
             try:
                 cursor = self.connection.cursor()
+                self.begin_transaction()
                 if params:
                     cursor.execute(query, params)
                 else:
                     cursor.execute(query)
-
+                self.commit_transaction()
                 return cursor
-            except sqlite3.Error:
+            except sqlite3.Error as e:
+                self.rollback_transaction()
+                print("SQL error ", e)
                 # TODO add logging
                 raise
 
     def begin_transaction(self):
         """Begin a database transaction."""
-        self.execute_query("BEGIN;")
+        self.connection.execute("BEGIN")
 
     def commit_transaction(self):
         """Commit the current transaction."""
-        self.execute_query("COMMIT;")
+        self.connection.commit()
 
     def rollback_transaction(self):
         """Rollback the current transaction."""
-        self.execute_query("ROLLBACK;")
+        self.connection.rollback()
 
     def disconnect(self):
         """

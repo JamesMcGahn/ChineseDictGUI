@@ -3,8 +3,8 @@ class SentsDAL:
         self.db_manager = db_manager
 
     def insert_sentence(self, sentence):
-        query = "INSERT INTO sentences (chinese, english, pinyin, audio, level,anki_audio, anki_id, anki_update) VALUES (?,?,?,?,?,?,?,?)"
-        return self.db_manager.execute_query(
+        query = "INSERT INTO sentences (chinese, english, pinyin, audio, level,anki_audio, anki_id, anki_update,local_update) VALUES (?,?,?,?,?,?,?,?,?)"
+        return self.db_manager.execute_write_query(
             query,
             (
                 sentence.chinese,
@@ -15,12 +15,13 @@ class SentsDAL:
                 sentence.anki_audio,
                 sentence.anki_id,
                 sentence.anki_update,
+                sentence.local_update,
             ),
         )
 
     def delete_sentence(self, id):
         query = "DELETE FROM sentences WHERE id = ?"
-        return self.db_manager.execute_query(query, (id,))
+        return self.db_manager.execute_write_query(query, (id,))
 
     def update_sentence(self, id: int, updates: dict):
         """
@@ -34,7 +35,7 @@ class SentsDAL:
 
         # trunk-ignore(bandit/B608)
         query = f"UPDATE sentences SET {set_clause} WHERE id = ?"
-        return self.db_manager.execute_query(query, parameters)
+        return self.db_manager.execute_write_query(query, parameters)
 
     def get_sentences_paginate(self, page, limit=25):
         offset = (page - 1) * limit
@@ -54,3 +55,15 @@ class SentsDAL:
     def get_sentence_by_ankiid(self, anki_id):
         query = "SELECT * FROM sentences WHERE anki_id = ?"
         return self.db_manager.execute_query(query, (anki_id,))
+
+    def get_sentence_all_anki_ids(self):
+        query = "SELECT anki_id FROM sentences where anki_id not null"
+        return self.db_manager.execute_query(query)
+
+    def delete_sentences(self, ids):
+        if not ids:
+            return
+        placeholders = ",".join(["?"] * len(ids))
+        # trunk-ignore(bandit/B608)
+        query = f"DELETE FROM sentences WHERE anki_id IN ({placeholders})"
+        return self.db_manager.execute_write_query(query, tuple(ids))

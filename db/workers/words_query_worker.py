@@ -7,6 +7,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 from models.dictionary import Word
 
 from ..dals import WordsDAL
+from ..db_manager import DatabaseManager
 
 
 class WordsQueryWorker(QObject):
@@ -16,13 +17,12 @@ class WordsQueryWorker(QObject):
     message = Signal(str)
     result = Signal(list)
 
-
     def __init__(self, db_manager, operation, **kwargs):
         super().__init__()
-        self.db_manager = db_manager
+        self.db_manager = DatabaseManager("chineseDict.db")
         self.operation = operation
         self.kwargs = kwargs
-        self.retry_pagination  = 0
+        self.retry_pagination = 0
 
     @Slot()
     def do_work(self):
@@ -54,8 +54,11 @@ class WordsQueryWorker(QObject):
                 case "get_pagination_words":
                     self.handle_pagination()
         except sqlite3.OperationalError as e:
-            if 'no such table' in str(e):
-                if self.operation == "get_pagination_words" and self.retry_pagination < 2:
+            if "no such table" in str(e):
+                if (
+                    self.operation == "get_pagination_words"
+                    and self.retry_pagination < 2
+                ):
                     time.sleep(10)
                     self.handle_pagination()
                     self.retry_pagination += 1
@@ -79,35 +82,36 @@ class WordsQueryWorker(QObject):
         word_strings = [word.chinese for word in words]
         print("word strings", word_strings)
         rows = self.dalw.check_for_duplicate(word_strings)
-        print("rows",rows)
-        
+        print("rows", rows)
+
         existing_words = [row[0] for row in rows] if rows else []
-        print("existing",existing_words)
+        print("existing", existing_words)
         self.result.emit(existing_words)
 
     def handle_insert_word(self):
         word = self.kwargs.get("word", None)
         if word is None:
             raise ValueError("word must be specified as kwarg")
-        self.db_manager.begin_transaction()
+
         result = self.dalw.insert_word(word)
         id = result.lastrowid
         word.id = id
-        self.db_manager.commit_transaction()
+
         self.result.emit([word])
 
     def handle_insert_words(self):
+        # TODO change to insert many instead of LOOP
         words = self.kwargs.get("words", None)
         if words is None:
             raise ValueError("words must be specified as kwarg")
-        self.db_manager.begin_transaction()
+
         id_words = []
         for x in words:
             result = self.dalw.insert_word(x)
             id = result.lastrowid
             x.id = id
             id_words.append(x)
-        self.db_manager.commit_transaction()
+
         self.result.emit(id_words)
 
     def handle_update_word(self):
@@ -115,45 +119,42 @@ class WordsQueryWorker(QObject):
         id = self.kwargs.get("id", None)
         if updates is None or id is None:
             raise ValueError("word and id must be specified as kwarg")
-        self.db_manager.begin_transaction()
+
         suc = self.dalw.update_word(id, updates)
         if suc.rowcount == 1:
             self.message.emit("Update Saved.")
-        self.db_manager.commit_transaction()
 
     def handle_update_words(self):
         words = self.kwargs.get("words", None)
         if words is None:
             raise ValueError("words must be specified as kwarg")
-        self.db_manager.begin_transaction()
 
         for word in words:
             id = word["id"]
             updates = word["updates"]
-            print(id, updates)
+            # print(id, updates)
         suc = self.dalw.update_word(id, updates)
         if suc.rowcount == 1:
             self.message.emit("Update Saved.")
-        self.db_manager.commit_transaction()
 
     def handle_delete_word(self):
         id = self.kwargs.get("id", None)
         if id is None:
             raise ValueError("id must be specified as kwarg")
-        self.db_manager.begin_transaction()
+
         self.dalw.delete_word(id)
-        self.db_manager.commit_transaction()
         self.message.emit("Word Deleted.")
 
     def handle_delete_words(self):
         ids = self.kwargs.get("ids", None)
         if ids is None:
             raise ValueError("ids must be specified as kwarg")
-        self.db_manager.begin_transaction()
+
         for id in ids:
             self.dalw.delete_word(id)
-        self.db_manager.commit_transaction()
-        self.message.emit(f" {len(ids)} Word{"s" if len(ids) > 1 else "" } Deleted.")
+        plural = "s" if len(ids) > 1 else ""
+        message = f"{len(ids)} Word{plural} Deleted."
+        self.message.emit(message)
 
     def handle_pagination(self):
         page = self.kwargs.get("page", None)
@@ -188,4 +189,4 @@ class WordsQueryWorker(QObject):
                     page,
                     hasPrevPage,
                     hasNextPage,
-                            )
+                )
