@@ -2,30 +2,33 @@
 # To learn more about the format of this file, see https://docs.trunk.io/reference/trunk-yaml
 version: 0.1
 cli:
-  version: 1.17.1
+  version: 1.22.15
 plugins:
   sources:
     - id: trunk
-      ref: v1.2.6
+      ref: v1.7.0
       uri: https://github.com/trunk-io/plugins
 runtimes:
   enabled:
-    - node@18.12.1
+    - node@22.16.0
     - python@3.10.8
 lint:
   disabled:
   enabled:
-    - ruff@0.6.4
-    - bandit@1.7.5
-    - black@23.9.1
-    - checkov@3.0.12
+    - osv-scanner@2.0.2
+    - oxipng@9.1.5
+    - taplo@0.9.3
+    - ruff@0.11.11
+    - bandit@1.8.3
+    - black@25.1.0
+    - checkov@3.2.435
     - git-diff-check
-    - isort@5.12.0
-    - markdownlint@0.37.0
-    - prettier@3.0.3
-    - trivy@0.46.0
-    - trufflehog@3.60.4
-    - yamllint@1.32.0
+    - isort@6.0.1
+    - markdownlint@0.45.0
+    - prettier@3.5.3
+    - trivy@0.62.1
+    - trufflehog@3.88.34
+    - yamllint@1.37.1
 actions:
   enabled:
     - trunk-announce
