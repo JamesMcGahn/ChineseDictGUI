@@ -68,9 +68,7 @@ class PageLessons(QWidget):
         for word in words:
             word["local_update"] = int(time())
 
-        self.save_selwords = DatabaseQueryThread(
-            self.dbw, "words", "insert_words", words=words
-        )
+        self.save_selwords = DatabaseQueryThread("words", "insert_words", words=words)
         self.save_selwords.start()
         self.table_wordmodel.remove_selected(selected_rows)
         self.save_selwords.result.connect(self.download_audio)
@@ -96,16 +94,18 @@ class PageLessons(QWidget):
 
     @Slot(object)
     def update_anki_audio(self, obj):
+        obj.local_update = int(time.time())
+
         if isinstance(obj, Sentence):
             self.upwThread = DatabaseQueryThread(
-                self.dbs, "sents", "update_sentence", id=obj.id, updates=vars(obj)
+                "sents", "update_sentence", id=obj.id, updates=vars(obj)
             )
             self.upwThread.start()
             self.upwThread.finished.connect(self.upwThread.deleteLater)
 
         else:
             self.upsThread = DatabaseQueryThread(
-                self.dbw, "words", "update_word", id=obj.id, updates=vars(obj)
+                "words", "update_word", id=obj.id, updates=vars(obj)
             )
             self.upsThread.start()
             self.upsThread.finished.connect(self.upsThread.deleteLater)
@@ -113,11 +113,17 @@ class PageLessons(QWidget):
     def save_selected_sents(self):
         selection_model = self.ui.table_view_s.selectionModel()
         selected_rows = selection_model.selectedRows()
-        sents = [
-            self.table_sentmodel.get_row_data(index.row()) for index in selected_rows
-        ]
+
+        sents = []
+        for index in selected_rows:
+            save_sent = self.table_sentmodel.get_row_data(index.row())
+            save_sent.local_update = int(time.time())
+            sents.append(save_sent)
+
+        print("aaaaa", sents)
+
         self.save_selsents = DatabaseQueryThread(
-            self.dbs, "sents", "insert_sentences", sentences=sents
+            "sents", "insert_sentences", sentences=sents
         )
         self.save_selsents.start()
         self.table_sentmodel.remove_selected(selected_rows)
@@ -186,7 +192,7 @@ class PageLessons(QWidget):
         else:
             # dup_check = "".join(f"{word.chinese}" for word in words)
             self.check_word_duplicates = DatabaseQueryThread(
-                self.dbw, "words", "check_for_duplicate_words", words=words
+                "words", "check_for_duplicate_words", words=words
             )
             self.check_word_duplicates.start()
             self.check_word_duplicates.result.connect(

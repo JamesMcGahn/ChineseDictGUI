@@ -17,7 +17,7 @@ class WordsQueryWorker(QObject):
     message = Signal(str)
     result = Signal(list)
 
-    def __init__(self, db_manager, operation, **kwargs):
+    def __init__(self, operation, **kwargs):
         super().__init__()
         self.db_manager = DatabaseManager("chineseDict.db")
         self.operation = operation
@@ -128,7 +128,7 @@ class WordsQueryWorker(QObject):
         words = self.kwargs.get("words", None)
         if words is None:
             raise ValueError("words must be specified as kwarg")
-
+        # TODO - make rows and update at once?
         for word in words:
             id = word["id"]
             updates = word["updates"]
@@ -150,8 +150,7 @@ class WordsQueryWorker(QObject):
         if ids is None:
             raise ValueError("ids must be specified as kwarg")
 
-        for id in ids:
-            self.dalw.delete_word(id)
+        self.dalw.delete_words(ids)
         plural = "s" if len(ids) > 1 else ""
         message = f"{len(ids)} Word{plural} Deleted."
         self.message.emit(message)

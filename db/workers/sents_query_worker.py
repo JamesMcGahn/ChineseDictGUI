@@ -17,7 +17,7 @@ class SentsQueryWorker(QObject):
     message = Signal(str)
     result = Signal(list)
 
-    def __init__(self, db_manager, operation, **kwargs):
+    def __init__(self, operation, **kwargs):
         super().__init__()
         self.db_manager = DatabaseManager("chineseDict.db")
         self.operation = operation
@@ -107,6 +107,7 @@ class SentsQueryWorker(QObject):
         if sentences is None:
             raise ValueError("updates specified as kwarg")
 
+        # TODO - make rows and update at once?
         for sent in sentences:
 
             id = sent["id"]
@@ -128,8 +129,7 @@ class SentsQueryWorker(QObject):
         if ids is None:
             raise ValueError("id must be specified as kwarg")
 
-        for id in ids:
-            self.dals.delete_sentence(id)
+        self.dals.delete_sentences(ids)
         plural = "s" if len(ids) > 1 else ""
         message = f"{len(ids)} Sentence{plural} Deleted."
         self.message.emit(message)

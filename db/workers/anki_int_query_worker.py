@@ -12,7 +12,7 @@ class AnkiIntQueryWorker(QObject):
     message = Signal(str)
     result = Signal(object)
 
-    def __init__(self, db_manager, operation, **kwargs):
+    def __init__(self, operation, **kwargs):
         super().__init__()
         self.db_manager = DatabaseManager("chineseDict.db")
         self.operation = operation

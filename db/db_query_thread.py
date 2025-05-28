@@ -10,9 +10,9 @@ class DatabaseQueryThread(QThread):
     message = Signal(str)
     result = Signal(list)
 
-    def __init__(self, db_manager, dtype, operation, **kwargs):
+    def __init__(self, dtype, operation, **kwargs):
         super().__init__()
-        self.db_manager = db_manager
+
         self.operation = operation
         self.kwargs = kwargs
 
@@ -23,13 +23,9 @@ class DatabaseQueryThread(QThread):
 
     def run(self):
         if self.dtype == "words":
-            self.worker = WordsQueryWorker(
-                self.db_manager, self.operation, **self.kwargs
-            )
+            self.worker = WordsQueryWorker(self.operation, **self.kwargs)
         elif self.dtype == "sents":
-            self.worker = SentsQueryWorker(
-                self.db_manager, self.operation, **self.kwargs
-            )
+            self.worker = SentsQueryWorker(self.operation, **self.kwargs)
         self.worker.moveToThread(self)
         self.worker.finished.connect(self.quit)
         self.worker.finished.connect(self.worker_finished)
