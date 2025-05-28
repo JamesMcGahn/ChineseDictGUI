@@ -58,8 +58,6 @@ class AnkiInitialImportThread(QThread):
             self.finished.emit()
 
     def notes_response(self, status, response, errorType=None):
-        db = DatabaseManager("chineseDict.db")
-
         if status == "success" and response is None:
             print("Nothing to add")
             self.finished.emit()
@@ -68,7 +66,7 @@ class AnkiInitialImportThread(QThread):
         if self.dtype == "words":
             words = [
                 Word(
-                    chinese=word["fields"]["中文"]["value"],
+                    chinese=word["fields"]["Chinese"]["value"],
                     pinyin=word["fields"]["Pinyin"]["value"],
                     definition=word["fields"]["English"]["value"],
                     audio=None,
@@ -80,14 +78,13 @@ class AnkiInitialImportThread(QThread):
                 for word in response["result"]
             ]
             self.dbworker = WordsQueryWorker(
-                db,
                 "insert_words",
                 words=words,
             )
         else:
             sents = [
                 Sentence(
-                    chinese=sent["fields"]["中文"]["value"],
+                    chinese=sent["fields"]["Chinese"]["value"],
                     pinyin=sent["fields"]["Pinyin"]["value"],
                     english=sent["fields"]["English"]["value"],
                     audio=None,
@@ -98,11 +95,7 @@ class AnkiInitialImportThread(QThread):
                 )
                 for sent in response["result"]
             ]
-            self.dbworker = SentsQueryWorker(
-                db,
-                "insert_sentences",
-                sentences=sents,
-            )
+            self.dbworker = SentsQueryWorker("insert_sentences", sentences=sents)
 
         self.dbworker.moveToThread(self)
         self.dbworker.finished.connect(self.update_db_integration_record)
@@ -111,11 +104,8 @@ class AnkiInitialImportThread(QThread):
         self.dbworker.do_work()
 
     def update_db_integration_record(self):
-        db = DatabaseManager("chineseDict.db")
-
         timestamp = int(time.time())
         self.ankiDb = AnkiIntQueryWorker(
-            db,
             "update_integration",
             updates={"anki_update": timestamp, "initial_import_done": 1},
         )
