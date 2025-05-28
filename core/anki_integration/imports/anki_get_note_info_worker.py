@@ -52,7 +52,7 @@ class AnkiGetNoteInfoWorker(QObject):
             print(status, response, errorType)
             self.response_sig.emit("error", error, error)
         else:
-            print(res)
+            # print(res)
             self.response_sig.emit(status, res.json(), errorType)
 
         self.finished.emit()
