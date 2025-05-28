@@ -54,9 +54,7 @@ class NetworkWorker(QObject):
 
                 for attempt in range(self.retry + 1):
                     response = self.operation_get()
-                    print("status check")
                     if response.status_code in (200, 201):
-                        print("status check - 200 or 201")
                         self.response_sig.emit("success", response)
                         break
                     else:
