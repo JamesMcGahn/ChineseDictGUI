@@ -2,7 +2,7 @@
 
 ## Todos
 
-## TODO: change database operations from multiple threads to use one thread.
+## TODO: remove passing db manager
 
 ### TODO - Create Worker Class with common singals and logging functions
 
