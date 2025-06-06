@@ -199,7 +199,7 @@ class AnkiSyncImportThread(QThread):
                 pinyin=word_fields["Pinyin"]["value"],
                 audio=None,
                 level=word_fields["Notes"]["value"],
-                anki_audio=word_fields["audio"]["value"],
+                anki_audio=word_fields["Audio"]["value"],
                 anki_id=sent["noteId"],
                 anki_update=sent["mod"],
             )
@@ -266,7 +266,7 @@ class AnkiSyncImportThread(QThread):
                 pinyin=word_fields["Pinyin"]["value"],
                 audio=None,
                 level=word_fields["Notes"]["value"],
-                anki_audio=word_fields["audio"]["value"],
+                anki_audio=word_fields["Audio"]["value"],
                 anki_id=word["noteId"],
                 anki_update=word["mod"],
             )
