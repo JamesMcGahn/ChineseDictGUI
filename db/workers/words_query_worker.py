@@ -53,6 +53,10 @@ class WordsQueryWorker(QObject):
 
                 case "get_pagination_words":
                     self.handle_pagination()
+
+                case "get_anki_export_words":
+                    self.handle_anki_export()
+
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):
                 if (
@@ -80,12 +84,12 @@ class WordsQueryWorker(QObject):
         if words is None:
             raise ValueError("words must be specified as kwarg")
         word_strings = [word.chinese for word in words]
-        print("word strings", word_strings)
+        # print("word strings", word_strings)
         rows = self.dalw.check_for_duplicate(word_strings)
-        print("rows", rows)
+        # print("rows", rows)
 
         existing_words = [row[0] for row in rows] if rows else []
-        print("existing", existing_words)
+        # print("existing", existing_words)
         self.result.emit(existing_words)
 
     def handle_insert_word(self):
@@ -101,6 +105,7 @@ class WordsQueryWorker(QObject):
 
     def handle_insert_words(self):
         # TODO change to insert many instead of LOOP
+        print("here inserting")
         words = self.kwargs.get("words", None)
         if words is None:
             raise ValueError("words must be specified as kwarg")
@@ -111,7 +116,7 @@ class WordsQueryWorker(QObject):
             id = result.lastrowid
             x.id = id
             id_words.append(x)
-
+        print(id_words)
         self.result.emit(id_words)
 
     def handle_update_word(self):
@@ -128,14 +133,14 @@ class WordsQueryWorker(QObject):
         words = self.kwargs.get("words", None)
         if words is None:
             raise ValueError("words must be specified as kwarg")
-        # TODO - make rows and update at once?
+
         for word in words:
             id = word["id"]
             updates = word["updates"]
             # print(id, updates)
-        suc = self.dalw.update_word(id, updates)
-        if suc.rowcount == 1:
-            self.message.emit("Update Saved.")
+            suc = self.dalw.update_word(id, updates)
+            if suc.rowcount == 1:
+                self.message.emit(f"Update Saved for ID {id}.")
 
     def handle_delete_word(self):
         id = self.kwargs.get("id", None)
@@ -189,3 +194,28 @@ class WordsQueryWorker(QObject):
                     hasPrevPage,
                     hasNextPage,
                 )
+
+    def handle_anki_export(self):
+
+        result = self.dalw.get_anki_export_words()
+        if result is not None:
+            if result is not None:
+                words = [
+                    Word(
+                        word[1],
+                        word[3],
+                        word[2],
+                        word[4],
+                        word[5],
+                        word[0],
+                        word[6],
+                        word[7],
+                        word[8],
+                        word[9],
+                    )
+                    for word in result.fetchall()
+                ]
+            self.result.emit(words)
+        else:
+            words = []
+            self.result.emit(words)

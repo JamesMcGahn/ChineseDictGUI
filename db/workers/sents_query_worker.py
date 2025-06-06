@@ -30,6 +30,8 @@ class SentsQueryWorker(QObject):
         self.dals = SentsDAL(self.db_manager)
         try:
             match (self.operation):
+                case "check_for_duplicate_sentences":
+                    self.handle_check_for_duplicate()
                 case "insert_sentence":
                     self.handle_insert_sent()
 
@@ -50,6 +52,9 @@ class SentsQueryWorker(QObject):
 
                 case "get_pagination_sentences":
                     self.handle_pagination()
+
+                case "get_anki_export_sentences":
+                    self.handle_anki_export()
 
         except sqlite3.OperationalError as e:
             if "no such table" in str(e):
@@ -95,6 +100,19 @@ class SentsQueryWorker(QObject):
             id_sentences.append(x)
         self.result.emit(id_sentences)
 
+    def handle_check_for_duplicate(self):
+        sentences = self.kwargs.get("sentences", None)
+        if sentences is None:
+            raise ValueError("sentences must be specified as kwarg")
+        sentences_strings = [sentence.chinese for sentence in sentences]
+        # print("sentences strings", sentences_strings)
+        rows = self.dals.check_for_duplicate(sentences_strings)
+        # print("rows", rows)
+
+        existing_sentences = [row[0] for row in rows] if rows else []
+        # print("existing sentences", existing_sentences)
+        self.result.emit(existing_sentences)
+
     def handle_update_sent(self):
         updates = self.kwargs.get("updates", None)
         id = self.kwargs.get("id", None)
@@ -113,7 +131,9 @@ class SentsQueryWorker(QObject):
             id = sent["id"]
             updates = sent["updates"]
             # print(id,updates)
-            self.dals.update_sentence(id, updates)
+            suc = self.dals.update_sentence(id, updates)
+            if suc.rowcount == 1:
+                self.message.emit(f"Update Saved for ID {id}.")
 
     def handle_delete_sent(self):
         id = self.kwargs.get("id", None)
@@ -168,3 +188,26 @@ class SentsQueryWorker(QObject):
                     hasPrevPage,
                     hasNextPage,
                 )
+
+    def handle_anki_export(self):
+        result = self.dals.get_anki_export_sentences()
+        if result is not None:
+            sentences = [
+                Sentence(
+                    sent[1],
+                    sent[2],
+                    sent[3],
+                    sent[4],
+                    sent[5],
+                    sent[0],
+                    sent[6],
+                    sent[7],
+                    sent[8],
+                    sent[9],
+                )
+                for sent in result.fetchall()
+            ]
+            self.result.emit(sentences)
+        else:
+            sentences = []
+            self.result.emit(sentences)
