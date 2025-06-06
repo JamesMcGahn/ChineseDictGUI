@@ -4,7 +4,11 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget
 
 from components.toasts import QToast
-from core.anki_integration.imports import AnkiInitialImportThread, AnkiSyncImportThread
+from core.anki_integration.imports import (
+    AnkiInitialImportThread,
+    AnkiSyncExportThread,
+    AnkiSyncImportThread,
+)
 from services.network import NetworkThread, SessionManager
 from services.settings import AppSettings
 
@@ -50,6 +54,7 @@ class PageSettings(QWidget):
         )
 
         self.ui.sync_import_btn.clicked.connect(self.anki_sync_import)
+        self.ui.sync_export_btn.clicked.connect(self.anki_sync_export)
 
     def get_deck_names(self):
         self.settings.begin_group("deckNames")
@@ -82,7 +87,7 @@ class PageSettings(QWidget):
     def import_anki_deck(self):
         self.import_anki_w = AnkiInitialImportThread("Mandarin Words", "words")
         self.import_anki_w.start()
-        self.import_anki_w.finished.connect(self.import_anki_sents)
+        # self.import_anki_w.finished.connect(self.import_anki_sents)
 
     # TODO: Refesh dictionary view when loaded
     # TODO: Remove threads
@@ -145,5 +150,16 @@ class PageSettings(QWidget):
             and self.sents_verified
         ):
             self.sync_thread = AnkiSyncImportThread(self.words_deck, self.sents_deck)
+            self.sync_thread.start()
+            print("Sync Import")
+
+    def anki_sync_export(self):
+        if (
+            self.sents_deck
+            and self.words_deck
+            and self.words_verified
+            and self.sents_verified
+        ):
+            self.sync_thread = AnkiSyncExportThread(self.words_deck, self.sents_deck)
             self.sync_thread.start()
             print("Sync Import")

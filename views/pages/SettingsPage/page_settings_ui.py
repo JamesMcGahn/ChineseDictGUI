@@ -121,4 +121,8 @@ class PageSettingsUI(QWidget):
         self.sync_import_btn = QPushButton("Test Import Sync")
 
         self.settings_page_vlayout.addWidget(self.sync_import_btn)
+
+        self.sync_export_btn = QPushButton("Test Export Sync")
+
+        self.settings_page_vlayout.addWidget(self.sync_export_btn)
         self.settings_page_vlayout.addItem(vspacer)
