@@ -71,7 +71,7 @@ class DatabaseManager(QObject):
         :param params: Optional tuple of parameters to use in the query.
         :return: A list of rows from the result set.
         """
-        print("fetch_all", query, params)
+        # print("fetch_all", query, params)
         cursor = self.execute_query(query, params)
         return cursor.fetchall() if cursor else []
 
@@ -140,6 +140,6 @@ class DatabaseManager(QObject):
             self.execute_query("BEGIN;")
             self.execute_query(
                 "INSERT INTO anki_integration (anki_update, local_update, initial_import_done) VALUES (?,?,?)",
-                (None, None, 0),
+                (0, 0, 0),
             )
             self.execute_query("COMMIT;")
