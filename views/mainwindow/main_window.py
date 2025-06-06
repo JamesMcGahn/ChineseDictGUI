@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
             self.network_thread = NetworkThread(
                 self.session_manager,
                 "SESSION",
-                f"{keys['url']}accounts/signin",
+                f"{keys['url']}/accounts/signin",
                 data={"email": keys["email"], "password": keys["password"]},
             )
             self.network_thread.response_sig.connect(self.session_response)
