@@ -179,7 +179,34 @@ class PageWords(QWidget):
     def get_word_from_thread_loop(self, word):
         print("page-word-received", word)
 
-        self.table_wordmodel.add_word(word)
+        self.check_word_duplicates = DatabaseQueryThread(
+            "words", "check_for_duplicate_words", words=[word]
+        )
+        self.check_word_duplicates.start()
+        self.check_word_duplicates.result.connect(
+            lambda result: self.receive_duplicates(result, [word])
+        )
+        self.check_word_duplicates.finished.connect(
+            self.check_word_duplicates.deleteLater
+        )
+
+        # self.table_wordmodel.add_word(word)
+
+    def receive_duplicates(self, result, words):
+        unique_words = [word for word in words if word.chinese not in result]
+        already_in_db_words = [word for word in words if word.chinese in result]
+        print("words already in db", already_in_db_words)
+        # unique_words = "".join(f"{word.chinese}\n" for word in words)
+
+        if len(unique_words) == 0:
+            print("No words to add")
+        else:
+            # self.wdialog = AddWordsDialog(unique_words)
+            # self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)
+
+            # TODO Filter words out that arent already in db
+            # self.wdialog.exec()
+            [self.table_wordmodel.add_word(x) for x in unique_words]
 
     @Slot(list)
     def get_user_no_sents_inclvl(self, levels):
