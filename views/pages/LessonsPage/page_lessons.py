@@ -12,7 +12,7 @@ from components.dialogs import (
 from core.scrapers.cpod.lessons import LessonScraperThread
 from core.scrapers.words.word_scrape_thread import WordScraperThread
 from db import DatabaseManager, DatabaseQueryThread
-from models.dictionary import Sentence
+from models.dictionary import Sentence, Word
 from models.table import SentenceTableModel, WordTableModel
 from services.audio import AudioThread
 
@@ -66,7 +66,7 @@ class PageLessons(QWidget):
             self.table_wordmodel.get_row_data(index.row()) for index in selected_rows
         ]
         for word in words:
-            word["local_update"] = int(time())
+            word.local_update = int(time.time())
 
         self.save_selwords = DatabaseQueryThread("words", "insert_words", words=words)
         self.save_selwords.start()
@@ -103,7 +103,7 @@ class PageLessons(QWidget):
             self.upwThread.start()
             self.upwThread.finished.connect(self.upwThread.deleteLater)
 
-        else:
+        elif isinstance(obj, Word):
             self.upsThread = DatabaseQueryThread(
                 "words", "update_word", id=obj.id, updates=vars(obj)
             )
@@ -153,6 +153,13 @@ class PageLessons(QWidget):
         self.lesson_scrape_thread.send_sents_sig.connect(
             self.get_sentences_from_thread_loop
         )
+        self.lesson_scrape_thread.send_dialogue.connect(self.receive_dialogues)
+
+    def receive_dialogues(self, lesson, dialogue):
+        print("eeee", lesson, dialogue)
+        print("eeee", vars(lesson), vars(dialogue))
+
+        self.download_audio([lesson, dialogue])
 
     @Slot()
     def add_word_dialog_closed(self):
@@ -186,9 +193,9 @@ class PageLessons(QWidget):
 
     @Slot(object)
     def get_words_from_sthread_loop(self, words):
-        print("page-word-received", words)
+        print("page-word-received", len(words))
         if len(words) == 0:
-            self.lesson_scrape_thread.deleteLater()
+            return
         else:
             # dup_check = "".join(f"{word.chinese}" for word in words)
             self.check_word_duplicates = DatabaseQueryThread(
@@ -216,8 +223,7 @@ class PageLessons(QWidget):
 
             # TODO Filter words out that arent already in db
             # self.wdialog.exec()
-            for word in unique_words:
-                self.table_wordmodel.add_word(word)
+            [self.table_wordmodel.add_word(x) for x in unique_words]
 
     @Slot(object)
     def get_word_from_thread_loop(self, word):
@@ -270,5 +276,36 @@ class PageLessons(QWidget):
 
     @Slot(list)
     def get_sentences_from_thread_loop(self, sentences):
-        print("received senteces", sentences)
-        [self.table_sentmodel.add_sentence(x) for x in sentences]
+        print("received senteces", len(sentences))
+
+        self.check_sentences_duplicates = DatabaseQueryThread(
+            "sents", "check_for_duplicate_sentences", sentences=sentences
+        )
+        self.check_sentences_duplicates.start()
+        self.check_sentences_duplicates.result.connect(
+            lambda result: self.receive_duplicate_sentences(result, sentences)
+        )
+        self.check_sentences_duplicates.finished.connect(
+            self.check_sentences_duplicates.deleteLater
+        )
+
+    def receive_duplicate_sentences(self, result, sentences):
+        unique_sentences = [
+            sentence for sentence in sentences if sentence.chinese not in result
+        ]
+        already_in_db_sentences = [
+            sentence for sentence in sentences if sentence.chinese in result
+        ]
+        print("sentences already in db", already_in_db_sentences)
+        # unique_words = "".join(f"{word.chinese}\n" for word in words)
+
+        if len(unique_sentences) == 0:
+            print("No words to add")
+        else:
+            # self.wdialog = AddWordsDialog(unique_words)
+            # self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)
+
+            # TODO Filter words out that arent already in db
+            # self.wdialog.exec()
+
+            [self.table_sentmodel.add_sentence(x) for x in unique_sentences]
