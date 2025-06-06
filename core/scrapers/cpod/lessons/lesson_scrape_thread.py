@@ -11,6 +11,7 @@ class LessonScraperThread(QThread):
     finished = Signal()
     send_words_sig = Signal(list)
     send_sents_sig = Signal(object)
+    send_dialogue = Signal(object, object)
 
     def __init__(self, lesson_list):
         super().__init__()
@@ -26,10 +27,10 @@ class LessonScraperThread(QThread):
 
         sess = SessionManager()
         # TODO remove keys.py file
-        wb = WebScrape(sess, keys["url"])
-        wb.init_driver()
+        self.wb = WebScrape(sess, keys["url"])
+        self.wb.init_driver()
         self.worker = LessonScraperWorker(
-            wb, self.lesson_list, self._mutex, self._wait_condition, self
+            self.wb, self.lesson_list, self._mutex, self._wait_condition, self
         )
         self.worker.moveToThread(self)
 
@@ -37,10 +38,11 @@ class LessonScraperThread(QThread):
         self.worker.finished.connect(self.worker_finished)
         self.worker.send_sents_sig.connect(self.send_sents_sig)
         self.worker.send_words_sig.connect(self.send_words_sig)
+        self.worker.send_dialogue.connect(self.send_dialogue)
         self.worker.do_work()
-        wb.close()
 
     def worker_finished(self):
+        self.wb.close()
         self.worker.deleteLater()
         self.finished.emit()
 

@@ -14,6 +14,7 @@ class LessonScraperWorker(QObject):
     finished = Signal()
     send_sents_sig = Signal(object)
     send_words_sig = Signal(list)
+    send_dialogue = Signal(object, object)
 
     def __init__(self, web_driver, lesson_list, mutex, wait_condition, parent_thread):
         super().__init__()
@@ -34,7 +35,9 @@ class LessonScraperWorker(QObject):
                     self._wait_condition.wait(self._mutex)  # Wait until resumed
 
             self.web_driver.run_webdriver(c_lesson)
+
             lesson = self.web_driver.get_source()
+            # TODO: add try here
 
             tempfile_path = WriteFile.write_file(
                 "./data/temp/temp.html", lesson["source"]
@@ -43,6 +46,10 @@ class LessonScraperWorker(QObject):
             data = open(tempfile_path, "r")
             soup = BeautifulSoup(data, "html.parser")
             wcpod = ScrapeCpod(soup)
+
+            lesson_audio, dialogue_audio = wcpod.scrape_lesson_and_dialogue_audio()
+            print("lesss", lesson_audio, dialogue_audio)
+            self.send_dialogue.emit(lesson_audio, dialogue_audio)
 
             sentences = []
 

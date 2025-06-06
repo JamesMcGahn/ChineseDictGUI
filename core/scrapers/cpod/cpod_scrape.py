@@ -3,7 +3,7 @@ from urllib.parse import unquote
 import regex
 
 import utils
-from models.dictionary import Sentence, Word
+from models.dictionary import Dialogue, Sentence, Word
 
 
 class ScrapeCpod:
@@ -55,9 +55,9 @@ class ScrapeCpod:
         audio = audio_table.find("audio")
         if audio and audio.has_attr("src"):
             audio_file = audio["src"]
-            print("audio1", audio_file)
+            # print("audio1", audio_file)
             audio_file = audio_file.replace("http://", "https://")
-            print("audio2", audio_file)
+            # print("audio2", audio_file)
             return audio_file
         else:
             audio_file = unquote(audio_table.find("a", class_="download-link")["href"])
@@ -177,21 +177,31 @@ class ScrapeCpod:
         key_vocab = self.soup.find(id="key_vocab")
         if key_vocab is None:
             return None
-        vocabs = key_vocab.find_all("tr")
+        vocabs = key_vocab.find_all("tr", recursive=False)
+        print(len(vocabs), "length of tr")
         words = []
         for vocab in vocabs:
             tds = vocab.find_all("td")
-            chinese = tds[1].get_text()
-            pinyin = tds[2].get_text()
-            define = tds[3].get_text()
-            define = utils.strip_string(define)
-            chinese = utils.strip_string(chinese)
-            chinese = chinese.replace(" ", "")
-            pinyin = utils.strip_string(pinyin)
-            audio = self.scrape_audio(vocab)
+            for i, td in enumerate(tds):
+                print(f"td[{i}] = {td.get_text(strip=True)}")
 
-            word = Word(chinese, define, pinyin, audio)
-            words.append(word)
+            print(tds[1].get_text(), len(tds))
+            if len(tds) < 4:
+                chinese = tds[1].get_text()
+                pinyin = tds[2].get_text()
+                define = tds[3].get_text()
+                define = utils.strip_string(define)
+                chinese = utils.strip_string(chinese)
+                chinese = chinese.replace(" ", "")
+                pinyin = utils.strip_string(pinyin)
+                audio = self.scrape_audio(vocab)
+
+                word = Word(chinese, define, pinyin, audio)
+                words.append(word)
+            else:
+                print("Skipping row, not enough tds:", len(tds))
+                continue
+
         return words
 
     def scrape_lesson_grammar(self):
@@ -217,3 +227,41 @@ class ScrapeCpod:
                 grammar_sent = Sentence(chinese, english, pinyin, audio, badge)
                 grammar_sent.word = title_n_des
                 self.grammar_sentences.append(grammar_sent)
+
+    def scrape_lesson_and_dialogue_audio(self):
+        try:
+            title_cont = self.soup.find("h1", class_="lesson-page-title")
+            badge = title_cont.find("a", class_="badge").get_text()
+
+            title = title_cont.find("span").get_text()
+
+            container = self.soup.find("div", id="player")
+            audio_panel_div = container.find("div", class_="list-group")
+            lesson_audio = audio_panel_div.find("a", attrs={"data-type": "lesson"})
+            dialogue_audio = audio_panel_div.find("a", attrs={"data-type": "dialogue"})
+
+            def clean_link(link):
+                if link and link.has_attr("href"):
+                    audio_file = link["href"]
+                    print("audio1", audio_file)
+                    return audio_file.replace("http://", "https://")
+                else:
+                    return None
+
+            lesson = Dialogue(
+                f"{utils.strip_string(badge)} - {utils.strip_string(title)} - Lesson",
+                "lesson",
+                clean_link(lesson_audio),
+                utils.strip_string(badge),
+            )
+            dialogue = Dialogue(
+                f"{utils.strip_string(badge)} - {utils.strip_string(title)} - Dialogue",
+                "dialogue",
+                clean_link(dialogue_audio),
+                badge,
+            )
+            print(vars(lesson))
+            print(vars(dialogue))
+            return (lesson, dialogue)
+        except Exception as e:
+            print(e)
