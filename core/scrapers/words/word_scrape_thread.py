@@ -106,7 +106,7 @@ class WordScraperThread(QThread):
             self._wait_condition.wakeOne()
 
     def get_soup(self, url, receiver):
-        self.net_worker = NetworkWorker(self.session, "GET", url, retry=2)
+        self.net_worker = NetworkWorker(self.session, "GET", url, timeout=15, retry=2)
         self.net_worker.response_sig.connect(receiver)
         self.net_worker.error_sig.connect(receiver)
         self.net_worker.moveToThread(self)
