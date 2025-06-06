@@ -19,6 +19,14 @@ class SentsDAL:
             ),
         )
 
+    def check_for_duplicate(self, sentences):
+        placeholders = ",".join(["?"] * len(sentences))
+        # print(placeholders, placeholders)
+        # trunk-ignore(bandit/B608)
+        query = f"SELECT chinese FROM sentences WHERE chinese IN ({placeholders})"
+        rows = self.db_manager.fetch_all(query, tuple(sentences))
+        return rows
+
     def delete_sentence(self, id):
         query = "DELETE FROM sentences WHERE id = ?"
         return self.db_manager.execute_write_query(query, (id,))
@@ -67,3 +75,7 @@ class SentsDAL:
         # trunk-ignore(bandit/B608)
         query = f"DELETE FROM sentences WHERE anki_id IN ({placeholders})"
         return self.db_manager.execute_write_query(query, tuple(ids))
+
+    def get_anki_export_sentences(self):
+        query = "SELECT * FROM sentences WHERE anki_id IS NULL OR local_update > anki_update"
+        return self.db_manager.execute_query(query)

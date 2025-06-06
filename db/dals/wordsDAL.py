@@ -4,7 +4,7 @@ class WordsDAL:
 
     def insert_word(self, word):
         query = "INSERT INTO words (chinese, pinyin, definition, audio, level, anki_audio, anki_id, anki_update,local_update) VALUES (?,?,?,?,?,?,?,?,?)"
-        return self.db_manager.execute_query(
+        return self.db_manager.execute_write_query(
             query,
             (
                 word.chinese,
@@ -21,7 +21,7 @@ class WordsDAL:
 
     def check_for_duplicate(self, words):
         placeholders = ",".join(["?"] * len(words))
-        print(placeholders, placeholders)
+        # print(placeholders, placeholders)
         # trunk-ignore(bandit/B608)
         query = f"SELECT chinese FROM words WHERE chinese IN ({placeholders})"
         rows = self.db_manager.fetch_all(query, tuple(words))
@@ -75,3 +75,9 @@ class WordsDAL:
         # trunk-ignore(bandit/B608)
         query = f"DELETE FROM words WHERE anki_id IN ({placeholders})"
         return self.db_manager.execute_write_query(query, tuple(ids))
+
+    def get_anki_export_words(self):
+        query = (
+            "SELECT * FROM words WHERE anki_id IS NULL OR local_update > anki_update"
+        )
+        return self.db_manager.execute_query(query)
