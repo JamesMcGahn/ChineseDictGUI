@@ -63,7 +63,7 @@ class NetworkWorker(QObject):
                             continue
                         else:
                             print("status check - error")
-                            self.error_sig.emit("error", response)
+                            self.error_sig.emit("error", response, type(e).__name__)
 
         except requests.exceptions.ConnectionError as e:
             # TODO - handle error
