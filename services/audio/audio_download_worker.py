@@ -4,7 +4,7 @@ from time import sleep
 
 from PySide6.QtCore import QObject, Signal, Slot
 
-from models.dictionary import Sentence
+from models.dictionary import Dialogue, Sentence
 from services import Logger
 from utils.files import PathManager
 
@@ -26,16 +26,21 @@ class AudioDownloadWorker(QObject):
             print(x)
             print(x.audio)
             print(f"audio woker in thread {self.thread()}")
+
             try:
                 if isinstance(x, Sentence):
                     self.filename = f"10KS-{x.id}"
+                elif isinstance(x, Dialogue):
+                    self.filename = x.title
                 else:
                     self.filename = x.id
 
-                x.anki_audio = f"{self.filename}.mp3"
+                x.anki_audio = f"[sound:{self.filename}.mp3]"
 
                 path = PathManager.check_dup(self.folder_path, self.filename, ".mp3")
+                self.filename = PathManager.regex_path(path)["filename"]
                 msg = f'({i+1}/{len(self.data)}) Audio content written to file "{self.filename}.mp3"'
+
                 if x.audio:
                     checkHttp = x.audio.replace("http://", "https://")
                     urllib.request.urlretrieve(checkHttp, path)
@@ -47,6 +52,9 @@ class AudioDownloadWorker(QObject):
                     self.updateAnkiAudio.emit(x)
                 else:
                     print("no audio link")
+                    if isinstance(x, Dialogue):
+                        print(f"There is not an audio link for {x.audio_type}")
+                        continue
                     self.gaudio = GoogleAudioWorker(
                         text=x.chinese,
                         filename=self.filename,
