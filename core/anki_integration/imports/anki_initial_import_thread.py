@@ -4,7 +4,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 from PySide6.QtCore import QThread, Signal
 
-from db import DatabaseManager
 from db.workers import AnkiIntQueryWorker, SentsQueryWorker, WordsQueryWorker
 from models.dictionary import Sentence, Word
 
@@ -13,6 +12,9 @@ from .anki_get_ids_worker import AnkiGetNoteIDsWorker
 from .anki_get_note_info_worker import AnkiGetNoteInfoWorker
 
 
+# TODO Remove ThreadPool and just use QThreads
+# TODO send back the local db id to anki - batch
+# TODO thread clean ups
 class AnkiInitialImportThread(QThread):
     finished = Signal()
 
@@ -37,8 +39,8 @@ class AnkiInitialImportThread(QThread):
         else:
             ankiIds = response.json()["result"]
             # print(ankiIds)
-            db = DatabaseManager("chineseDict.db")
-            self.worker = FindAnkiIDsInLocalWorker(db, ankiIds, dtype=self.dtype)
+
+            self.worker = FindAnkiIDsInLocalWorker(ankiIds, dtype=self.dtype)
             self.worker.moveToThread(self)
             self.worker.ids_not_in_local.connect(self.ids_not_found)
 
@@ -48,6 +50,7 @@ class AnkiInitialImportThread(QThread):
             # anki worker here
 
     def ids_not_found(self, ids: list):
+        print(f"received {len(ids)} ids to look up detailed information")
         if ids:
             self.get_noteinfo_worker = AnkiGetNoteInfoWorker(ids, dtype=self.dtype)
             self.get_noteinfo_worker.response_sig.connect(self.notes_response)
@@ -62,7 +65,7 @@ class AnkiInitialImportThread(QThread):
             print("Nothing to add")
             self.finished.emit()
             return
-
+        self.db_thread = QThread()
         if self.dtype == "words":
             words = [
                 Word(
@@ -71,12 +74,14 @@ class AnkiInitialImportThread(QThread):
                     definition=word["fields"]["English"]["value"],
                     audio=None,
                     level=word["fields"]["Notes"]["value"],
-                    anki_audio=word["fields"]["audio"]["value"],
+                    anki_audio=word["fields"]["Audio"]["value"],
                     anki_id=word["noteId"],
                     anki_update=word["mod"],
                 )
                 for word in response["result"]
             ]
+
+            print(f"Starting to insert {len(words)} in the local database")
             self.dbworker = WordsQueryWorker(
                 "insert_words",
                 words=words,
@@ -89,21 +94,24 @@ class AnkiInitialImportThread(QThread):
                     english=sent["fields"]["English"]["value"],
                     audio=None,
                     level=sent["fields"]["Notes"]["value"],
-                    anki_audio=sent["fields"]["audio"]["value"],
+                    anki_audio=sent["fields"]["Audio"]["value"],
                     anki_id=sent["noteId"],
                     anki_update=sent["mod"],
+                    local_update=0,
                 )
                 for sent in response["result"]
             ]
+            print(f"Starting to insert {len(sents)} in the local database")
             self.dbworker = SentsQueryWorker("insert_sentences", sentences=sents)
-
-        self.dbworker.moveToThread(self)
+        self.db_thread.start()
+        self.dbworker.moveToThread(self.db_thread)
         self.dbworker.finished.connect(self.update_db_integration_record)
         self.dbworker.error_occurred.emit(self.error_occured)
         self.dbworker.finished.connect(self.dbworker.deleteLater)
         self.dbworker.do_work()
 
     def update_db_integration_record(self):
+        print("Updating integration time")
         timestamp = int(time.time())
         self.ankiDb = AnkiIntQueryWorker(
             "update_integration",
