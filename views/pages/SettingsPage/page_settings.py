@@ -87,7 +87,7 @@ class PageSettings(QWidget):
     def import_anki_deck(self):
         self.import_anki_w = AnkiInitialImportThread("Mandarin Words", "words")
         self.import_anki_w.start()
-        # self.import_anki_w.finished.connect(self.import_anki_sents)
+        self.import_anki_w.finished.connect(self.import_anki_sents)
 
     # TODO: Refesh dictionary view when loaded
     # TODO: Remove threads
