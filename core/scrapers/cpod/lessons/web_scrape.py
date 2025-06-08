@@ -1,3 +1,5 @@
+import json
+import time
 from time import sleep
 
 from PySide6.QtCore import QMutexLocker, QObject, Signal
@@ -6,6 +8,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
@@ -17,19 +20,32 @@ from services import Logger
 class WebScrape:
 
     def __init__(self, session, url):
-        chrome_options = Options()
+
+        caps = DesiredCapabilities.CHROME.copy()
+        caps["goog:loggingPrefs"] = {"performance": "ALL"}
+
+        self.chrome_options = Options()
         # chrome_options.add_argument("--headless=new")
+        self.chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
         self.session = session
         self.cookies = session.get_cookies()
         self.driver = webdriver.Chrome(
-            options=chrome_options, service=Service(ChromeDriverManager().install())
+            options=self.chrome_options,
+            service=Service(ChromeDriverManager().install()),
         )
         self.not_available = []
         self.source = None
         self.url = url
+        self.bearer = None
 
     def get_source(self):
-        return {"source": self.source, "not_available": self.not_available}
+        return self.source
+
+    def get_not_available(self):
+        return self.not_available
+
+    def get_bearer(self):
+        return self.bearer
 
     def close(self):
         self.driver.close()
@@ -54,6 +70,14 @@ class WebScrape:
         except Exception as e:
             Logger().insert("Failed loading cookies", "ERROR")
             Logger().insert(e, "ERROR", False)
+
+    def run_section(self, url, section):
+        if section not in ("Dialogue", "Vocabulary", "Expansion", "Grammar"):
+            return
+        self.driver.get(url)
+        sleep(3)
+        self.get_section_content(section)
+        self.page_source = self.driver.page_source
 
     def run_webdriver(self, url):
         try:
@@ -81,42 +105,8 @@ class WebScrape:
             ]
             print("not available", self.not_available)
 
-            def wait_for_content(content):
-                ids = {
-                    "Dialogue": "dialogue",
-                    "Vocabulary": "lesson-vocabulary",
-                    "Expansion": "expansion",
-                    "Grammar": "lesson-grammar",
-                }
-
-                target_id = ids.get(content)
-                if not target_id:
-                    return
-                WebDriverWait(self.driver, 120).until(
-                    EC.presence_of_element_located((By.ID, target_id))
-                )
-
-                WebDriverWait(self.driver, 120).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, f"#{target_id} *"))
-                )
-
-                if target_id == "lesson-vocabulary":
-                    WebDriverWait(self.driver, 40).until(
-                        EC.presence_of_element_located((By.ID, "key_vocab"))
-                    )
-
             for link in tab_titles:
-                try:
-                    self.driver.find_element(
-                        By.CSS_SELECTOR, f"a[title='{link}']"
-                    ).click()
-                    sleep(2)
-                    wait_for_content(link)
-                    sleep(5)
-                except NoSuchElementException as e:
-                    print(e)
-                    self.not_available.append(link)
-                    Logger().insert(f"Lesson doesn't have a {link} section", "WARN")
+                self.get_section_content(link)
 
             page_source = self.driver.page_source
             Logger().insert("Completed Scrape .....", "INFO")
@@ -125,3 +115,95 @@ class WebScrape:
             Logger().insert("Something Went Wrong...", "ERROR")
             Logger().insert(e, "ERROR", False)
             print(e)
+
+    def get_section_content(self, link):
+        try:
+            self.driver.find_element(By.CSS_SELECTOR, f"a[title='{link}']").click()
+            sleep(6)
+            self.wait_for_content(link)
+            sleep(5)
+        except NoSuchElementException as e:
+            print(e)
+            self.not_available.append(link)
+            Logger().insert(f"Lesson doesn't have a {link} section", "WARN")
+
+    def wait_for_content(self, content):
+        ids = {
+            "Dialogue": "dialogue",
+            "Vocabulary": "lesson-vocabulary",
+            "Expansion": "expansion",
+            "Grammar": "lesson-grammar",
+        }
+
+        target_id = ids.get(content)
+        if not target_id:
+            return
+        WebDriverWait(self.driver, 120).until(
+            EC.presence_of_element_located((By.ID, target_id))
+        )
+        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+        sleep(5)
+
+        self.driver.execute_script("window.scrollTo(0, 0);")
+
+    def find_bearer(self):
+        try:
+            url = keys["url"]
+            self.driver.get(f"{url}home")
+
+            WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, 'input[placeholder="Email"]')
+                )
+            )
+
+            login_name_field = self.driver.find_element(
+                By.CSS_SELECTOR, 'input[placeholder="Email"]'
+            )
+            login_name_field.send_keys(keys["email"])
+
+            login_pw_field = self.driver.find_element(
+                By.CSS_SELECTOR, 'input[placeholder="Password"]'
+            )
+            login_pw_field.send_keys(keys["password"])
+
+            login_btn = self.driver.find_element(By.CLASS_NAME, "btn-primary")
+            # login_btn = self.driver.find_element(By.CLASS_NAME, "ajax-button")
+            sleep(1)
+            login_btn.click()
+
+            time.sleep(5)
+
+            logs = self.driver.get_log("performance")
+
+            for entry in logs:
+                message = json.loads(entry["message"])["message"]
+                if (
+                    message["method"] == "Network.requestWillBeSent"
+                    and "headers" in message["params"]["request"]
+                ):
+                    headers = message["params"]["request"]["headers"]
+                    auth = headers.get("Authorization")
+                    if auth:
+                        print("Bearer token:", auth)
+                        self.bearer = auth
+        except Exception as e:
+            print("Unable to get Bearer Token", e)
+
+    def find_lesson_id(self, url):
+        try:
+            self.driver.get(url)
+
+            lesson_id = WebDriverWait(self.driver, 120).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, '//span[starts-with(text(), "ID:")]')
+                )
+            )
+            lesson_id = lesson_id.text.replace("ID: ", "")
+            lesson_id = lesson_id.strip()
+
+            return lesson_id
+        except Exception as e:
+            print("Error getting lesson id", e)
+            return None

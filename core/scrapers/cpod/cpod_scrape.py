@@ -177,7 +177,7 @@ class ScrapeCpod:
         key_vocab = self.soup.find(id="key_vocab")
         if key_vocab is None:
             return None
-        vocabs = key_vocab.find_all("tr", recursive=False)
+        vocabs = key_vocab.find_all("tr")
         print(len(vocabs), "length of tr")
         words = []
         for vocab in vocabs:
@@ -186,7 +186,7 @@ class ScrapeCpod:
                 print(f"td[{i}] = {td.get_text(strip=True)}")
 
             print(tds[1].get_text(), len(tds))
-            if len(tds) < 4:
+            if len(tds) >= 4:
                 chinese = tds[1].get_text()
                 pinyin = tds[2].get_text()
                 define = tds[3].get_text()
