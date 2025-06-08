@@ -3,7 +3,7 @@ from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal
 from keys import keys
 from services.network import SessionManager
 
-from .lesson_scrape_worker import LessonScraperWorker
+from .lesson_scrape_worker_v2 import LessonScraperWorkerV2
 from .web_scrape import WebScrape
 
 
@@ -26,10 +26,13 @@ class LessonScraperThread(QThread):
         print("starting thread")
 
         sess = SessionManager()
+        print("set up session")
         # TODO remove keys.py file
         self.wb = WebScrape(sess, keys["url"])
+        print("finished setting up webscrape")
         self.wb.init_driver()
-        self.worker = LessonScraperWorker(
+        print("initting driver")
+        self.worker = LessonScraperWorkerV2(
             self.wb, self.lesson_list, self._mutex, self._wait_condition, self
         )
         self.worker.moveToThread(self)
