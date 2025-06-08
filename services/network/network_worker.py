@@ -19,6 +19,7 @@ class NetworkWorker(QObject):
         json=None,
         timeout=10,
         retry=0,
+        headers=None,
     ):
         super().__init__()
         self.session_mangager = session_mangager
@@ -29,6 +30,7 @@ class NetworkWorker(QObject):
         self.timeout = timeout
         self.start_work.connect(self.do_work)
         self.retry = retry
+        self.headers = headers
 
     @Slot()
     def do_work(self):
@@ -39,7 +41,7 @@ class NetworkWorker(QObject):
         try:
             if self.operation == "POST":
                 response = self.session_mangager.post(
-                    self.url, data=self.data, timeout=self.timeout
+                    self.url, data=self.data, timeout=self.timeout, headers=self.headers
                 )
 
             elif self.operation == "SESSION":
@@ -63,7 +65,7 @@ class NetworkWorker(QObject):
                             continue
                         else:
                             print("status check - error")
-                            self.error_sig.emit("error", response, type(e).__name__)
+                            self.error_sig.emit("error", response, "")
 
         except requests.exceptions.ConnectionError as e:
             # TODO - handle error
@@ -81,5 +83,9 @@ class NetworkWorker(QObject):
 
     def operation_get(self):
         return self.session_mangager.get(
-            self.url, data=self.data, json=self.json, timeout=self.timeout
+            self.url,
+            data=self.data,
+            json=self.json,
+            timeout=self.timeout,
+            headers=self.headers,
         )

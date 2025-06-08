@@ -16,11 +16,15 @@ class SessionManager(QObject):
     def __init__(self):
         super().__init__()
 
-    def post(self, url, data=None, json=None, timeout=10):
-        return SessionManager.session.post(url, data=data, json=json, timeout=timeout)
+    def post(self, url, data=None, json=None, timeout=10, headers=None):
+        return SessionManager.session.post(
+            url, data=data, json=json, timeout=timeout, headers=headers
+        )
 
-    def get(self, url, data=None, json=None, timeout=10):
-        return SessionManager.session.get(url, data=data, json=json, timeout=timeout)
+    def get(self, url, data=None, json=None, timeout=10, headers=None):
+        return SessionManager.session.get(
+            url, data=data, json=json, timeout=timeout, headers=headers
+        )
 
     # TODO used in web_scrape - need to remove
     def get_session_url(self):
