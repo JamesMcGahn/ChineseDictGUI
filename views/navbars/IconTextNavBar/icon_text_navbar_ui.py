@@ -54,6 +54,15 @@ class IconTextNavBarView(QWidget):
         icon4.addFile(
             ":/ /images/settings_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
+
+        icon6 = QIcon()
+        icon6.addFile(
+            ":/ /images/logs_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+        )
+        icon6.addFile(
+            ":/ /images/logs_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+        )
+
         icon5 = QIcon()
         icon5.addFile(
             ":/ /images/signout_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
@@ -141,6 +150,15 @@ class IconTextNavBarView(QWidget):
 
         self.icon_text_nav_vlayout.addWidget(self.settings_btn_ict)
 
+        self.logs_btn_ict = QPushButton(self)
+        self.logs_btn_ict.setObjectName("logs_btn_ict")
+        self.logs_btn_ict.setIcon(icon6)
+        self.logs_btn_ict.setIconSize(QSize(100, 20))
+        self.logs_btn_ict.setCheckable(True)
+        self.logs_btn_ict.setAutoExclusive(True)
+
+        self.icon_text_nav_vlayout.addWidget(self.logs_btn_ict)
+
         self.signout_btn_ict = QPushButton(self)
         self.signout_btn_ict.setObjectName("signout_btn_ict")
         self.signout_btn_ict.setIcon(icon5)
@@ -152,5 +170,6 @@ class IconTextNavBarView(QWidget):
         self.audio_btn_ict.setText(" Audio From File")
         self.dictionary_btn_ict.setText(" Dictionary")
         self.settings_btn_ict.setText("Settings")
+        self.logs_btn_ict.setText(" Logs")
         self.signout_btn_ict.setText("Exit")
         self.icon_text_nav_vlayout.addWidget(self.signout_btn_ict)

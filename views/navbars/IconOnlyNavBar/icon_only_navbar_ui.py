@@ -111,6 +111,22 @@ class IconOnlyNavBarView(QWidget):
 
         self.icon_nav_vlayout.addWidget(self.settings_btn_ico)
 
+        self.logs_btn_ico = QPushButton()
+        self.logs_btn_ico.setObjectName("logs_btn_ico")
+        icon6 = QIcon()
+        icon6.addFile(
+            ":/ /images/logs_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+        )
+        icon6.addFile(
+            ":/ /images/logs_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+        )
+        self.logs_btn_ico.setIcon(icon6)
+        self.logs_btn_ico.setIconSize(QSize(100, 20))
+        self.logs_btn_ico.setCheckable(True)
+        self.logs_btn_ico.setAutoExclusive(True)
+
+        self.icon_nav_vlayout.addWidget(self.logs_btn_ico)
+
         self.signout_btn_ico = QPushButton()
         self.signout_btn_ico.setObjectName("signout_btn_ico")
         icon5 = QIcon()

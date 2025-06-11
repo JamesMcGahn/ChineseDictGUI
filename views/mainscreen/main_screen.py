@@ -27,3 +27,5 @@ class MainScreen(QWidget):
             self.ui.stackedWidget.setCurrentIndex(3)
         elif btn_name.startswith("settings_btn_"):
             self.ui.stackedWidget.setCurrentIndex(4)
+        elif btn_name.startswith("logs_btn_"):
+            self.ui.stackedWidget.setCurrentIndex(5)

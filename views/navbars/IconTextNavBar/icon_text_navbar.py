@@ -31,6 +31,7 @@ class IconTextNavBar(QWidget):
         self.ui.dictionary_btn_ict.toggled.connect(self.btn_checked)
         self.ui.audio_btn_ict.toggled.connect(self.btn_checked)
         self.ui.settings_btn_ict.toggled.connect(self.btn_checked)
+        self.ui.logs_btn_ict.toggled.connect(self.btn_clicked)
         self.ui.signout_btn_ict.toggled.connect(self.btn_checked)
 
         self.ui.words_btn_ict.clicked.connect(self.btn_clicked)
@@ -38,6 +39,7 @@ class IconTextNavBar(QWidget):
         self.ui.dictionary_btn_ict.clicked.connect(self.btn_clicked)
         self.ui.audio_btn_ict.clicked.connect(self.btn_clicked)
         self.ui.settings_btn_ict.clicked.connect(self.btn_clicked)
+        self.ui.logs_btn_ict.clicked.connect(self.btn_clicked)
         self.ui.signout_btn_ict.clicked.connect(self.btn_clicked)
 
         self.ui.words_btn_ict.setChecked(True)
@@ -66,5 +68,7 @@ class IconTextNavBar(QWidget):
                 self.ui.dictionary_btn_ict.setChecked(checked)
             case "settings_btn_ico":
                 self.ui.settings_btn_ict.setChecked(checked)
+            case "logs_btn_ico":
+                self.ui.logs_btn_ict.setChecked(checked)
             case "signout_btn_ico":
                 self.ui.signout_btn_ict.setChecked(checked)

@@ -17,5 +17,7 @@
     <file>images/list_off.png</file>
     <file>images/list_on.png</file>
     <file>images/red_check.png</file>
+    <file>images/logs_on.png</file>
+    <file>images/logs_off.png</file>
   </qresource>
 </RCC>

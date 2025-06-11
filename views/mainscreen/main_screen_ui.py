@@ -2,7 +2,7 @@ from PySide6.QtCore import QRect, QSize
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget
 
-from ..pages import PageDictionary, PageLessons, PageSettings, PageWords
+from ..pages import PageDictionary, PageLessons, PageLogs, PageSettings, PageWords
 
 
 class MainScreenView(QWidget):
@@ -48,7 +48,9 @@ class MainScreenView(QWidget):
         self.stackedWidget.addWidget(self.dictionary_page)
 
         self.settings_page = PageSettings()
+        self.logs_page = PageLogs()
 
         self.stackedWidget.addWidget(self.settings_page)
+        self.stackedWidget.addWidget(self.logs_page)
 
         self.main_screen_container_v.addWidget(self.stackedWidget)
