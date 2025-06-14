@@ -59,7 +59,7 @@ class WordScraperThread(QThread):
             encoded_word = quote(word)
             # TODO remove keys.py file
             self.get_soup(
-                f"{keys['url']}/dictionary/english-chinese/{encoded_word}",
+                f"{keys['old_url']}dictionary/english-chinese/{encoded_word}",
                 self.received_csoup,
             )
 
