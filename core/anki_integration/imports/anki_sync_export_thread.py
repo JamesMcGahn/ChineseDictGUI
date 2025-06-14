@@ -166,6 +166,7 @@ class AnkiSyncExportThread(QThread):
                         "allowDuplicate": False,
                         "duplicateScope": "deck",
                     },
+                    "tags": [rec.level],
                 }
                 self.new_card_note_payload.append(note)
                 self.new_card_local_refs.append(rec.id)
