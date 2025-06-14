@@ -44,6 +44,8 @@ class PageLessonsView(QWidget):
         self.words_page_vlayout.addLayout(self.horizontal_btn_layout)
         # Stacked Widget
         self.stacked_widget = QStackedWidget()
+        table_font = QFont()
+        table_font.setPointSize(16)
 
         # WordsTable
         self.words_table = QWidget()
@@ -53,6 +55,7 @@ class PageLessonsView(QWidget):
         self.words_table_vlayout.addWidget(self.save_btn_words)
         self.words_table_vlayout.addWidget(self.select_all_w)
         self.table_view_w = QTableView()
+        self.table_view_w.setFont(table_font)
         self.table_view_w.setSelectionBehavior(QTableView.SelectRows)
         self.table_view_w.show()
 
@@ -67,6 +70,7 @@ class PageLessonsView(QWidget):
         self.sents_table_vlayout.addWidget(self.save_btn_sents)
         self.sents_table_vlayout.addWidget(self.select_all_s)
         self.table_view_s = QTableView()
+        self.table_view_s.setFont(table_font)
         self.table_view_s.setSelectionBehavior(QTableView.SelectRows)
         self.table_view_s.show()
 
