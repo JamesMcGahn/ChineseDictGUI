@@ -4,7 +4,7 @@ from time import sleep
 
 from PySide6.QtCore import QMutexLocker, QObject, Signal
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -49,6 +49,9 @@ class WebScrape:
 
     def close(self):
         self.driver.close()
+
+    def capture_page_source(self):
+        self.source = self.driver.page_source
 
     def init_driver(self):
         cookies = self.cookies
@@ -147,47 +150,70 @@ class WebScrape:
 
         self.driver.execute_script("window.scrollTo(0, 0);")
 
+    def go_and_wait_for_id(self, url, id):
+        try:
+            self.driver.get(url)
+            WebDriverWait(self.driver, 120).until(
+                EC.presence_of_element_located((By.ID, id))
+            )
+            return True
+        except TimeoutException:
+            print(f"Cant find {id} on {url}")
+            return False
+
     def find_bearer(self):
         try:
             url = keys["url"]
             self.driver.get(f"{url}home")
-
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, 'input[placeholder="Email"]')
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, 'input[placeholder="Email"]')
+                    )
                 )
-            )
 
-            login_name_field = self.driver.find_element(
-                By.CSS_SELECTOR, 'input[placeholder="Email"]'
-            )
-            login_name_field.send_keys(keys["email"])
+                login_name_field = self.driver.find_element(
+                    By.CSS_SELECTOR, 'input[placeholder="Email"]'
+                )
+                login_name_field.send_keys(keys["email"])
 
-            login_pw_field = self.driver.find_element(
-                By.CSS_SELECTOR, 'input[placeholder="Password"]'
-            )
-            login_pw_field.send_keys(keys["password"])
+                login_pw_field = self.driver.find_element(
+                    By.CSS_SELECTOR, 'input[placeholder="Password"]'
+                )
+                login_pw_field.send_keys(keys["password"])
 
-            login_btn = self.driver.find_element(By.CLASS_NAME, "btn-primary")
-            # login_btn = self.driver.find_element(By.CLASS_NAME, "ajax-button")
-            sleep(1)
-            login_btn.click()
+                login_btn = self.driver.find_element(By.CLASS_NAME, "btn-primary")
+                # login_btn = self.driver.find_element(By.CLASS_NAME, "ajax-button")
+                sleep(1)
+                login_btn.click()
+                time.sleep(5)
+                cookies = self.driver.get_cookies()
+                print(cookies)
+                if cookies:
+                    self.session.set_cookies(self.session.convert_cookies(cookies))
+                    self.session.save_session()
+            except TimeoutException:
+                self.driver.get(f"{url}profile")
+                time.sleep(5)
+            finally:
 
-            time.sleep(5)
+                logs = self.driver.get_log("performance")
 
-            logs = self.driver.get_log("performance")
+                for entry in logs:
+                    message = json.loads(entry["message"])["message"]
+                    if (
+                        message["method"] == "Network.requestWillBeSent"
+                        and "headers" in message["params"]["request"]
+                    ):
+                        headers = message["params"]["request"]["headers"]
+                        auth = headers.get("Authorization")
+                        if auth:
+                            print("Bearer token:", auth)
+                            self.bearer = auth
 
-            for entry in logs:
-                message = json.loads(entry["message"])["message"]
-                if (
-                    message["method"] == "Network.requestWillBeSent"
-                    and "headers" in message["params"]["request"]
-                ):
-                    headers = message["params"]["request"]["headers"]
-                    auth = headers.get("Authorization")
-                    if auth:
-                        print("Bearer token:", auth)
-                        self.bearer = auth
+                if not self.bearer:
+                    raise RuntimeError("Bearer token not found in browser logs.")
+
         except Exception as e:
             print("Unable to get Bearer Token", e)
 
