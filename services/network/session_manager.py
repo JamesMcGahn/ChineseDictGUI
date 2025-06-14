@@ -6,11 +6,12 @@ import requests
 from bs4 import BeautifulSoup
 from PySide6.QtCore import QObject
 
+from base import QSingleton
 from services import Logger
 from utils.files import OpenFile, WriteFile
 
 
-class SessionManager(QObject):
+class SessionManager(QObject, metaclass=QSingleton):
     session = requests.Session()
 
     def __init__(self):
@@ -68,3 +69,14 @@ class SessionManager(QObject):
         soup = BeautifulSoup(req.text, "html.parser")
         sleep(randint(6, 15))
         return soup
+
+    def convert_cookies(self, cookies: list) -> requests.cookies.RequestsCookieJar:
+        jar = requests.cookies.RequestsCookieJar()
+        for cookie in cookies:
+            jar.set(
+                cookie["name"],
+                cookie["value"],
+                domain=cookie.get("domain"),
+                path=cookie.get("path", "/"),
+            )
+        return jar
