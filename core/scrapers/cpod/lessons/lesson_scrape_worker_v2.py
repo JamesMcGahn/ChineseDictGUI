@@ -28,6 +28,7 @@ class LessonScraperWorkerV2(QObject):
         self.session = SessionManager()
         self.host_url = keys["url"]
         self.audio_host_url = keys["audio_host"]
+        self.token = None
 
     def do_work(self):
         self.get_next_lesson()
@@ -43,11 +44,18 @@ class LessonScraperWorkerV2(QObject):
                     self._wait_condition.wait(self._mutex)
             c_lesson = self.lesson_list.popleft()
 
-            self.web_driver.find_bearer()
-            token = self.web_driver.get_bearer()
-
-            if not token:
-                return
+            if not self.token:
+                try:
+                    self.web_driver.find_bearer()
+                    token = self.web_driver.get_bearer()
+                    # TODO save token to settings?
+                    if not token:
+                        raise RuntimeError("Bearer token is None after login flow.")
+                    self.token = token
+                except RuntimeError as e:
+                    print(e)
+                except Exception as e:
+                    print(e)
 
             self.lesson_id = self.web_driver.find_lesson_id(c_lesson)
             if not self.lesson_id:
@@ -55,7 +63,7 @@ class LessonScraperWorkerV2(QObject):
 
             print("Lesson Id is ", self.lesson_id)
 
-            self.headers = {"Authorization": token}
+            self.headers = {"Authorization": self.token}
             slug = self.extract_slug(c_lesson)
 
             if not slug:
@@ -89,7 +97,20 @@ class LessonScraperWorkerV2(QObject):
         return None
 
     def build_audio_url(self, path: str) -> str:
-        return f"{self.audio_host_url}{self.lesson_id}/{self.hash_code}/{path}"
+
+        if path.startswith(
+            ("https://s3.amazonaws.com", "http://s3.amazonaws.com", self.audio_host_url)
+        ):
+            return path
+        elif "expansionbygrammar" in path:
+            match = re.search(r"chinesepod_(\d+)_", path)
+            if match:
+                grammar_id = match.group(1)
+                return f"{self.audio_host_url}grammar/grammar_{grammar_id}/{grammar_id}/expansion/translation/mp3/{path}"
+            else:
+                return ""
+        else:
+            return f"{self.audio_host_url}{self.lesson_id}/{self.hash_code}/{path}"
 
     def get_lesson_info(self, slug):
         self.lesi_net_thread = QThread()
@@ -190,11 +211,13 @@ class LessonScraperWorkerV2(QObject):
         words = []
         if isinstance(vocab, list) and vocab:
             for word in vocab:
+                audio_path = word["audio"]
+                audio = self.build_audio_url(audio_path)
                 new_word = Word(
                     chinese=word["s"],
                     definition=word["en"],
                     pinyin=word["p"],
-                    audio=word["audio"],
+                    audio=audio,
                 )
                 words.append(new_word)
             print(f"Sending {len(words)} Vocabulary Words")
