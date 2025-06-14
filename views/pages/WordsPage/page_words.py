@@ -1,8 +1,8 @@
-from PySide6.QtCore import Signal, Slot
+from PySide6.QtCore import QThread, Signal, Slot
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 from components.dialogs import AddWordsDialog, IncreaseLvlsDialog, MultiWordDialog
-from core.scrapers.words import WordScraperThread
+from core.scrapers.words import WordScraperThreadV2
 from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Sentence
 from models.table import SentenceTableModel, WordTableModel
@@ -123,30 +123,37 @@ class PageWords(QWidget):
 
     @Slot(dict)
     def get_dialog_submitted(self, form_data):
-        self.word_scrape_thread = WordScraperThread(
+        print("here recieved submitted")
+        self.word_scrape_thread = QThread()
+        self.word_scrape_worker = WordScraperThreadV2(
             form_data["word_list"],
             form_data["definition_source"],
             form_data["save_sentences"],
             form_data["level_selection"],
         )
         # TODO add list to the screen
+        self.word_scrape_worker.moveToThread(self.word_scrape_thread)
+        self.word_scrape_thread.started.connect(self.word_scrape_worker.do_work)
 
         self.ui.addwords_btn.setDisabled(True)
-        self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
-        self.md_multi_selection_sig.connect(self.word_scrape_thread.get_md_user_select)
-        self.use_cpod_def_sig.connect(self.word_scrape_thread.get_use_cpod_w)
-        self.word_scrape_thread.send_word_sig.connect(self.get_word_from_thread_loop)
-        self.word_scrape_thread.md_use_cpod_w_sig.connect(self.get_user_choice_usecpod)
-        self.word_scrape_thread.no_sents_inc_levels.connect(
+        self.word_scrape_worker.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
+        self.md_multi_selection_sig.connect(self.word_scrape_worker.get_md_user_select)
+        self.use_cpod_def_sig.connect(self.word_scrape_worker.get_use_cpod_w)
+        self.word_scrape_worker.send_word_sig.connect(self.get_word_from_thread_loop)
+        self.word_scrape_worker.md_use_cpod_w_sig.connect(self.get_user_choice_usecpod)
+        self.word_scrape_worker.no_sents_inc_levels.connect(
             self.get_user_no_sents_inclvl
         )
 
         self.updated_sents_levels_sig.connect(
-            self.word_scrape_thread.get_updated_sents_levels
+            self.word_scrape_worker.get_updated_sents_levels
         )
-        self.word_scrape_thread.send_sents_sig.connect(
+        self.word_scrape_worker.send_sents_sig.connect(
             self.get_sentences_from_thread_loop
         )
+
+        self.word_scrape_worker.finished.connect(self.word_scrape_worker.deleteLater)
+        self.word_scrape_worker.finished.connect(self.word_scrape_thread.quit)
         self.word_scrape_thread.finished.connect(self.thread_finished)
         self.word_scrape_thread.start()
 
@@ -160,6 +167,7 @@ class PageWords(QWidget):
 
     @Slot(int)
     def get_dialog_multi_selection(self, index):
+        print(index, "selection", type(index))
         self.md_multi_selection_sig.emit(index)
 
     @Slot(object)
@@ -228,7 +236,6 @@ class PageWords(QWidget):
         print("received senteces", sentences)
         [self.table_sentmodel.add_sentence(x) for x in sentences]
 
-    @Slot(bool)
+    @Slot()
     def thread_finished(self):
-        self.word_scrape_thread.deleteLater()
         self.ui.addwords_btn.setDisabled(False)
