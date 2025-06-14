@@ -23,6 +23,7 @@ class MultiWordDialog(QWidget):
 
         self.ui.submit_btn.clicked.connect(self.ok)
         self.ui.cancel_btn.clicked.connect(self.cancel)
+        self.ui.dialog_closed.connect(self.handle_close)
 
     def exec(self):
         self.ui.exec()
@@ -31,5 +32,9 @@ class MultiWordDialog(QWidget):
         self.md_multi_def_signal.emit(self.ui.select_btn_group.checkedId())
         self.ui.accept()
 
+    def handle_close(self):
+        self.md_multi_def_signal.emit(9999999)
+
     def cancel(self):
+        self.md_multi_def_signal.emit(9999999)
         self.ui.reject()

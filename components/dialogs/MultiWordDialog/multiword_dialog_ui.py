@@ -1,3 +1,4 @@
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
     QDialog,
@@ -12,6 +13,8 @@ from PySide6.QtWidgets import (
 
 
 class MultiWordDialogView(QDialog):
+    dialog_closed = Signal()
+
     def __init__(self):
         super().__init__()
         self.init_ui()
@@ -48,3 +51,8 @@ class MultiWordDialogView(QDialog):
 
         self.dialog_layout.addLayout(self.dialog_md_hlayout)
         self.setLayout(self.dialog_layout)
+
+    def reject(self):
+        print("User exited the dialog (closed or hit Cancel)")
+        self.dialog_closed.emit()
+        super().reject()
