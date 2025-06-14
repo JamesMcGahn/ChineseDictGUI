@@ -1,4 +1,5 @@
 from csv import DictWriter
+from os.path import join as join_path
 
 import services.logger.logger
 
@@ -31,10 +32,15 @@ class WriteFile:
             print_to_user,
         )
         match = PathManager.regex_path(path)
+        PathManager.path_exists(match["path"], True)
+
         if not overwrite:
             path = PathManager.check_dup(match["path"], match["filename"], match["ext"])
+
         else:
-            PathManager.path_exists(match["path"], True)
+            path = join_path(match["path"], match["filename"] + match["ext"])
+
+        print(path)
         with open(path, write_type) as out:
             out.write(source)
             services.logger.logger.Logger().insert(
