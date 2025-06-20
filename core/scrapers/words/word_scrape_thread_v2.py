@@ -193,6 +193,7 @@ class WordScraperThreadV2(QThread):
         print("")
         print(character, self.current_word)
         if character == self.current_word:
+            definition_string = definition_string.strip()
             self.cpod_word = Word(character, definition_string, pinyin, audio)
             print(self.definition_source, self.cpod_word)
 
@@ -381,7 +382,10 @@ class WordScraperThreadV2(QThread):
             print(f"Completed Getting Definition for {self.current_word} ")
 
         self.reset_state()
-        time.sleep(randint(3, 10))
+
+        wait_time = randint(3, 13)
+        print(f"Waiting for {wait_time} before searching for the next word")
+        time.sleep(wait_time)
         self.next_word_signal.emit()
 
     @Slot(int)

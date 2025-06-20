@@ -320,40 +320,47 @@ class AnkiSyncExportThread(QThread):
         timestamp = int(time.time())
 
         cards_to_update_db = []
-        if status == "success" and "result" in res and len(res["result"]) > 0:
-            for i, card in enumerate(res["result"]):
-                print(verified_payload[i])
-                id = verified_payload[i]["fields"]["LDBID"]
-                print(card, id)
+        if status == "success" and "result" in res:
+            if res["result"] is None:
+                self.error_occured("Error in checking if export cards.")
 
-                cards_to_update_db.append(
-                    {"id": id, "updates": {"anki_id": card, "anki_update": timestamp}}
-                )
-            # TODO: Add Check to make sure there are cards to update
-            if self.deck_type == "sents":
-                print(cards_to_update_db)
-                self.s_updatedbworker = SentsQueryWorker(
-                    "update_sentences", sentences=cards_to_update_db
-                )
-                self.s_updatedbworker.moveToThread(self)
-                self.s_updatedbworker.error_occurred.emit(self.error_occured)
-                self.s_updatedbworker.finished.connect(self.export_updates_cards)
-                self.s_updatedbworker.finished.connect(
-                    self.s_updatedbworker.deleteLater
-                )
-                self.s_updatedbworker.do_work()
-            else:
-                print(cards_to_update_db)
-                self.w_updatedbworker = WordsQueryWorker(
-                    "update_words", words=cards_to_update_db
-                )
-                self.w_updatedbworker.moveToThread(self)
-                self.w_updatedbworker.error_occurred.emit(self.error_occured)
-                self.w_updatedbworker.finished.connect(self.export_updates_cards)
-                self.w_updatedbworker.finished.connect(
-                    self.w_updatedbworker.deleteLater
-                )
-                self.w_updatedbworker.do_work()
+            if len(res["result"]) > 0:
+                for i, card in enumerate(res["result"]):
+                    print(verified_payload[i])
+                    id = verified_payload[i]["fields"]["LDBID"]
+                    print(card, id)
+
+                    cards_to_update_db.append(
+                        {
+                            "id": id,
+                            "updates": {"anki_id": card, "anki_update": timestamp},
+                        }
+                    )
+                # TODO: Add Check to make sure there are cards to update
+                if self.deck_type == "sents":
+                    print(cards_to_update_db)
+                    self.s_updatedbworker = SentsQueryWorker(
+                        "update_sentences", sentences=cards_to_update_db
+                    )
+                    self.s_updatedbworker.moveToThread(self)
+                    self.s_updatedbworker.error_occurred.emit(self.error_occured)
+                    self.s_updatedbworker.finished.connect(self.export_updates_cards)
+                    self.s_updatedbworker.finished.connect(
+                        self.s_updatedbworker.deleteLater
+                    )
+                    self.s_updatedbworker.do_work()
+                else:
+                    print(cards_to_update_db)
+                    self.w_updatedbworker = WordsQueryWorker(
+                        "update_words", words=cards_to_update_db
+                    )
+                    self.w_updatedbworker.moveToThread(self)
+                    self.w_updatedbworker.error_occurred.emit(self.error_occured)
+                    self.w_updatedbworker.finished.connect(self.export_updates_cards)
+                    self.w_updatedbworker.finished.connect(
+                        self.w_updatedbworker.deleteLater
+                    )
+                    self.w_updatedbworker.do_work()
 
     def export_updates_cards(self):
 
@@ -398,50 +405,56 @@ class AnkiSyncExportThread(QThread):
 
         cards_to_update_db = []
         failed_cards_to_add = []
-        if status == "success" and "result" in res and len(res["result"]) > 0:
-            for i, card in enumerate(res["result"]):
+        if status == "success" and "result" in res:
+            if res["result"] is None:
+                error_message = {res["error"]} if "error" in res else "error"
+                self.error_occured(f"Error in exporting cards: {error_message}")
+                return
 
-                payload = self.edited_card_note_payload[i]
-                id = payload["params"]["note"]["fields"]["LDBID"]
-                print(card, id)
+            if len(res["result"]) > 0:
+                for i, card in enumerate(res["result"]):
 
-                if isinstance(card, dict) and card.get("error"):
-                    print((id, payload, card["error"]))
-                    failed_cards_to_add.append((id, payload, card["error"]))
-                else:
-                    cards_to_update_db.append(
-                        {"id": id, "updates": {"anki_update": timestamp}}
+                    payload = self.edited_card_note_payload[i]
+                    id = payload["params"]["note"]["fields"]["LDBID"]
+                    print(card, id)
+
+                    if isinstance(card, dict) and card.get("error"):
+                        print((id, payload, card["error"]))
+                        failed_cards_to_add.append((id, payload, card["error"]))
+                    else:
+                        cards_to_update_db.append(
+                            {"id": id, "updates": {"anki_update": timestamp}}
+                        )
+                        print({"id": id, "updates": {"anki_update": timestamp}})
+
+                # TODO: Add Check to make sure there are cards to update
+
+                if self.deck_type == "sents":
+                    print(cards_to_update_db)
+                    self.s_updatedbworker = SentsQueryWorker(
+                        "update_sentences", sentences=cards_to_update_db
                     )
-                    print({"id": id, "updates": {"anki_update": timestamp}})
-
-            # TODO: Add Check to make sure there are cards to update
-
-            if self.deck_type == "sents":
-                print(cards_to_update_db)
-                self.s_updatedbworker = SentsQueryWorker(
-                    "update_sentences", sentences=cards_to_update_db
-                )
-                self.s_updatedbworker.moveToThread(self)
-                self.s_updatedbworker.error_occurred.emit(self.error_occured)
-                # self.s_updatedbworker.finished.connect(self.wait_for_sync_complete)
-                self.s_updatedbworker.finished.connect(
-                    self.s_updatedbworker.deleteLater
-                )
-                self.s_updatedbworker.do_work()
-            else:
-                print(cards_to_update_db)
-                self.w_updatedbworker = WordsQueryWorker(
-                    "update_words", words=cards_to_update_db
-                )
-                self.w_updatedbworker.moveToThread(self)
-                self.w_updatedbworker.error_occurred.emit(self.error_occured)
-                self.w_updatedbworker.finished.connect(
-                    self.update_db_integration_record
-                )
-                self.w_updatedbworker.finished.connect(
-                    self.w_updatedbworker.deleteLater
-                )
-                self.w_updatedbworker.do_work()
+                    self.s_updatedbworker.moveToThread(self)
+                    self.s_updatedbworker.error_occurred.emit(self.error_occured)
+                    # self.s_updatedbworker.finished.connect(self.wait_for_sync_complete)
+                    self.s_updatedbworker.finished.connect(
+                        self.s_updatedbworker.deleteLater
+                    )
+                    self.s_updatedbworker.do_work()
+                else:
+                    print(cards_to_update_db)
+                    self.w_updatedbworker = WordsQueryWorker(
+                        "update_words", words=cards_to_update_db
+                    )
+                    self.w_updatedbworker.moveToThread(self)
+                    self.w_updatedbworker.error_occurred.emit(self.error_occured)
+                    self.w_updatedbworker.finished.connect(
+                        self.update_db_integration_record
+                    )
+                    self.w_updatedbworker.finished.connect(
+                        self.w_updatedbworker.deleteLater
+                    )
+                    self.w_updatedbworker.do_work()
 
     def update_db_integration_record(self):
         timestamp = int(time.time())
