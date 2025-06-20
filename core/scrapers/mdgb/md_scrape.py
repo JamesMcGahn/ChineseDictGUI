@@ -35,9 +35,14 @@ class ScrapeMd:
             definition = result.find("div", class_="defs").get_text()
             pinyin = pinyin.replace("\u200b", "")
             level = result.find("div", class_="hsk")
+            definition_split = definition.split("/")
+            definition_string = ""
+            for index, meaning in enumerate(definition_split):
+                definition_string += f"{index + 1}. {meaning.trim()}"
+            definition_string = definition_string.trim()
             word = {
                 "chinese": hanzi,
-                "definition": definition,
+                "definition": definition_string,
                 "pinyin": pinyin,
                 "audio": "",
                 "level": level.get_text() if level is not None else "",
