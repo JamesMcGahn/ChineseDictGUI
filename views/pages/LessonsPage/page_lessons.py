@@ -49,6 +49,8 @@ class PageLessons(QWidget):
         self.ui.save_btn_sents.clicked.connect(self.save_selected_sents)
         self.ui.select_all_w.clicked.connect(self.select_all_words)
         self.ui.select_all_s.clicked.connect(self.select_all_sents)
+        self.ui.clear_w.clicked.connect(self.clear_table_words)
+        self.ui.clear_s.clicked.connect(self.clear_table_sents)
 
         self.dbw = DatabaseManager("chineseDict.db")
         self.dbs = DatabaseManager("chineseDict.db")
@@ -58,6 +60,18 @@ class PageLessons(QWidget):
 
     def select_all_sents(self):
         self.ui.table_view_s.selectAll()
+
+    def clear_table_words(self):
+        self.select_all_words()
+        selection_model = self.ui.table_view_w.selectionModel()
+        selected_rows = selection_model.selectedRows()
+        self.table_wordmodel.remove_selected(selected_rows)
+
+    def clear_table_sents(self):
+        self.select_all_sents()
+        selection_model = self.ui.table_view_s.selectionModel()
+        selected_rows = selection_model.selectedRows()
+        self.table_sentmodel.remove_selected(selected_rows)
 
     def save_selected_words(self):
         selection_model = self.ui.table_view_w.selectionModel()
