@@ -15,19 +15,19 @@ runtimes:
 lint:
   disabled:
   enabled:
-    - osv-scanner@2.0.2
+    - osv-scanner@2.0.3
     - oxipng@9.1.5
     - taplo@0.9.3
-    - ruff@0.11.13
-    - bandit@1.8.3
+    - ruff@0.12.0
+    - bandit@1.8.5
     - black@25.1.0
-    - checkov@3.2.437
+    - checkov@3.2.443
     - git-diff-check
     - isort@6.0.1
     - markdownlint@0.45.0
     - prettier@3.5.3
     - trivy@0.63.0
-    - trufflehog@3.88.35
+    - trufflehog@3.89.2
     - yamllint@1.37.1
 actions:
   enabled:

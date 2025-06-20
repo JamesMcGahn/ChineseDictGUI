@@ -21,6 +21,7 @@ google-auth-httplib2 = "*"
 googleapis-common-protos = "*"
 pyside6 = "*"
 pyqt-toast-notification = "*"
+keyring = "*"
 
 [dev-packages]
 
