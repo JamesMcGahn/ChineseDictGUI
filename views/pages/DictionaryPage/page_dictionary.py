@@ -1,9 +1,13 @@
+import time
+
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QWidget
 
 from components.toasts import QToast
 from db import DatabaseManager, DatabaseQueryThread
+from models.dictionary import Sentence, Word
 from models.table import SentenceTableModel, WordTableModel
+from services.audio import AudioThread
 
 from .page_dictionary_ui import PageDictionaryView
 
@@ -17,7 +21,7 @@ class PageDictionary(QWidget):
         super().__init__()
         self.word_table_page = 1
         self.sent_table_page = 1
-
+        self.audio_threads = []
         self.ui = PageDictionaryView()
         self.layout = self.ui.layout()
         self.setLayout(self.layout)
@@ -35,6 +39,8 @@ class PageDictionary(QWidget):
         self.ui.select_all_s.clicked.connect(self.select_all_sents)
         self.ui.delete_seled_w.clicked.connect(self.delete_selected_words)
         self.ui.delete_seled_s.clicked.connect(self.delete_selected_sents)
+        self.ui.get_audio_w.clicked.connect(self.get_audio_for_selected_w)
+        self.ui.get_audio_s.clicked.connect(self.get_audio_for_selected_s)
 
         self.ui.next_page_w.clicked.connect(self.words_nextpg_click)
         self.ui.prev_page_w.clicked.connect(self.words_prevpg_click)
@@ -53,6 +59,63 @@ class PageDictionary(QWidget):
 
     def select_all_sents(self):
         self.ui.table_view_s.selectAll()
+
+    def get_audio_for_selected_w(
+        self,
+    ):
+        selection_model = self.ui.table_view_w.selectionModel()
+        selected_rows = selection_model.selectedRows()
+        words = [
+            self.table_wordmodel.get_row_data(index.row()) for index in selected_rows
+        ]
+        self.download_audio(words)
+
+    def get_audio_for_selected_s(
+        self,
+    ):
+        selection_model = self.ui.table_view_s.selectionModel()
+        selected_rows = selection_model.selectedRows()
+        words = [
+            self.table_sentmodel.get_row_data(index.row()) for index in selected_rows
+        ]
+        self.download_audio(words)
+
+    @Slot(list)
+    def download_audio(self, audlist):
+        # TODO get audio folder path from settings
+        audio_thread = AudioThread(audlist, "./test/")
+
+        audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
+        audio_thread.finished.connect(lambda: self.remove_thread(audio_thread))
+        self.audio_threads.append(audio_thread)
+        if len(self.audio_threads) == 1:
+            audio_thread.start()
+
+    def remove_thread(self, thread):
+        if thread in self.audio_threads:
+            print(f"removing thread {thread} from audio thread queue")
+            self.audio_threads.remove(thread)
+            thread.deleteLater()
+        if self.audio_threads:
+            self.audio_threads[0].start()
+
+    @Slot(object)
+    def update_anki_audio(self, obj):
+        obj.local_update = int(time.time())
+
+        if isinstance(obj, Sentence):
+            self.upwThread = DatabaseQueryThread(
+                "sents", "update_sentence", id=obj.id, updates=vars(obj)
+            )
+            self.upwThread.start()
+            self.upwThread.finished.connect(self.upwThread.deleteLater)
+
+        elif isinstance(obj, Word):
+            self.upsThread = DatabaseQueryThread(
+                "words", "update_word", id=obj.id, updates=vars(obj)
+            )
+            self.upsThread.start()
+            self.upsThread.finished.connect(self.upsThread.deleteLater)
 
     # TODO Add Update Sentence
     @Slot(object)

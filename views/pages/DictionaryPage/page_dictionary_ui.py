@@ -51,11 +51,14 @@ class PageDictionaryView(QWidget):
 
         self.select_all_w = QPushButton("Select All")
         self.delete_seled_w = QPushButton("Delete Selected")
+        self.get_audio_w = QPushButton("Get Audio Selected")
+        self.get_audio_s = QPushButton("Get Audio Selected")
 
         self.words_table_vlayout = QVBoxLayout(self.words_table)
 
         self.words_table_vlayout.addWidget(self.select_all_w)
         self.words_table_vlayout.addWidget(self.delete_seled_w)
+        self.words_table_vlayout.addWidget(self.get_audio_w)
 
         self.table_view_w = QTableView()
         self.table_view_w.setSelectionBehavior(QTableView.SelectRows)
@@ -78,6 +81,7 @@ class PageDictionaryView(QWidget):
         self.sents_table_vlayout = QVBoxLayout(self.sents_table)
         self.sents_table_vlayout.addWidget(self.select_all_s)
         self.sents_table_vlayout.addWidget(self.delete_seled_s)
+        self.sents_table_vlayout.addWidget(self.get_audio_s)
 
         self.table_view_s = QTableView()
         self.table_view_s.setSelectionBehavior(QTableView.SelectRows)
