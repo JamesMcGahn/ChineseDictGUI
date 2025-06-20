@@ -82,9 +82,20 @@ class AddWordsDialog(QWidget):
     def cancel_btn_clicked(self):
         self.ui.reject()
 
+    def deduplicate_notes(self, notes):
+        seen = set()
+        unique_notes = []
+        for note in notes:
+            if note not in seen:
+                seen.add(note)
+                unique_notes.append(note)
+        return unique_notes
+
     def submit_btn_clicked(self):
+        words = self.ui.textEdit.toPlainText().split("\n")
+
         self.form = {
-            "word_list": self.ui.textEdit.toPlainText().split("\n"),
+            "word_list": self.deduplicate_notes(words),
             "definition_source": self.definition_source,
             "save_sentences": self.save_sentences,
             "level_selection": self.level_selection,
