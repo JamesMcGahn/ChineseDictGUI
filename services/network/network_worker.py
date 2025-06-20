@@ -64,8 +64,10 @@ class NetworkWorker(QObject):
                             print(f"Retrying... ({attempt + 1}/{self.retry})")
                             continue
                         else:
-                            print("status check - error")
-                            self.error_sig.emit("error", response, "")
+                            print("status check - error", response)
+                            self.error_sig.emit(
+                                "error", response, str(response.status_code)
+                            )
 
         except requests.exceptions.ConnectionError as e:
             # TODO - handle error
