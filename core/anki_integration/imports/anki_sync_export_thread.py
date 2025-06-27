@@ -151,7 +151,7 @@ class AnkiSyncExportThread(QThread):
             else:
                 note = {
                     "deckName": f"{deck_name}",
-                    "modelName": "Glossika ZS",
+                    "modelName": f"Glossika ZS-{"S" if self.deck_type == "sents" else "W"}",
                     "fields": {
                         "Chinese": rec.chinese,
                         "English": (
