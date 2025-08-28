@@ -12,6 +12,7 @@ class LessonScraperThread(QThread):
     send_words_sig = Signal(list)
     send_sents_sig = Signal(object)
     send_dialogue = Signal(object, object)
+    lesson_done = Signal(str)
 
     def __init__(self, lesson_list):
         super().__init__()
@@ -42,6 +43,7 @@ class LessonScraperThread(QThread):
         self.worker.send_sents_sig.connect(self.send_sents_sig)
         self.worker.send_words_sig.connect(self.send_words_sig)
         self.worker.send_dialogue.connect(self.send_dialogue)
+        self.worker.lesson_done.connect(self.lesson_done)
         self.worker.do_work()
 
     def worker_finished(self):

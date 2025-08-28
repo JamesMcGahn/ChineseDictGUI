@@ -11,6 +11,8 @@ class Sentence:
         anki_id=None,
         anki_update=None,
         local_update=None,
+        sent_type="",
+        lesson="",
     ):
         self.id = id
         self.chinese = chinese
@@ -22,3 +24,5 @@ class Sentence:
         self.anki_id = anki_id
         self.anki_update = anki_update
         self.local_update = local_update
+        self.sent_type = sent_type
+        self.lesson = lesson

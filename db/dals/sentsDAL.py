@@ -3,7 +3,7 @@ class SentsDAL:
         self.db_manager = db_manager
 
     def insert_sentence(self, sentence):
-        query = "INSERT INTO sentences (chinese, english, pinyin, audio, level,anki_audio, anki_id, anki_update,local_update) VALUES (?,?,?,?,?,?,?,?,?)"
+        query = "INSERT INTO sentences (chinese, english, pinyin, audio, level,anki_audio, anki_id, anki_update,local_update,sent_type, lesson) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
         return self.db_manager.execute_write_query(
             query,
             (
@@ -16,6 +16,8 @@ class SentsDAL:
                 sentence.anki_id,
                 sentence.anki_update,
                 sentence.local_update,
+                sentence.sent_type,
+                sentence.lesson,
             ),
         )
 

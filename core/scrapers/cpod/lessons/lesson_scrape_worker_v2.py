@@ -16,6 +16,7 @@ class LessonScraperWorkerV2(QObject):
     send_sents_sig = Signal(object)
     send_words_sig = Signal(list)
     send_dialogue = Signal(object, object)
+    lesson_done = Signal(str)
 
     def __init__(self, web_driver, lesson_list, mutex, wait_condition, parent_thread):
         super().__init__()
@@ -140,6 +141,7 @@ class LessonScraperWorkerV2(QObject):
                 audio_type="dialogue",
                 audio=lesson_info["mp3_dialogue"],
                 level=self.lesson_level,
+                lesson=self.lesson_title,
             )
 
             lesson_audio = Dialogue(
@@ -147,6 +149,7 @@ class LessonScraperWorkerV2(QObject):
                 audio_type="lesson",
                 audio=lesson_info["mp3_private"],
                 level=self.lesson_level,
+                lesson=self.lesson_title,
             )
 
             self.send_dialogue.emit(lesson_audio, dialogue_audio)
@@ -183,6 +186,8 @@ class LessonScraperWorkerV2(QObject):
                     pinyin=sentence["p"],
                     audio=audio,
                     level=self.lesson_level,
+                    sent_type="dialogue",
+                    lesson=self.lesson_title if self.lesson_title else "",
                 )
                 dialogue.append(new_sent)
             print(f"Sending {len(dialogue)} Dialogue Sentences")
@@ -256,6 +261,8 @@ class LessonScraperWorkerV2(QObject):
                         pinyin=sentence["p"],
                         audio=audio,
                         level=self.lesson_level,
+                        sent_type="expansion",
+                        lesson=self.lesson_title if self.lesson_title else "",
                     )
                     expansion.append(new_sent)
 
@@ -294,6 +301,8 @@ class LessonScraperWorkerV2(QObject):
                         pinyin=sentence["p"],
                         audio=audio,
                         level=self.lesson_level,
+                        sent_type="grammar",
+                        lesson=self.lesson_title if self.lesson_title else "",
                     )
                     grammar.append(new_sent)
             print(f"Sending {len(grammar)} Grammar Sentences")
@@ -303,6 +312,7 @@ class LessonScraperWorkerV2(QObject):
         self.lesson_completed()
 
     def lesson_completed(self):
+        self.lesson_done.emit(self.lesson_title)
         print(f"Completed Lesson - {self.lesson_title}")
         print("Trying to get next lesson")
         time.sleep(randint(6, 15))

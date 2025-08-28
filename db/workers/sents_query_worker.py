@@ -168,7 +168,16 @@ class SentsQueryWorker(QObject):
             result = self.dals.get_sentences_paginate(page, limit)
             if result is not None:
                 sentences = [
-                    Sentence(sent[1], sent[2], sent[3], sent[4], sent[5], sent[0])
+                    Sentence(
+                        chinese=sent[1],
+                        english=sent[2],
+                        pinyin=sent[3],
+                        audio=sent[4],
+                        level=sent[5],
+                        id=sent[0],
+                        sent_type=sent[10],
+                        lesson=sent[11],
+                    )
                     for sent in result.fetchall()
                 ]
                 self.pagination.emit(

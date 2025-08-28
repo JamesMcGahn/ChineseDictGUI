@@ -1,6 +1,6 @@
 import time
 
-from PySide6.QtCore import Signal, Slot
+from PySide6.QtCore import QThread, Signal, Slot
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 from components.dialogs import (
@@ -14,7 +14,8 @@ from core.scrapers.words.word_scrape_thread import WordScraperThread
 from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Sentence, Word
 from models.table import SentenceTableModel, WordTableModel
-from services.audio import AudioThread
+from services.audio import AudioThread, CombineAudioThread
+from utils.files import PathManager
 
 from .page_lessons_ui import PageLessonsView
 
@@ -30,7 +31,9 @@ class PageLessons(QWidget):
         self.layout = self.ui.layout()
         self.setLayout(self.layout)
         self.audio_threads = []
+        self.combine_audio_threads = []
         self.setObjectName("lessons_page")
+        self.check_for_dups = False
 
         self.table_wordmodel = WordTableModel()
         self.table_sentmodel = SentenceTableModel()
@@ -87,12 +90,55 @@ class PageLessons(QWidget):
         self.table_wordmodel.remove_selected(selected_rows)
         self.save_selwords.result.connect(self.download_audio)
 
-    @Slot(list)
-    def download_audio(self, audlist):
-        # TODO get audio folder path from settings
-        audio_thread = AudioThread(audlist, "./test/")
+    @Slot(str)
+    def save_lesson(self, lesson):
+        sents = self.table_sentmodel.get_all_sentences().copy()
+        sents = [sent for sent in sents if sent.lesson == lesson]
+        dialogue = False
+        expansion = False
+        grammar = False
+        PathManager.path_exists(f"./test/{lesson}", True)
 
-        audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
+        with open(f"./test/{lesson}/{lesson}.txt", "w", encoding="utf-8") as f:
+            for sent in sents:
+                if sent.sent_type == "dialogue" and not dialogue:
+                    f.write("对话:\n")
+                    dialogue = True
+                elif sent.sent_type == "expansion" and not expansion:
+                    f.write("例句:\n")
+                    expansion = True
+                elif sent.sent_type == "grammar" and not grammar:
+                    f.write("语法:\n")
+                    grammar = True
+
+                f.write(f"{sent.chinese}\n")
+
+        sents_with_in_order = []
+        for i, sent_item in enumerate(sents):
+            sent_item.id = i + 1
+            sents_with_in_order.append(sent_item)
+
+        if sents_with_in_order:
+            self.download_audio(
+                sents_with_in_order,
+                folder=f"./test/{lesson}/sents",
+                update_db=False,
+                combine_audio=True,
+            )
+
+        print("*** finished all sents", [sent.id for sent in sents])
+
+    @Slot(list)
+    def download_audio(self, audlist, folder=None, update_db=True, combine_audio=False):
+        # TODO get audio folder path from settings
+        if folder is None:
+            folder = "./test/"
+        audio_thread = AudioThread(
+            audlist, folder_path=folder, combine_audio=combine_audio
+        )
+        if update_db:
+            audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
+        audio_thread.start_combine_audio.connect(self.combine_audio)
         audio_thread.finished.connect(lambda: self.remove_thread(audio_thread))
         self.audio_threads.append(audio_thread)
         if len(self.audio_threads) == 1:
@@ -105,6 +151,27 @@ class PageLessons(QWidget):
             thread.deleteLater()
         if self.audio_threads:
             self.audio_threads[0].start()
+
+    @Slot(str)
+    def combine_audio(self, folder_path):
+        combine_audio_thread = CombineAudioThread(folder_path, "1_combined.mp3", 2000)
+        combine_audio_thread.finished.connect(
+            lambda: self.remove_thread(combine_audio_thread)
+        )
+        self.combine_audio_threads.append(combine_audio_thread)
+        combine_audio_thread.finished.connect(
+            lambda: self.remove_combine_thread(combine_audio_thread)
+        )
+        if len(self.audio_threads) == 1:
+            combine_audio_thread.start()
+
+    def remove_combine_thread(self, thread):
+        if thread in self.combine_audio_threads:
+            print(f"removing thread {thread} from audio thread queue")
+            self.combine_audio_threads.remove(thread)
+            thread.deleteLater()
+        if self.combine_audio_threads:
+            self.combine_audio_threads[0].start()
 
     @Slot(object)
     def update_anki_audio(self, obj):
@@ -156,10 +223,10 @@ class PageLessons(QWidget):
         self.dialog.exec()
 
     @Slot(dict)
-    def get_dialog_submitted(self, form_data):
+    def get_dialog_submitted(self, form_data, check_for_dups):
         self.lesson_scrape_thread = LessonScraperThread(form_data)
         # TODO add list to the screen
-
+        self.check_for_dups = check_for_dups
         self.lesson_scrape_thread.start()
         self.lesson_scrape_thread.send_words_sig.connect(
             self.get_words_from_sthread_loop
@@ -168,12 +235,13 @@ class PageLessons(QWidget):
             self.get_sentences_from_thread_loop
         )
         self.lesson_scrape_thread.send_dialogue.connect(self.receive_dialogues)
+        self.lesson_scrape_thread.lesson_done.connect(self.save_lesson)
 
     def receive_dialogues(self, lesson, dialogue):
         print("eeee", lesson, dialogue)
         print("eeee", vars(lesson), vars(dialogue))
 
-        self.download_audio([lesson, dialogue])
+        self.download_audio([lesson, dialogue], f"./test/{lesson.lesson}")
 
     @Slot()
     def add_word_dialog_closed(self):
@@ -291,17 +359,19 @@ class PageLessons(QWidget):
     @Slot(list)
     def get_sentences_from_thread_loop(self, sentences):
         print("received senteces", len(sentences))
-
-        self.check_sentences_duplicates = DatabaseQueryThread(
-            "sents", "check_for_duplicate_sentences", sentences=sentences
-        )
-        self.check_sentences_duplicates.start()
-        self.check_sentences_duplicates.result.connect(
-            lambda result: self.receive_duplicate_sentences(result, sentences)
-        )
-        self.check_sentences_duplicates.finished.connect(
-            self.check_sentences_duplicates.deleteLater
-        )
+        if self.check_for_dups:
+            self.check_sentences_duplicates = DatabaseQueryThread(
+                "sents", "check_for_duplicate_sentences", sentences=sentences
+            )
+            self.check_sentences_duplicates.start()
+            self.check_sentences_duplicates.result.connect(
+                lambda result: self.receive_duplicate_sentences(result, sentences)
+            )
+            self.check_sentences_duplicates.finished.connect(
+                self.check_sentences_duplicates.deleteLater
+            )
+        else:
+            self.receive_duplicate_sentences([], sentences)
 
     def receive_duplicate_sentences(self, result, sentences):
         unique_sentences = [

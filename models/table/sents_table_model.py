@@ -20,7 +20,7 @@ class SentenceTableModel(QAbstractTableModel):
         return len(self.sentences)
 
     def columnCount(self, parent=None):
-        return 6
+        return 8
 
     def remove_selected(self, selected):
         indexes = [i.row() for i in selected]
@@ -40,6 +40,9 @@ class SentenceTableModel(QAbstractTableModel):
         self.sentences.append(sentence)
         self.endInsertRows()
 
+    def get_all_sentences(self):
+        return self.sentences
+
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             if section == 0:
@@ -54,6 +57,10 @@ class SentenceTableModel(QAbstractTableModel):
                 return "Level"
             if section == 5:
                 return "Audio"
+            if section == 6:
+                return "Type"
+            if section == 7:
+                return "Lesson"
 
         return super().headerData(section, orientation, role)
 
@@ -77,6 +84,10 @@ class SentenceTableModel(QAbstractTableModel):
                 return sentence.level
             elif index.column() == 5:
                 return sentence.audio
+            elif index.column() == 6:
+                return sentence.sent_type
+            elif index.column() == 7:
+                return sentence.lesson
         elif role == Qt.EditRole:
             if index.column() == 1:
                 return sentence.chinese
@@ -88,6 +99,10 @@ class SentenceTableModel(QAbstractTableModel):
                 return sentence.level
             elif index.column() == 5:
                 return sentence.audio
+            elif index.column() == 6:
+                return sentence.sent_type
+            elif index.column() == 7:
+                return sentence.lesson
 
     def flags(self, index: QModelIndex):
         if not index.isValid():
@@ -107,6 +122,10 @@ class SentenceTableModel(QAbstractTableModel):
                 sentence.level = value
             elif index.column() == 5:
                 sentence.audio = value
+            elif index.column() == 6:
+                sentence.sent_type = value
+            elif index.column() == 7:
+                sentence.lesson = value
             sentence.local_update = self.current_timestamp()
             self.dataChanged.emit()
             self.sentUpdated.emit(sentence)
@@ -125,6 +144,8 @@ class SentenceTableModel(QAbstractTableModel):
                 level=self.data(self.index(row_index, 4), Qt.DisplayRole),
                 audio=self.data(self.index(row_index, 5), Qt.DisplayRole),
                 id=sentence.id if sentence.id else None,
+                sent_type=self.data(self.index(row_index, 6), Qt.DisplayRole),
+                lesson=self.data(self.index(row_index, 7), Qt.DisplayRole),
             )
 
         else:

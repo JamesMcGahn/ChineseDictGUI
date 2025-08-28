@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -68,6 +69,13 @@ class AddLessonsDialogView(QDialog):
         self.dialog_vlayout.addWidget(self.info_text1)
         self.dialog_vlayout.addWidget(self.info_text2)
         self.dialog_vlayout.addLayout(self.text_edit_horz_layout)
+
+        self.check_for_dups_hlayout = QHBoxLayout()
+        self.check_for_dups_lb = QLabel("Check For Duplicate Sentences?")
+        self.check_for_dups_cb = QCheckBox()
+        self.check_for_dups_hlayout.addWidget(self.check_for_dups_lb)
+        self.check_for_dups_hlayout.addWidget(self.check_for_dups_cb)
+        self.dialog_vlayout.addLayout(self.check_for_dups_hlayout)
         self.dialog_vlayout.addLayout(self.submit_cnl_h_layout)
 
         self.setLayout(self.dialog_vlayout)

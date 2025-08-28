@@ -5,17 +5,20 @@ from .add_lessons_dialog_ui import AddLessonsDialogView
 
 
 class AddLessonsDialog(QWidget):
-    add_lesson_submited_signal = Signal(list)
+    add_lesson_submited_signal = Signal(list, bool)
     add_lesson_closed = Signal()
 
     def __init__(self):
         super().__init__()
         self.lesson_list = []
 
+        self.check_for_dups = False
+
         self.ui = AddLessonsDialogView()
         self.ui.read_button.clicked.connect(self.read_button_clicked)
         self.ui.submit_btn.clicked.connect(self.submit_btn_clicked)
         self.ui.cancel_btn.clicked.connect(self.cancel_btn_clicked)
+        self.ui.check_for_dups_cb.toggled.connect(self.check_for_dups_toggle)
 
     def exec(self):
         self.ui.exec()
@@ -46,8 +49,18 @@ class AddLessonsDialog(QWidget):
     def cancel_btn_clicked(self):
         self.ui.reject()
 
+    def check_for_dups_toggle(self, checked):
+        if checked:
+            self.check_for_dups = True
+        else:
+            self.check_for_dups = False
+
     def submit_btn_clicked(self):
-        self.add_lesson_submited_signal.emit(self.ui.textEdit.toPlainText().split("\n"))
+        self.check_for_dups = False
+        self.ui.check_for_dups_cb.setChecked(False)
+        self.add_lesson_submited_signal.emit(
+            self.ui.textEdit.toPlainText().split("\n"), self.check_for_dups
+        )
         self.ui.textEdit.clear()
         self.lesson_list = []
 

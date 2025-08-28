@@ -1,31 +1,29 @@
 from PySide6.QtCore import QThread, Signal
 
-from .audio_download_worker import AudioDownloadWorker
+from .audio_combine_worker import AudioCombineWorker
 
 
-class AudioThread(QThread):
+class CombineAudioThread(QThread):
     updateAnkiAudio = Signal(object)
     start_combine_audio = Signal(str)
 
-    def __init__(self, data, folder_path=None, combine_audio=False):
+    def __init__(self, folder_path: str, output_file: str, silence_ms: int = 500):
         super().__init__()
         self.folder_path = folder_path
-        self.data = data
-        self.combine_audio = combine_audio
+        self.output_file = output_file
+        self.silence_ms = silence_ms
 
     def run(self):
-        self.worker = AudioDownloadWorker(self.data, self.folder_path)
+        self.worker = AudioCombineWorker(
+            self.folder_path, self.output_file, self.silence_ms
+        )
 
         self.worker.moveToThread(self)
-
         self.worker.finished.connect(self.worker_finished)
-        self.worker.updateAnkiAudio.connect(self.updateAnkiAudio)
         self.worker.do_work()
 
     def worker_finished(self):
         self.worker.deleteLater()
         self.wait()
         self.quit()
-        if self.combine_audio:
-            self.start_combine_audio.emit(self.folder_path)
         self.finished.emit()
