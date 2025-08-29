@@ -12,7 +12,7 @@ class LessonScraperThread(QThread):
     send_words_sig = Signal(list)
     send_sents_sig = Signal(object)
     send_dialogue = Signal(object, object)
-    lesson_done = Signal(str)
+    lesson_done = Signal(str, str)
 
     def __init__(self, lesson_list):
         super().__init__()

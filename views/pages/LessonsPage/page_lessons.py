@@ -3,6 +3,7 @@ import time
 from PySide6.QtCore import QThread, Signal, Slot
 from PySide6.QtWidgets import QMessageBox, QWidget
 
+from base import QWidgetBase
 from components.dialogs import (
     AddLessonsDialog,
     AddWordsDialog,
@@ -14,13 +15,13 @@ from core.scrapers.words.word_scrape_thread import WordScraperThread
 from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Sentence, Word
 from models.table import SentenceTableModel, WordTableModel
-from services.audio import AudioThread, CombineAudioThread
+from services.audio import AudioThread, CombineAudioThread, WhisperThread
 from utils.files import PathManager
 
 from .page_lessons_ui import PageLessonsView
 
 
-class PageLessons(QWidget):
+class PageLessons(QWidgetBase):
     md_multi_selection_sig = Signal(int)
     use_cpod_def_sig = Signal(bool)
     updated_sents_levels_sig = Signal(bool, list)
@@ -32,6 +33,7 @@ class PageLessons(QWidget):
         self.setLayout(self.layout)
         self.audio_threads = []
         self.combine_audio_threads = []
+        self.whisper_threads = []
         self.setObjectName("lessons_page")
         self.check_for_dups = False
 
@@ -90,8 +92,8 @@ class PageLessons(QWidget):
         self.table_wordmodel.remove_selected(selected_rows)
         self.save_selwords.result.connect(self.download_audio)
 
-    @Slot(str)
-    def save_lesson(self, lesson):
+    @Slot(str, str)
+    def save_lesson(self, lesson, lesson_level):
         sents = self.table_sentmodel.get_all_sentences().copy()
         sents = [sent for sent in sents if sent.lesson == lesson]
         dialogue = False
@@ -117,29 +119,49 @@ class PageLessons(QWidget):
         for i, sent_item in enumerate(sents):
             sent_item.id = i + 1
             sents_with_in_order.append(sent_item)
-
+        return  # TODO REMOVE AFTER TESTING WHISPER
+        # TODO add an option to disable downloading all sentences for lesson
         if sents_with_in_order:
+            self.logging("Starting Download All Lesson Sentences")
             self.download_audio(
                 sents_with_in_order,
                 folder=f"./test/{lesson}/sents",
                 update_db=False,
                 combine_audio=True,
+                combine_audio_export_folder=f"./test/{lesson}",
+                combine_audio_export_filename=f"{lesson_level} - {lesson} - Sentences.mp3",
+                combine_audio_delay_between_audio=1500,
             )
 
         print("*** finished all sents", [sent.id for sent in sents])
 
     @Slot(list)
-    def download_audio(self, audlist, folder=None, update_db=True, combine_audio=False):
+    def download_audio(
+        self,
+        audlist,
+        folder=None,
+        update_db=True,
+        combine_audio=False,
+        combine_audio_export_folder="",
+        combine_audio_export_filename="",
+        combine_audio_delay_between_audio=1500,
+    ):
         # TODO get audio folder path from settings
         if folder is None:
             folder = "./test/"
         audio_thread = AudioThread(
-            audlist, folder_path=folder, combine_audio=combine_audio
+            audlist,
+            folder_path=folder,
+            combine_audio=combine_audio,
+            combine_audio_export_folder=combine_audio_export_folder,
+            combine_audio_export_filename=combine_audio_export_filename,
+            combine_audio_delay_between_audio=combine_audio_delay_between_audio,
         )
         if update_db:
             audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
         audio_thread.start_combine_audio.connect(self.combine_audio)
         audio_thread.finished.connect(lambda: self.remove_thread(audio_thread))
+        audio_thread.start_whisper.connect(self.whisper_audio)
         self.audio_threads.append(audio_thread)
         if len(self.audio_threads) == 1:
             audio_thread.start()
@@ -152,12 +174,15 @@ class PageLessons(QWidget):
         if self.audio_threads:
             self.audio_threads[0].start()
 
-    @Slot(str)
-    def combine_audio(self, folder_path):
-        combine_audio_thread = CombineAudioThread(folder_path, "1_combined.mp3", 2000)
-        combine_audio_thread.finished.connect(
-            lambda: self.remove_thread(combine_audio_thread)
+    @Slot(str, str, str, int)
+    def combine_audio(
+        self, folder_path, output_file_name, output_file_folder, delay_between_audio
+    ):
+        return
+        combine_audio_thread = CombineAudioThread(
+            folder_path, output_file_name, output_file_folder, delay_between_audio
         )
+
         self.combine_audio_threads.append(combine_audio_thread)
         combine_audio_thread.finished.connect(
             lambda: self.remove_combine_thread(combine_audio_thread)
@@ -167,11 +192,29 @@ class PageLessons(QWidget):
 
     def remove_combine_thread(self, thread):
         if thread in self.combine_audio_threads:
-            print(f"removing thread {thread} from audio thread queue")
+            print(f"removing thread {thread} from combine audio thread queue")
             self.combine_audio_threads.remove(thread)
             thread.deleteLater()
         if self.combine_audio_threads:
             self.combine_audio_threads[0].start()
+
+    def whisper_audio(self, folder, filename):
+        whisper_thread = WhisperThread(folder, filename)
+
+        self.whisper_threads.append(whisper_thread)
+        whisper_thread.finished.connect(
+            lambda: self.remove_whisper_thread(whisper_thread)
+        )
+        if len(self.audio_threads) == 1:
+            whisper_thread.start()
+
+    def remove_whisper_thread(self, thread):
+        if thread in self.whisper_threads:
+            print(f"removing thread {thread} from whisper thread queue")
+            self.whisper_threads.remove(thread)
+            thread.deleteLater()
+        if self.whisper_threads:
+            self.whisper_threads[0].start()
 
     @Slot(object)
     def update_anki_audio(self, obj):

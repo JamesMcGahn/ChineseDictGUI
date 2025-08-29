@@ -15,6 +15,7 @@ class AudioDownloadWorker(QObject):
     updateAnkiAudio = Signal(object)
     finished = Signal()
     progress = Signal(str)
+    start_whisper = Signal(str, str)
 
     def __init__(self, data, folder_path=None):
         super().__init__()
@@ -49,6 +50,15 @@ class AudioDownloadWorker(QObject):
                         msg,
                         "INFO",
                     )
+
+                    if isinstance(x, Dialogue) and x.audio_type == "lesson":
+
+                        Logger().insert(
+                            "Sending File to Whisper",
+                            "INFO",
+                        )
+                        self.start_whisper.emit(self.folder_path, self.filename)
+
                     self.updateAnkiAudio.emit(x)
                 else:
                     print("no audio link")

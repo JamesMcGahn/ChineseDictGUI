@@ -12,10 +12,18 @@ class AudioCombineWorker(QObjectBase):
     finished = Signal(str)
     progress = Signal(str)
 
-    def __init__(self, folder_path: str, output_file: str, silence_ms: int = 500):
+    def __init__(
+        self,
+        folder_path: str,
+        output_file_name: str,
+        output_file_folder: str,
+        silence_ms: int = 500,
+    ):
         super().__init__()
         self.folder_path = folder_path
-        self.output_file = output_file
+        self.output_file_name = output_file_name
+        self.output_file_folder = output_file_folder
+
         self.silence_ms = silence_ms
 
     def natural_sort_key(self, s: str):
@@ -48,8 +56,11 @@ class AudioCombineWorker(QObjectBase):
             if i < len(files) - 1:
                 combined += spacer
 
-        combined.export(f"{self.folder_path}/{self.output_file}", format="mp3")
-        Logger().insert(
-            f"Saved combined audio to {self.folder_path}/{self.output_file}", "INFO"
+        combined.export(
+            f"{self.output_file_folder}/{self.output_file_name}", format="mp3"
         )
-        self.finished.emit(self.output_file)
+        Logger().insert(
+            f"Saved combined audio to {self.output_file_folder}/{self.output_file_name}",
+            "INFO",
+        )
+        self.finished.emit(self.output_file_name)

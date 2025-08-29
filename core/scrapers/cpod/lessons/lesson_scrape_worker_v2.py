@@ -16,7 +16,7 @@ class LessonScraperWorkerV2(QObject):
     send_sents_sig = Signal(object)
     send_words_sig = Signal(list)
     send_dialogue = Signal(object, object)
-    lesson_done = Signal(str)
+    lesson_done = Signal(str, str)
 
     def __init__(self, web_driver, lesson_list, mutex, wait_condition, parent_thread):
         super().__init__()
@@ -312,7 +312,7 @@ class LessonScraperWorkerV2(QObject):
         self.lesson_completed()
 
     def lesson_completed(self):
-        self.lesson_done.emit(self.lesson_title)
+        self.lesson_done.emit(self.lesson_title, self.lesson_level)
         print(f"Completed Lesson - {self.lesson_title}")
         print("Trying to get next lesson")
         time.sleep(randint(6, 15))

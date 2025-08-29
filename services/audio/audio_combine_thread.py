@@ -7,15 +7,25 @@ class CombineAudioThread(QThread):
     updateAnkiAudio = Signal(object)
     start_combine_audio = Signal(str)
 
-    def __init__(self, folder_path: str, output_file: str, silence_ms: int = 500):
+    def __init__(
+        self,
+        folder_path: str,
+        output_file_name: str,
+        output_file_folder: str,
+        silence_ms: int = 500,
+    ):
         super().__init__()
         self.folder_path = folder_path
-        self.output_file = output_file
+        self.output_file_name = output_file_name
+        self.output_file_folder = output_file_folder
         self.silence_ms = silence_ms
 
     def run(self):
         self.worker = AudioCombineWorker(
-            self.folder_path, self.output_file, self.silence_ms
+            self.folder_path,
+            self.output_file_name,
+            self.output_file_folder,
+            self.silence_ms,
         )
 
         self.worker.moveToThread(self)

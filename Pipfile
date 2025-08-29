@@ -23,6 +23,7 @@ pyside6 = "*"
 pyqt-toast-notification = "*"
 keyring = "*"
 pydub = "*"
+faster-whisper = "*"
 
 [dev-packages]
 
