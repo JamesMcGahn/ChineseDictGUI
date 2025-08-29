@@ -149,9 +149,10 @@ class AnkiSyncExportThread(QThread):
                 self.edited_card_note_payload.append(note)
                 self.edited_card_local_refs.append(rec.id)
             else:
+                model_name = f"Glossika ZS-{"S" if self.deck_type == "sents" else "W"}"
                 note = {
                     "deckName": f"{deck_name}",
-                    "modelName": f"Glossika ZS-{"S" if self.deck_type == "sents" else "W"}",
+                    "modelName": model_name,
                     "fields": {
                         "Chinese": rec.chinese,
                         "English": (
@@ -166,7 +167,7 @@ class AnkiSyncExportThread(QThread):
                         "allowDuplicate": False,
                         "duplicateScope": "deck",
                     },
-                    "tags": [rec.level],
+                    "tags": [rec.level.replace(" ", "-") if rec.level else ""],
                 }
                 self.new_card_note_payload.append(note)
                 self.new_card_local_refs.append(rec.id)
@@ -323,6 +324,7 @@ class AnkiSyncExportThread(QThread):
         if status == "success" and "result" in res:
             if res["result"] is None:
                 self.error_occured("Error in checking if export cards.")
+                return
 
             if len(res["result"]) > 0:
                 for i, card in enumerate(res["result"]):
