@@ -20,12 +20,14 @@ class WhisperWorker(QObjectBase):
         super().__init__()
         self.folder = Path(folder)
         self.filename = file_name
+        self.language = "zh"
         self.model_name = model_name
         self._stopped = False
         self.model_name = "medium"
         self.compute_type = "auto"
         self.beam_size = 5
         self.min_silence_ms = 300
+        self.chunk_length = 20
         self.initial_prompt = (
             "这是一段包含中文和英文的课程音频。"
             "请使用**简体中文**书写汉字（不要使用繁体）。"
@@ -64,12 +66,14 @@ class WhisperWorker(QObjectBase):
             from faster_whisper import WhisperModel
 
             model = WhisperModel(self.model_name, compute_type=self.compute_type)
+            self.logging(f"Whisper model: {self.model_name} Complete.")
             self.logging(f"Starting Transcribing {self.filename}")
 
             segments, info = model.transcribe(
                 str(audio),
                 task="transcribe",
-                language=None,
+                chunk_length=self.chunk_length,
+                language=self.language,
                 vad_filter=True,
                 vad_parameters={"min_silence_duration_ms": self.min_silence_ms},
                 condition_on_previous_text=False,
@@ -99,7 +103,7 @@ class WhisperWorker(QObjectBase):
                     if percent > last_logged_pct:
                         self.logging(f"{percent}% Percent done")
                         last_logged_pct = percent
-
+            self.logging(f"Finishing Generating Transcription {self.filename}")
             text = "\n".join(buf) + "\n"
             if not text:
                 self.logging("Empty transcript.", "ERROR")
