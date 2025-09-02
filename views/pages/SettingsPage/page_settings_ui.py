@@ -31,7 +31,9 @@ class PageSettingsUI(QWidget):
         self.label_6.setFont(font1)
 
         hspacer = QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        hspacer1 = QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         vspacer = QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        vspacer1 = QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         # colored_spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
@@ -111,7 +113,7 @@ class PageSettingsUI(QWidget):
         anki_widget_hlayout = QHBoxLayout()
         anki_widget_hlayout.addItem(hspacer)
         anki_widget_hlayout.addWidget(self.anki_deck_widget)
-        anki_widget_hlayout.addItem(hspacer)
+        anki_widget_hlayout.addItem(hspacer1)
         self.settings_page_vlayout.addLayout(anki_widget_hlayout)
 
         self.import_deck_btn = QPushButton("Import Deck From Anki")
@@ -125,4 +127,4 @@ class PageSettingsUI(QWidget):
         self.sync_export_btn = QPushButton("Test Export Sync")
 
         self.settings_page_vlayout.addWidget(self.sync_export_btn)
-        self.settings_page_vlayout.addItem(vspacer)
+        self.settings_page_vlayout.addItem(vspacer1)
