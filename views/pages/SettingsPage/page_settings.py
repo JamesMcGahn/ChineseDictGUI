@@ -1,7 +1,7 @@
 import os
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from components.toasts import QToast
 from core.anki_integration.imports import (
@@ -21,6 +21,7 @@ class PageSettings(QWidget):
     updated_sents_levels_sig = Signal(bool, list)
 
     def __init__(self):
+
         super().__init__()
         self.setObjectName("settings_page")
         module_dir = os.path.dirname(os.path.realpath(__file__))
@@ -28,8 +29,9 @@ class PageSettings(QWidget):
         with open(file_path, "r") as ss:
             self.setStyleSheet(ss.read())
         self.ui = PageSettingsUI()
-        self.layout = self.ui.layout()
-        self.setLayout(self.layout)
+        wrap = QVBoxLayout(self)
+        wrap.setContentsMargins(0, 0, 0, 0)
+        wrap.addWidget(self.ui)
         self.settings = AppSettings()
         self.ui.import_deck_btn.clicked.connect(self.import_anki_deck)
 

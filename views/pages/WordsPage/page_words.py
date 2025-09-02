@@ -1,5 +1,5 @@
 from PySide6.QtCore import QThread, Signal, Slot
-from PySide6.QtWidgets import QMessageBox, QWidget
+from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 
 from components.dialogs import AddWordsDialog, IncreaseLvlsDialog, MultiWordDialog
 from core.scrapers.words import WordScraperThreadV2
@@ -18,10 +18,12 @@ class PageWords(QWidget):
     updated_sents_levels_sig = Signal(bool, list)
 
     def __init__(self):
+
         super().__init__()
         self.ui = PageWordsView()
-        self.layout = self.ui.layout()
-        self.setLayout(self.layout)
+        wrap = QVBoxLayout(self)
+        wrap.setContentsMargins(0, 0, 0, 0)
+        wrap.addWidget(self.ui)
         self.audio_threads = []
 
         self.table_wordmodel = WordTableModel()

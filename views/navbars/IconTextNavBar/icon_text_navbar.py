@@ -1,7 +1,7 @@
 import os
 
 from PySide6.QtCore import QSize, Qt, Signal, Slot
-from PySide6.QtWidgets import QPushButton, QWidget
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from .icon_text_navbar_ui import IconTextNavBarView
 
@@ -11,6 +11,7 @@ class IconTextNavBar(QWidget):
     btn_clicked_page = Signal(QPushButton)
 
     def __init__(self):
+
         super().__init__()
 
         self.setObjectName("icon_text_widget")
@@ -23,8 +24,9 @@ class IconTextNavBar(QWidget):
             self.setStyleSheet(ss.read())
 
         self.ui = IconTextNavBarView()
-        self.layout = self.ui.layout()
-        self.setLayout(self.layout)
+        wrap = QVBoxLayout(self)
+        wrap.setContentsMargins(0, 0, 0, 0)
+        wrap.addWidget(self.ui)
 
         self.ui.words_btn_ict.toggled.connect(self.btn_checked)
         self.ui.sents_btn_ict.toggled.connect(self.btn_checked)

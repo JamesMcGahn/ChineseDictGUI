@@ -1,7 +1,7 @@
 import os
 
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from .header_navbar_ui import HeaderNavBarView
 
@@ -21,8 +21,9 @@ class HeaderNavBar(QWidget):
             self.setStyleSheet(ss.read())
 
         self.ui = HeaderNavBarView()
-        self.layout = self.ui.layout()
-        self.setLayout(self.layout)
+        wrap = QVBoxLayout(self)
+        wrap.setContentsMargins(0, 0, 0, 0)
+        wrap.addWidget(self.ui)
 
         self.ui.hamburger_icon_btn.toggled.connect(self.hamburger_icon_btn_toggled)
 

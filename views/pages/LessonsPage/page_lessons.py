@@ -1,7 +1,7 @@
 import time
 
 from PySide6.QtCore import QThread, Signal, Slot
-from PySide6.QtWidgets import QMessageBox, QWidget
+from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
 
 from base import QWidgetBase
 from components.dialogs import (
@@ -29,8 +29,9 @@ class PageLessons(QWidgetBase):
     def __init__(self):
         super().__init__()
         self.ui = PageLessonsView()
-        self.layout = self.ui.layout()
-        self.setLayout(self.layout)
+        wrap = QVBoxLayout(self)
+        wrap.setContentsMargins(0, 0, 0, 0)
+        wrap.addWidget(self.ui)
         self.audio_threads = []
         self.combine_audio_threads = []
         self.whisper_threads = []
@@ -119,7 +120,7 @@ class PageLessons(QWidgetBase):
         for i, sent_item in enumerate(sents):
             sent_item.id = i + 1
             sents_with_in_order.append(sent_item)
-        return  # TODO REMOVE AFTER TESTING WHISPER
+        # return  # TODO REMOVE AFTER TESTING WHISPER
         # TODO add an option to disable downloading all sentences for lesson
         if sents_with_in_order:
             self.logging("Starting Download All Lesson Sentences")
@@ -178,7 +179,7 @@ class PageLessons(QWidgetBase):
     def combine_audio(
         self, folder_path, output_file_name, output_file_folder, delay_between_audio
     ):
-        return
+
         combine_audio_thread = CombineAudioThread(
             folder_path, output_file_name, output_file_folder, delay_between_audio
         )
@@ -279,6 +280,10 @@ class PageLessons(QWidgetBase):
         )
         self.lesson_scrape_thread.send_dialogue.connect(self.receive_dialogues)
         self.lesson_scrape_thread.lesson_done.connect(self.save_lesson)
+        self.lesson_scrape_thread.finished.connect(self.lesson_scrape_thread.quit)
+        self.lesson_scrape_thread.finished.connect(
+            self.lesson_scrape_thread.deleteLater
+        )
 
     def receive_dialogues(self, lesson, dialogue):
         print("eeee", lesson, dialogue)

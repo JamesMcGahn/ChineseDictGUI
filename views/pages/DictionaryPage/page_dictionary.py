@@ -1,7 +1,7 @@
 import time
 
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from components.toasts import QToast
 from db import DatabaseManager, DatabaseQueryThread
@@ -23,8 +23,9 @@ class PageDictionary(QWidget):
         self.sent_table_page = 1
         self.audio_threads = []
         self.ui = PageDictionaryView()
-        self.layout = self.ui.layout()
-        self.setLayout(self.layout)
+        wrap = QVBoxLayout(self)
+        wrap.setContentsMargins(0, 0, 0, 0)
+        wrap.addWidget(self.ui)
 
         self.setObjectName("dictionary_page")
         self.table_wordmodel = WordTableModel()
