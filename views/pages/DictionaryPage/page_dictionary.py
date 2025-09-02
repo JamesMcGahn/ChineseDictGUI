@@ -1,8 +1,9 @@
 import time
 
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout
 
+from base import QWidgetBase
 from components.toasts import QToast
 from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Sentence, Word
@@ -12,7 +13,7 @@ from services.audio import AudioThread
 from .page_dictionary_ui import PageDictionaryView
 
 
-class PageDictionary(QWidget):
+class PageDictionary(QWidgetBase):
     md_multi_selection_sig = Signal(int)
     use_cpod_def_sig = Signal(bool)
     updated_sents_levels_sig = Signal(bool, list)

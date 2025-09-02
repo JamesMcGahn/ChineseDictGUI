@@ -1,12 +1,14 @@
 import os
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout
+
+from base import QWidgetBase
 
 from .central_widget_ui import CentralWidgetView
 
 
-class CentralWidget(QWidget):
+class CentralWidget(QWidgetBase):
     def __init__(self):
         super().__init__()
         self.ui = CentralWidgetView()
@@ -18,6 +20,8 @@ class CentralWidget(QWidget):
         self.setAttribute(Qt.WA_StyledBackground, True)
         module_dir = os.path.dirname(os.path.realpath(__file__))
         file_path = os.path.join(module_dir, "central_widget.css")
+        self.appshutdown.connect(self.ui.main_screen_widget.notified_app_shutting)
+
         with open(file_path, "r") as ss:
             self.setStyleSheet(ss.read())
 

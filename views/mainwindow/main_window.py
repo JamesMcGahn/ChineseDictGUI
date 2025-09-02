@@ -42,6 +42,7 @@ class MainWindow(QMainWindow):
         )
         self.logger = Logger()
         self.appshutdown.connect(self.logger.close)
+        self.appshutdown.connect(self.centralwidget.notified_app_shutting)
 
     def setup_database(self):
         db = DatabaseManager("chineseDict.db")

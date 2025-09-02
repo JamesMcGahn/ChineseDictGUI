@@ -58,6 +58,7 @@ class PageLessons(QWidgetBase):
         self.ui.clear_w.clicked.connect(self.clear_table_words)
         self.ui.clear_s.clicked.connect(self.clear_table_sents)
 
+        self.appshutdown.connect(lambda: print("app shutdown lesson"))
         self.dbw = DatabaseManager("chineseDict.db")
         self.dbs = DatabaseManager("chineseDict.db")
 
@@ -201,7 +202,7 @@ class PageLessons(QWidgetBase):
 
     def whisper_audio(self, folder, filename):
         whisper_thread = WhisperThread(folder, filename)
-
+        self.appshutdown.connect(whisper_thread.stop)
         self.whisper_threads.append(whisper_thread)
         whisper_thread.finished.connect(
             lambda: self.remove_whisper_thread(whisper_thread)

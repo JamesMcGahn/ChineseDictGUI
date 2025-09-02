@@ -1,6 +1,7 @@
 from PySide6.QtCore import QThread, Signal, Slot
-from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QMessageBox, QVBoxLayout
 
+from base import QWidgetBase
 from components.dialogs import AddWordsDialog, IncreaseLvlsDialog, MultiWordDialog
 from core.scrapers.words import WordScraperThreadV2
 from db import DatabaseManager, DatabaseQueryThread
@@ -12,7 +13,7 @@ from .page_words_ui import PageWordsView
 
 
 # TODO: Clean up
-class PageWords(QWidget):
+class PageWords(QWidgetBase):
     md_multi_selection_sig = Signal(int)
     use_cpod_def_sig = Signal(bool)
     updated_sents_levels_sig = Signal(bool, list)
