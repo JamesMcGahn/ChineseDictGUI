@@ -191,7 +191,7 @@ class Logger(QObject, metaclass=QSingleton):
                     os.remove(file_path)
                     self.insert(f"Removing old log file {file_path}", "INFO")
 
-    @Slot(bool)
+    @Slot()
     def close(self) -> None:
         """
         Closes the log worker thread and shuts down logging.
@@ -201,6 +201,6 @@ class Logger(QObject, metaclass=QSingleton):
         """
         self.insert("Shutting down logging", "INFO", True)
         self.log_worker.stop()
+        self.log_worker.cleanup()
         self.log_worker.quit()
         self.log_worker.wait()
-        self.log_worker.cleanup()

@@ -1,5 +1,5 @@
 from PySide6.QtCore import Slot
-from PySide6.QtWidgets import QPushButton, QWidget
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from .main_screen_ui import MainScreenView
 
@@ -8,8 +8,9 @@ class MainScreen(QWidget):
     def __init__(self):
         super().__init__()
         self.ui = MainScreenView()
-        self.layout = self.ui.layout()
-        self.setLayout(self.layout)
+        wrap = QVBoxLayout(self)
+        wrap.setContentsMargins(0, 0, 0, 0)
+        wrap.addWidget(self.ui)
 
         self.setObjectName("main_screen")
 
