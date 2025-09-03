@@ -33,8 +33,7 @@ class PageLessons(QWidgetBase):
         wrap.setContentsMargins(0, 0, 0, 0)
         wrap.addWidget(self.ui)
         self.audio_threads = []
-        self.combine_audio_threads = []
-        self.whisper_threads = []
+        self.combine_audio_n_whisper_threads = []
         self.setObjectName("lessons_page")
         self.check_for_dups = False
 
@@ -185,38 +184,41 @@ class PageLessons(QWidgetBase):
             folder_path, output_file_name, output_file_folder, delay_between_audio
         )
 
-        self.combine_audio_threads.append(combine_audio_thread)
+        self.combine_audio_n_whisper_threads.append(combine_audio_thread)
         combine_audio_thread.finished.connect(
-            lambda: self.remove_combine_thread(combine_audio_thread)
+            lambda: self.remove_comb_whisper_thread(
+                combine_audio_thread, "Combine Audio"
+            )
         )
-        if len(self.audio_threads) == 1:
+        if len(self.combine_audio_n_whisper_threads) == 1:
             combine_audio_thread.start()
-
-    def remove_combine_thread(self, thread):
-        if thread in self.combine_audio_threads:
-            print(f"removing thread {thread} from combine audio thread queue")
-            self.combine_audio_threads.remove(thread)
-            thread.deleteLater()
-        if self.combine_audio_threads:
-            self.combine_audio_threads[0].start()
 
     def whisper_audio(self, folder, filename):
         whisper_thread = WhisperThread(folder, filename)
         self.appshutdown.connect(whisper_thread.stop)
-        self.whisper_threads.append(whisper_thread)
+        self.combine_audio_n_whisper_threads.append(whisper_thread)
         whisper_thread.finished.connect(
-            lambda: self.remove_whisper_thread(whisper_thread)
+            lambda: self.remove_comb_whisper_thread(whisper_thread, "Whisper")
         )
-        if len(self.audio_threads) == 1:
+        if len(self.combine_audio_n_whisper_threads) == 1:
             whisper_thread.start()
 
-    def remove_whisper_thread(self, thread):
-        if thread in self.whisper_threads:
-            print(f"removing thread {thread} from whisper thread queue")
-            self.whisper_threads.remove(thread)
+    def remove_comb_whisper_thread(self, thread, thread_type):
+        if thread in self.combine_audio_n_whisper_threads:
+            self.logging(f"removing {thread_type} thread {thread} from thread queue")
+            self.combine_audio_n_whisper_threads.remove(thread)
+            try:
+                thread.quit()
+            except Exception:
+                self.logging(f"Failed to quit {thread_type} thread {thread}")
             thread.deleteLater()
-        if self.whisper_threads:
-            self.whisper_threads[0].start()
+        self.maybe_start_next_combo()
+
+    def maybe_start_next_combo(self):
+        if self.combine_audio_n_whisper_threads:
+            head = self.combine_audio_n_whisper_threads[0]
+            if not head.isRunning() and not head.isFinished():
+                head.start()
 
     @Slot(object)
     def update_anki_audio(self, obj):

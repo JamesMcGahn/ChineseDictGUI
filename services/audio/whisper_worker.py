@@ -27,7 +27,7 @@ class WhisperWorker(QObjectBase):
         self.compute_type = "auto"
         self.beam_size = 5
         self.min_silence_ms = 300
-        self.chunk_length = 20
+        self.chunk_length = 30
         self.initial_prompt = (
             "这是一段包含中文和英文的课程音频。"
             "请使用**简体中文**书写汉字（不要使用繁体）。"
@@ -90,6 +90,7 @@ class WhisperWorker(QObjectBase):
             for seg in segments:
                 if self._stopped:
                     self.logging("Whisper Process Stopped.", "WARN")
+                    self.finished.emit()
                     return
 
                 t = normalize_cjk_spacing(seg.text).strip()
