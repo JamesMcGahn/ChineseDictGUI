@@ -158,7 +158,7 @@ class WebScrape:
             )
             return True
         except TimeoutException:
-            print(f"Cant find {id} on {url}")
+            Logger().insert(f"Cant find {id} on {url}", "ERROR")
             return False
 
     def find_bearer(self):
@@ -212,6 +212,7 @@ class WebScrape:
                             self.bearer = auth
 
                 if not self.bearer:
+                    Logger().insert("Bearer token not found in browser logs.", "ERROR")
                     raise RuntimeError("Bearer token not found in browser logs.")
 
         except Exception as e:
@@ -231,5 +232,16 @@ class WebScrape:
 
             return lesson_id
         except Exception as e:
-            print("Error getting lesson id", e)
+            Logger().insert(f"Error getting lesson id {e}", "ERROR")
             return None
+
+    def check_complete_lesson(self):
+        try:
+            header = self.driver.find_element(By.CLASS_NAME, "header-body")
+            buttons = header.find_elements(By.TAG_NAME, "button")
+            if len(buttons) == 2:
+                complete_button = buttons[1]
+                complete_button.click()
+            Logger().insert("Lesson Successfully Marked as Complete!", "INFO")
+        except Exception as e:
+            Logger().insert(f"Error Checking Lesson Complete {e}", "ERROR")
