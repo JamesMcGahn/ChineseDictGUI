@@ -102,7 +102,20 @@ class PageLessons(QWidgetBase):
         grammar = False
         PathManager.path_exists(f"./test/{lesson}", True)
 
-        with open(f"./test/{lesson}/{lesson}.txt", "w", encoding="utf-8") as f:
+        with open(
+            f"./test/{lesson}/{lesson_level} - {lesson} - Dialogue.txt",
+            "w",
+            encoding="utf-8",
+        ) as f:
+            for sent in sents:
+                if sent.sent_type == "dialogue":
+                    f.write(f"{sent.chinese}\n")
+
+        with open(
+            f"./test/{lesson}/{lesson_level} - {lesson} - Sentences.txt",
+            "w",
+            encoding="utf-8",
+        ) as f:
             for sent in sents:
                 if sent.sent_type == "dialogue" and not dialogue:
                     f.write("对话:\n")
@@ -134,7 +147,9 @@ class PageLessons(QWidgetBase):
                 combine_audio_delay_between_audio=1500,
             )
 
-        print("*** finished all sents", [sent.id for sent in sents])
+        self.logging(
+            f"Finished getting all sentencess: Total {len(sents)}",
+        )
 
     @Slot(list)
     def download_audio(
@@ -161,19 +176,13 @@ class PageLessons(QWidgetBase):
         if update_db:
             audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
         audio_thread.start_combine_audio.connect(self.combine_audio)
-        audio_thread.finished.connect(lambda: self.remove_thread(audio_thread))
+        audio_thread.finished.connect(
+            lambda: self.remove_threads(audio_thread, "Audio")
+        )
         audio_thread.start_whisper.connect(self.whisper_audio)
         self.audio_threads.append(audio_thread)
         if len(self.audio_threads) == 1:
             audio_thread.start()
-
-    def remove_thread(self, thread):
-        if thread in self.audio_threads:
-            print(f"removing thread {thread} from audio thread queue")
-            self.audio_threads.remove(thread)
-            thread.deleteLater()
-        if self.audio_threads:
-            self.audio_threads[0].start()
 
     @Slot(str, str, str, int)
     def combine_audio(
@@ -186,9 +195,7 @@ class PageLessons(QWidgetBase):
 
         self.combine_audio_n_whisper_threads.append(combine_audio_thread)
         combine_audio_thread.finished.connect(
-            lambda: self.remove_comb_whisper_thread(
-                combine_audio_thread, "Combine Audio"
-            )
+            lambda: self.remove_threads(combine_audio_thread, "Combine Audio")
         )
         if len(self.combine_audio_n_whisper_threads) == 1:
             combine_audio_thread.start()
@@ -198,21 +205,31 @@ class PageLessons(QWidgetBase):
         self.appshutdown.connect(whisper_thread.stop)
         self.combine_audio_n_whisper_threads.append(whisper_thread)
         whisper_thread.finished.connect(
-            lambda: self.remove_comb_whisper_thread(whisper_thread, "Whisper")
+            lambda: self.remove_threads(whisper_thread, "Whisper")
         )
         if len(self.combine_audio_n_whisper_threads) == 1:
             whisper_thread.start()
 
-    def remove_comb_whisper_thread(self, thread, thread_type):
-        if thread in self.combine_audio_n_whisper_threads:
-            self.logging(f"removing {thread_type} thread {thread} from thread queue")
+    def remove_threads(self, thread, thread_type):
+        combine_whisper = thread in self.combine_audio_n_whisper_threads
+        audio_thread = thread in self.audio_threads
+
+        self.logging(f"Removing {thread_type} thread {thread} from thread queue")
+        if combine_whisper:
             self.combine_audio_n_whisper_threads.remove(thread)
+        elif audio_thread:
+            self.audio_threads.remove(thread)
+
             try:
                 thread.quit()
             except Exception:
                 self.logging(f"Failed to quit {thread_type} thread {thread}")
             thread.deleteLater()
-        self.maybe_start_next_combo()
+
+        if combine_whisper:
+            self.maybe_start_next_combo()
+        elif audio_thread and self.audio_threads:
+            self.audio_threads[0].start()
 
     def maybe_start_next_combo(self):
         if self.combine_audio_n_whisper_threads:
