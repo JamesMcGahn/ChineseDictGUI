@@ -1,4 +1,4 @@
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Signal, Slot
 
 from .audio_download_worker import AudioDownloadWorker
 
@@ -7,6 +7,7 @@ class AudioThread(QThread):
     updateAnkiAudio = Signal(object)
     start_combine_audio = Signal(str, str, str, int)
     start_whisper = Signal(str, str)
+    stop_worker = Signal()
 
     def __init__(
         self,
@@ -34,12 +35,11 @@ class AudioThread(QThread):
         self.worker.finished.connect(self.worker_finished)
         self.worker.updateAnkiAudio.connect(self.updateAnkiAudio)
         self.worker.start_whisper.connect(self.start_whisper)
+        self.stop_worker.connect(self.worker.stop)
         self.worker.do_work()
 
     def worker_finished(self):
         self.worker.deleteLater()
-        self.wait()
-        self.quit()
         if self.combine_audio:
             self.start_combine_audio.emit(
                 self.folder_path,
@@ -47,4 +47,8 @@ class AudioThread(QThread):
                 self.combine_audio_export_folder,
                 self.combine_audio_delay_between_audio,
             )
-        self.finished.emit()
+
+    @Slot()
+    def stop(self):
+        if self.isRunning():
+            self.stop_worker.emit()

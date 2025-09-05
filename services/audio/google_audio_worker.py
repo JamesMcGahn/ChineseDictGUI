@@ -2,15 +2,16 @@ from time import sleep
 
 import google
 from google.cloud import texttospeech
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import Signal
 
-from services import Logger
+from base import QObjectBase
 from utils.files import PathManager
 
 
-class GoogleAudioWorker(QObject):
+class GoogleAudioWorker(QObjectBase):
     success = Signal()
     error = Signal(str)
+    finished = Signal()
 
     def __init__(
         self,
@@ -27,8 +28,7 @@ class GoogleAudioWorker(QObject):
         self.access_key_location = access_key_location
 
     def do_work(self):
-        print("Starting Google Audio Worker...")
-        print(f"google woker in thread {self.thread()}")
+        self.logging(f"Starting Google Audio Worker in thread {self.thread()}")
         try:
             client = texttospeech.TextToSpeechClient.from_service_account_json(
                 self.access_key_location
@@ -57,19 +57,20 @@ class GoogleAudioWorker(QObject):
 
             with open(path, "wb") as out:
                 out.write(response.audio_content)
-            print("wrote file")
             self.success.emit()
 
         # TODO: Handle File writing errors
         except google.api_core.exceptions.ServiceUnavailable as e:
             if self.google_tried is False:
                 failure_msg_retry = "Failed to get Audio From Google...Trying Again..."
-                Logger().insert(failure_msg_retry, "WARN")
+                self.logging(failure_msg_retry, "WARN")
                 self.error.emit(failure_msg_retry)
                 sleep(15)
                 self.google_tried = True
                 self.do_work(text=self.text, filename=self.filename)
             else:
-                Logger().insert("Failed to get Audio From Google", "ERROR")
-                Logger().insert(e, "ERROR", False)
+                self.logging("Failed to get Audio From Google", "ERROR")
+                self.logging(e, "ERROR", False)
                 return False
+        finally:
+            self.finished.emit()

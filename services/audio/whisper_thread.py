@@ -6,7 +6,6 @@ from .whisper_worker import WhisperWorker
 
 
 class WhisperThread(QThread):
-    finished = Signal()
     stop_worker = Signal()
 
     def __init__(self, folder: str, file_name: str, model_name: str = "medium"):
@@ -22,15 +21,13 @@ class WhisperThread(QThread):
         self.stop_worker.connect(self.worker.stop)
         self.worker.finished.connect(self.worker_finished)
         self.worker.do_work()
-        print("IN whisper thread")
 
-    Slot()
-
+    @Slot()
     def stop(self):
-        self.stop_worker.emit()
+        if self.isRunning():
+            self.stop_worker.emit()
 
     def worker_finished(self):
         self.worker.deleteLater()
         self.wait()
         self.quit()
-        self.finished.emit()

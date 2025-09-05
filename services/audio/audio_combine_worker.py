@@ -2,7 +2,7 @@ import os
 import re
 
 from pydub import AudioSegment
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Slot
 
 from base import QObjectBase
 from services import Logger
@@ -25,6 +25,7 @@ class AudioCombineWorker(QObjectBase):
         self.output_file_folder = output_file_folder
 
         self.silence_ms = silence_ms
+        self._stopped = False
 
     def natural_sort_key(self, s: str):
         return [
@@ -49,6 +50,11 @@ class AudioCombineWorker(QObjectBase):
         spacer = AudioSegment.silent(duration=self.silence_ms)
 
         for i, filename in enumerate(files):
+            if self._stopped:
+                Logger().insert("Combine Audio process stopped", "WARN")
+                self.finished.emit()
+                return
+
             filepath = os.path.join(self.folder_path, filename)
             Logger().insert(f"Adding {filename} to combined audio file.")
             audio = AudioSegment.from_file(filepath)
@@ -57,10 +63,16 @@ class AudioCombineWorker(QObjectBase):
                 combined += spacer
 
         combined.export(
-            f"{self.output_file_folder}/{self.output_file_name}", format="mp3"
+            f"{self.output_file_folder}/{self.output_file_name}",
+            format="mp3",
+            bitrate="192k",
         )
         Logger().insert(
             f"Saved combined audio to {self.output_file_folder}/{self.output_file_name}",
             "INFO",
         )
         self.finished.emit(self.output_file_name)
+
+    @Slot()
+    def stop(self) -> None:
+        self._stopped = True

@@ -2,8 +2,9 @@ import urllib.request
 from random import randint
 from time import sleep
 
-from PySide6.QtCore import QObject, Signal, Slot
+from PySide6.QtCore import Signal, Slot
 
+from base import QObjectBase
 from models.dictionary import Dialogue, Sentence
 from services import Logger
 from utils.files import PathManager
@@ -11,7 +12,7 @@ from utils.files import PathManager
 from .google_audio_worker import GoogleAudioWorker
 
 
-class AudioDownloadWorker(QObject):
+class AudioDownloadWorker(QObjectBase):
     updateAnkiAudio = Signal(object)
     finished = Signal()
     progress = Signal(str)
@@ -21,12 +22,14 @@ class AudioDownloadWorker(QObject):
         super().__init__()
         self.folder_path = folder_path
         self.data = data
+        self._stopped = False
 
     def do_work(self):
         for i, x in enumerate(self.data):
-            print(x)
-            print(x.audio)
-            print(f"audio woker in thread {self.thread()}")
+            if self._stopped:
+                self.logging("Audio Download Process Stopped.", "WARN")
+                self.finished.emit()
+                return
 
             try:
                 if isinstance(x, Sentence):
@@ -46,14 +49,14 @@ class AudioDownloadWorker(QObject):
                     checkHttp = x.audio.replace("http://", "https://")
                     urllib.request.urlretrieve(checkHttp, path)
 
-                    Logger().insert(
+                    self.logging(
                         msg,
                         "INFO",
                     )
 
                     if isinstance(x, Dialogue) and x.audio_type == "lesson":
 
-                        Logger().insert(
+                        self.logging(
                             "Sending File to Whisper",
                             "INFO",
                         )
@@ -61,9 +64,9 @@ class AudioDownloadWorker(QObject):
 
                     self.updateAnkiAudio.emit(x)
                 else:
-                    print("no audio link")
+                    self.logging("There is not an audio link for the file", "WARN")
                     if isinstance(x, Dialogue):
-                        print(f"There is not an audio link for {x.audio_type}")
+                        self.logging(f"There is not an audio link for {x.audio_type}")
                         continue
                     self.gaudio = GoogleAudioWorker(
                         text=x.chinese,
@@ -101,13 +104,13 @@ class AudioDownloadWorker(QObject):
                     )
                 )
                 gaudio.error.connect(self.google_audio_error)
+                gaudio.finished.connect(gaudio.deleteLater)
                 gaudio.do_work()
             sleep(randint(5, 15))
         self.finished.emit()
 
     @Slot(object, str)
     def updateGoogleAnkiAudio(self, x, msg):
-        print("received audio from Google", x, msg)
         Logger().insert(
             msg,
             "INFO",
@@ -118,3 +121,7 @@ class AudioDownloadWorker(QObject):
     @Slot(str)
     def google_audio_error(self, msg):
         self.progress.emit(msg)
+
+    @Slot()
+    def stop(self) -> None:
+        self._stopped = True
