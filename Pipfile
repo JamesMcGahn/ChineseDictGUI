@@ -30,3 +30,6 @@ opencc-python-reimplemented = "*"
 
 [requires]
 python_version = "3.12"
+
+[scripts]
+start = "python main.py"
