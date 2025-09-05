@@ -59,6 +59,7 @@ class LessonScraperWorkerV2(QObject):
                     print(e)
 
             self.lesson_id = self.web_driver.find_lesson_id(c_lesson)
+            self.web_driver.check_complete_lesson()
             if not self.lesson_id:
                 return
 
