@@ -7,12 +7,6 @@ from base import QObjectBase
 from utils.files import PathManager
 
 
-def normalize_cjk_spacing(text: str) -> str:
-    # Remove stray spaces between CJK chars while keeping English spacing
-    pattern = r"(?<!\w)\s+(?=[\u4e00-\u9fff])|(?<=[\u4e00-\u9fff])\s+(?!\w)"
-    return re.sub(pattern, "", text)
-
-
 class WhisperWorker(QObjectBase):
     finished = Signal()
 
@@ -27,11 +21,13 @@ class WhisperWorker(QObjectBase):
         self.compute_type = "auto"
         self.beam_size = 5
         self.min_silence_ms = 300
-        self.chunk_length = 30
+        self.chunk_length = 45
         self.initial_prompt = (
-            "这是一段包含中文和英文的课程音频。"
-            "请使用**简体中文**书写汉字（不要使用繁体）。"
-            "Keep English as English. Use proper punctuation."
+            "这是一段包含中文和英文的课程音频。仅转写所听内容，不要翻译。"
+            "中文请按普通话（现代标准汉语）规范转写，使用简体中文；不要繁体、不要拼音，汉字之间不要加空格。"
+            "如有歧义，优先采用普通话用词与写法，不要使用方言或粤语字。"
+            "英文保持英文原文，并使用正常标点；中英文之间保留一个空格。"
+            "不要添加时间戳、说话人或额外说明。"
         )
 
     @Slot()
@@ -93,8 +89,9 @@ class WhisperWorker(QObjectBase):
                     self.finished.emit()
                     return
 
-                t = normalize_cjk_spacing(seg.text).strip()
+                t = self.normalize_cjk_spacing(seg.text).strip()
                 if t:
+                    t = self.to_simplified(t)
                     buf.append(t)
                 last_end = seg.end or last_end
                 if total > 0:
@@ -119,6 +116,19 @@ class WhisperWorker(QObjectBase):
 
         except Exception as e:
             self.logging(f"{type(e).__name__}: {e}", "ERROR")
+
+    def normalize_cjk_spacing(self, text: str) -> str:
+        # Remove stray spaces between CJK chars while keeping English spacing
+        pattern = r"(?<!\w)\s+(?=[\u4e00-\u9fff])|(?<=[\u4e00-\u9fff])\s+(?!\w)"
+        return re.sub(pattern, "", text)
+
+    def to_simplified(self, text: str) -> str:
+        try:
+            from opencc import OpenCC
+
+            return OpenCC("t2s").convert(text)  # Traditional → Simplified
+        except Exception:
+            return text
 
     @Slot()
     def stop(self) -> None:

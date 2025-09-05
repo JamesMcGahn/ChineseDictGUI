@@ -24,6 +24,7 @@ pyqt-toast-notification = "*"
 keyring = "*"
 pydub = "*"
 faster-whisper = "*"
+opencc-python-reimplemented = "*"
 
 [dev-packages]
 
