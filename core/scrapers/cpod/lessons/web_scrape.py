@@ -4,7 +4,12 @@ from time import sleep
 
 from PySide6.QtCore import QMutexLocker, QObject, Signal
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import (
+    InvalidSessionIdException,
+    NoSuchElementException,
+    TimeoutException,
+    WebDriverException,
+)
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -73,6 +78,16 @@ class WebScrape:
         except Exception as e:
             Logger().insert("Failed loading cookies", "ERROR")
             Logger().insert(e, "ERROR", False)
+
+    def is_driver_alive(self) -> bool:
+        try:
+            if not getattr(self.driver, "session_id", None):
+                return False
+            self.driver.execute_script("return 1")
+            _ = self.driver.title
+            return True
+        except (InvalidSessionIdException, WebDriverException):
+            return False
 
     def run_section(self, url, section):
         if section not in ("Dialogue", "Vocabulary", "Expansion", "Grammar"):
@@ -232,16 +247,5 @@ class WebScrape:
 
             return lesson_id
         except Exception as e:
-            Logger().insert(f"Error getting lesson id {e}", "ERROR")
+            Logger().insert(f"Error getting lesson ID: {e}", "ERROR")
             return None
-
-    def check_complete_lesson(self):
-        try:
-            header = self.driver.find_element(By.CLASS_NAME, "header-body")
-            buttons = header.find_elements(By.TAG_NAME, "button")
-            if len(buttons) == 2:
-                complete_button = buttons[1]
-                complete_button.click()
-            Logger().insert("Lesson Successfully Marked as Complete!", "INFO")
-        except Exception as e:
-            Logger().insert(f"Error Checking Lesson Complete {e}", "ERROR")
