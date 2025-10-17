@@ -18,11 +18,12 @@ class AudioDownloadWorker(QObjectBase):
     progress = Signal(str)
     start_whisper = Signal(str, str)
 
-    def __init__(self, data, folder_path=None):
+    def __init__(self, data, folder_path=None, project_name=None):
         super().__init__()
         self.folder_path = folder_path
         self.data = data
         self._stopped = False
+        self.project_name = project_name
 
     def do_work(self):
         for i, x in enumerate(self.data):
@@ -43,7 +44,7 @@ class AudioDownloadWorker(QObjectBase):
 
                 path = PathManager.check_dup(self.folder_path, self.filename, ".mp3")
                 self.filename = PathManager.regex_path(path)["filename"]
-                msg = f'({i+1}/{len(self.data)}) Audio content written to file "{self.filename}.mp3"'
+                msg = f'(Lesson: {self.project_name} - {i+1}/{len(self.data)}) Audio content written to file "{self.filename}.mp3"'
 
                 if x.audio:
                     checkHttp = x.audio.replace("http://", "https://")
@@ -72,6 +73,7 @@ class AudioDownloadWorker(QObjectBase):
                         text=x.chinese,
                         filename=self.filename,
                         folder_path=self.folder_path,
+                        project_name=self.project_name,
                     )
 
                     self.gaudio.moveToThread(self.thread())
@@ -106,7 +108,9 @@ class AudioDownloadWorker(QObjectBase):
                 gaudio.error.connect(self.google_audio_error)
                 gaudio.finished.connect(gaudio.deleteLater)
                 gaudio.do_work()
-            sleep(randint(5, 15))
+            wait_time = randint(5, 20)
+            self.logging(f"Waiting {wait_time} seconds before next audio download")
+            sleep(wait_time)
         self.finished.emit()
 
     @Slot(object, str)

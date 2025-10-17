@@ -17,7 +17,7 @@ class AudioCombineWorker(QObjectBase):
         folder_path: str,
         output_file_name: str,
         output_file_folder: str,
-        silence_ms: int = 500,
+        silence_ms: int = 1000,
     ):
         super().__init__()
         self.folder_path = folder_path

@@ -145,6 +145,7 @@ class PageLessons(QWidgetBase):
                 combine_audio_export_folder=f"./test/{lesson}",
                 combine_audio_export_filename=f"{lesson_level} - {lesson} - Sentences.mp3",
                 combine_audio_delay_between_audio=1500,
+                project_name=lesson,
             )
 
         self.logging(
@@ -161,6 +162,7 @@ class PageLessons(QWidgetBase):
         combine_audio_export_folder="",
         combine_audio_export_filename="",
         combine_audio_delay_between_audio=1500,
+        project_name=None,
     ):
         # TODO get audio folder path from settings
         if folder is None:
@@ -184,13 +186,22 @@ class PageLessons(QWidgetBase):
         if len(self.audio_threads) == 1:
             audio_thread.start()
 
-    @Slot(str, str, str, int)
+    @Slot(str, str, str, int, str)
     def combine_audio(
-        self, folder_path, output_file_name, output_file_folder, delay_between_audio
+        self,
+        folder_path,
+        output_file_name,
+        output_file_folder,
+        delay_between_audio,
+        project_name,
     ):
 
         combine_audio_thread = CombineAudioThread(
-            folder_path, output_file_name, output_file_folder, delay_between_audio
+            folder_path,
+            output_file_name,
+            output_file_folder,
+            delay_between_audio,
+            project_name,
         )
 
         self.combine_audio_n_whisper_threads.append(combine_audio_thread)
@@ -288,6 +299,7 @@ class PageLessons(QWidgetBase):
 
     @Slot(dict)
     def get_dialog_submitted(self, form_data, check_for_dups):
+        self.logging(f"Lessons urls: {", ".join(form_data)}", "INFO")
         self.lesson_scrape_thread = LessonScraperThread(form_data)
         # TODO add list to the screen
         self.check_for_dups = check_for_dups
@@ -306,9 +318,6 @@ class PageLessons(QWidgetBase):
         )
 
     def receive_dialogues(self, lesson, dialogue):
-        print("eeee", lesson, dialogue)
-        print("eeee", vars(lesson), vars(dialogue))
-
         self.download_audio([lesson, dialogue], f"./test/{lesson.lesson}")
 
     @Slot()
