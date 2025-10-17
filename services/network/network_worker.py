@@ -41,7 +41,11 @@ class NetworkWorker(QObject):
         try:
             if self.operation == "POST":
                 response = self.session_mangager.post(
-                    self.url, data=self.data, timeout=self.timeout, headers=self.headers
+                    self.url,
+                    data=self.data,
+                    json=self.json,
+                    timeout=self.timeout,
+                    headers=self.headers,
                 )
 
             elif self.operation == "SESSION":
