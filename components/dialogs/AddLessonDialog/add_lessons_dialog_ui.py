@@ -17,6 +17,7 @@ class AddLessonsDialogView(QDialog):
         self.init_ui()
 
     def init_ui(self):
+        self.resize(900, 500)
         self.dialog_vlayout = QVBoxLayout()
         self.dialog_vlayout.setSpacing(6)
         self.dialog_vlayout.setContentsMargins(11, 11, 11, 11)

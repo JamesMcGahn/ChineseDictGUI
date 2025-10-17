@@ -27,7 +27,7 @@ class PageLessonsView(QWidget):
         font1.setPointSize(25)
         self.label_6.setFont(font1)
 
-        self.addwords_btn = QPushButton("Add words")
+        self.addwords_btn = QPushButton("Add Lessons")
 
         self.words_page_vlayout = QVBoxLayout(self)
         self.words_page_vlayout.addWidget(self.addwords_btn)
