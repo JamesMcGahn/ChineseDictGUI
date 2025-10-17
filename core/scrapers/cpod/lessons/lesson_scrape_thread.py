@@ -24,7 +24,7 @@ class LessonScraperThread(QThread):
 
     @Slot()
     def run(self):
-        print("starting thread")
+        print("Starting Lesson Scraper Thread")
 
         sess = SessionManager()
         print("set up session")
