@@ -99,7 +99,9 @@ class WhisperWorker(QObjectBase):
                     percent = int(frac * 100)
 
                     if percent > last_logged_pct:
-                        self.logging(f"{percent}% Percent done")
+                        self.logging(
+                            f"{percent}% Percent done - Transcribing {self.filename}"
+                        )
                         last_logged_pct = percent
             self.logging(f"Finishing Generating Transcription {self.filename}")
             text = "\n".join(buf) + "\n"
@@ -110,7 +112,7 @@ class WhisperWorker(QObjectBase):
 
             out_path = audio.with_suffix(".txt")
             out_path.write_text(text, encoding="utf-8")
-            self.logging("100% Percent Done")
+            self.logging(f"100% Percent Done - Transcribing {self.filename}")
             self.logging(f"Wrote: {out_path.name}")
             self.finished.emit()
 
