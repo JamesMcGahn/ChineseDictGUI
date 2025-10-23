@@ -14,12 +14,14 @@ class CombineAudioThread(QThread):
         output_file_name: str,
         output_file_folder: str,
         silence_ms: int = 500,
+        project_name: str = None,
     ):
         super().__init__()
         self.folder_path = folder_path
         self.output_file_name = output_file_name
         self.output_file_folder = output_file_folder
         self.silence_ms = silence_ms
+        self.project_name = project_name
 
     def run(self):
         self.worker = AudioCombineWorker(
@@ -27,6 +29,7 @@ class CombineAudioThread(QThread):
             self.output_file_name,
             self.output_file_folder,
             self.silence_ms,
+            self.project_name,
         )
 
         self.worker.moveToThread(self)

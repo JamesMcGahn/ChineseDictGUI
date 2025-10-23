@@ -5,7 +5,7 @@ from .audio_download_worker import AudioDownloadWorker
 
 class AudioThread(QThread):
     updateAnkiAudio = Signal(object)
-    start_combine_audio = Signal(str, str, str, int)
+    start_combine_audio = Signal(str, str, str, int, str)
     start_whisper = Signal(str, str)
     stop_worker = Signal()
 

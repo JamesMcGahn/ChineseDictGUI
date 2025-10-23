@@ -18,12 +18,13 @@ class AudioCombineWorker(QObjectBase):
         output_file_name: str,
         output_file_folder: str,
         silence_ms: int = 1000,
+        project_name: str = None,
     ):
         super().__init__()
         self.folder_path = folder_path
         self.output_file_name = output_file_name
         self.output_file_folder = output_file_folder
-
+        self.project_name = project_name
         self.silence_ms = silence_ms
         self._stopped = False
 
@@ -42,7 +43,9 @@ class AudioCombineWorker(QObjectBase):
         files.sort(key=self.natural_sort_key)
 
         if not files:
-            Logger().insert("No audio files found.", "WARN")
+            Logger().insert(
+                f"(Lesson: {self.project_name}) No audio files found.", "WARN"
+            )
             self.finished.emit("")
             return
 
@@ -51,12 +54,17 @@ class AudioCombineWorker(QObjectBase):
 
         for i, filename in enumerate(files):
             if self._stopped:
-                Logger().insert("Combine Audio process stopped", "WARN")
+                Logger().insert(
+                    f"(Lesson: {self.project_name}) Combine Audio process stopped",
+                    "WARN",
+                )
                 self.finished.emit()
                 return
 
             filepath = os.path.join(self.folder_path, filename)
-            Logger().insert(f"Adding {filename} to combined audio file.")
+            Logger().insert(
+                f"(Lesson: {self.project_name}) Adding {filename} to combined audio file."
+            )
             audio = AudioSegment.from_file(filepath)
             combined += audio
             if i < len(files) - 1:
@@ -68,7 +76,7 @@ class AudioCombineWorker(QObjectBase):
             bitrate="192k",
         )
         Logger().insert(
-            f"Saved combined audio to {self.output_file_folder}/{self.output_file_name}",
+            f"(Lesson: {self.project_name}) Saved combined audio to {self.output_file_folder}/{self.output_file_name}",
             "INFO",
         )
         self.finished.emit(self.output_file_name)
