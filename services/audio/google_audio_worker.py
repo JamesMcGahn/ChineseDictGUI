@@ -9,8 +9,8 @@ from utils.files import PathManager
 
 
 class GoogleAudioWorker(QObjectBase):
-    success = Signal()
-    error = Signal(str)
+    success = Signal(object)
+    error = Signal()
     finished = Signal()
 
     def __init__(
@@ -19,6 +19,9 @@ class GoogleAudioWorker(QObjectBase):
         filename,
         folder_path="./",
         access_key_location="./key.json",
+        success_message="Google Audio Successfully Downloaded.",
+        audio_object=None,
+        project_name="",
     ):
         super().__init__()
         self.text = text
@@ -26,6 +29,9 @@ class GoogleAudioWorker(QObjectBase):
         self.filename = filename
         self.folder_path = folder_path
         self.access_key_location = access_key_location
+        self.audio_object = audio_object
+        self.success_message = success_message
+        self.project_name = project_name
 
     def do_work(self):
         self.logging(f"Starting Google Audio Worker in thread {self.thread()}")
@@ -57,19 +63,23 @@ class GoogleAudioWorker(QObjectBase):
 
             with open(path, "wb") as out:
                 out.write(response.audio_content)
-            self.success.emit()
+            self.logging(self.success_message)
+            self.success.emit(self.audio_object)
 
         # TODO: Handle File writing errors
         except google.api_core.exceptions.ServiceUnavailable as e:
             if self.google_tried is False:
-                failure_msg_retry = "Failed to get Audio From Google...Trying Again..."
+                failure_msg_retry = f"({self.project_name} - {self.filename})Failed to get Audio From Google...Trying Again..."
                 self.logging(failure_msg_retry, "WARN")
-                self.error.emit(failure_msg_retry)
+                self.error.emit()
                 sleep(15)
                 self.google_tried = True
                 self.do_work(text=self.text, filename=self.filename)
             else:
-                self.logging("Failed to get Audio From Google", "ERROR")
+                self.logging(
+                    f"({self.project_name} - {self.filename})Failed to get Audio From Google",
+                    "ERROR",
+                )
                 self.logging(e, "ERROR", False)
                 return False
         finally:
