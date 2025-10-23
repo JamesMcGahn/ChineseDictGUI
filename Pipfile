@@ -25,6 +25,7 @@ keyring = "*"
 pydub = "*"
 faster-whisper = "*"
 opencc-python-reimplemented = "*"
+pyjwt = "*"
 
 [dev-packages]
 
