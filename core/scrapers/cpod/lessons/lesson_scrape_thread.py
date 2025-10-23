@@ -33,6 +33,9 @@ class LessonScraperThread(QThread):
         print("finished setting up webscrape")
         self.wb.init_driver()
         print("initting driver")
+
+        self.lesson_list = [x for x in self.lesson_list if x]
+
         self.worker = LessonScraperWorkerV2(
             self.wb, self.lesson_list, self._mutex, self._wait_condition, self
         )

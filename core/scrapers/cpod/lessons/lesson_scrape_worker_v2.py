@@ -68,12 +68,11 @@ class LessonScraperWorkerV2(QObject):
                     print(e)
                 except Exception as e:
                     print(e)
-
-            self.lesson_id = self.web_driver.find_lesson_id(c_lesson)
-
-            if not self.lesson_id:
-                print("Cannot find Lesson ID. Please that URL is correct.")
+            if not c_lesson:
                 self.lesson_completed()
+
+            # TODO : potentially not needed - duplicate check?
+            self.lesson_id = self.web_driver.find_lesson_id(c_lesson)
 
             print("Lesson Id is ", self.lesson_id)
 
@@ -167,6 +166,10 @@ class LessonScraperWorkerV2(QObject):
 
     def lesson_info_received(self, status, payload):
         print("Recieved Response for Lesson Info")
+        if status == "error":
+            print("Did not receive the Lesson Information. Skipping Lesson")
+            self.lesson_completed()
+            return
         lesson_info = payload.json()
 
         if "hash_code" in lesson_info and "id" in lesson_info:
@@ -218,6 +221,8 @@ class LessonScraperWorkerV2(QObject):
         print("Received Response for Dialog")
         if status == "error":
             print(f"Error recieving Dialog - {status_code} ")
+            self.get_lesson_vocab()
+            return
         dialogue_payload = payload.json()
         dialogue = []
         self.wait_time(self.wait_time_between_reqs)
@@ -261,7 +266,8 @@ class LessonScraperWorkerV2(QObject):
     def vocab_received(self, status, payload, status_code=None):
         if status == "error":
             print(f"Error recieving Vocab - {status_code} ")
-
+            self.get_expansion()
+            return
         print("Received Vocab Response for Lesson")
         vocab = payload.json()
         words = []
@@ -303,6 +309,9 @@ class LessonScraperWorkerV2(QObject):
         print("Received Expansion Response")
         if status == "error":
             print(f"Error recieving Expansion - {status_code} ")
+            self.get_grammar()
+            return
+
         expansion_payload = payload.json()
         expansion = []
         self.wait_time(self.wait_time_between_reqs)
@@ -349,6 +358,8 @@ class LessonScraperWorkerV2(QObject):
         print("Received Grammar Response for Lesson")
         if status == "error":
             print(f"Error recieving Grammar - {status_code} ")
+            self.lesson_completed()
+            return
         grammar_payload = payload.json()
         grammar = []
         self.wait_time(self.wait_time_between_reqs)
