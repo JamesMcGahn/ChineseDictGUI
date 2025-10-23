@@ -1,17 +1,14 @@
 import threading
-import time
 
-import jwt
 from PySide6.QtCore import QSize, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QCloseEvent, QFont, QFontDatabase, QIcon
 from PySide6.QtWidgets import QLabel, QMainWindow, QMenu, QMessageBox, QSystemTrayIcon
 
 import resources_rc as resources_rc
-from core.scrapers.cpod import GetTokenThread
 from db import DatabaseManager
 from keys import keys
 from services.logger import Logger
-from services.network import NetworkThread, SessionManager
+from services.network import NetworkThread, SessionManager, TokenManager
 from services.settings import AppSettings
 
 from ..central_widget import CentralWidget
@@ -48,7 +45,7 @@ class MainWindow(QMainWindow):
         self.settings = AppSettings()
         self.appshutdown.connect(self.logger.close)
         self.appshutdown.connect(self.centralwidget.notified_app_shutting)
-        self.check_token()
+        self.token_manager = TokenManager()
 
     def setup_database(self):
         db = DatabaseManager("chineseDict.db")
@@ -56,63 +53,6 @@ class MainWindow(QMainWindow):
         db.create_tables_if_not_exist()
         db.create_anki_integration_record()
         db.disconnect()
-
-    def check_token(self):
-        token = self.settings.get_value("cpod_token")
-        print("TOKEN FROM SETTINGS", token)
-        if token:
-            try:
-                token = (
-                    token.split("Bearer ")[1] if token.startswith("Bearer ") else token
-                )
-                decoded = jwt.decode(token, options={"verify_signature": False})
-                expire_timestamp = decoded.get("exp")
-                now_timestamp = int(time.time())
-                time_left = expire_timestamp - now_timestamp
-                if time_left <= 3600:
-                    self.settings.set_value("cpod_token", None)
-                    self.logger.insert(
-                        "Cpod token going to expire. Trying to get a new token"
-                    )
-                    self.get_token()
-                else:
-                    minutes_left = time_left // 60
-                    hours_left = minutes_left // 60
-                    self.logger.insert(f"Token still valid for {hours_left} hours.")
-                    fetch_new_token = max((minutes_left - 60) * 60000, 0)
-                    QTimer.singleShot(fetch_new_token, self.get_token)
-            except Exception as e:
-                print(e)
-                self.settings.set_value("cpod_token", None)
-                self.logger.insert(
-                    "Error decoding Token. Trying to get a new token.", "ERROR"
-                )
-                self.get_token()
-        else:
-            self.get_token()
-
-    def get_token(self):
-        self.token_thread = GetTokenThread()
-        self.token_thread.send_token.connect(self.receive_token)
-        self.token_thread.finished.connect(self.token_thread.quit)
-        self.token_thread.finished.connect(self.token_thread.deleteLater)
-        self.token_thread.start()
-
-    @Slot(str, bool)
-    def receive_token(self, token, wasRecieved):
-        if wasRecieved:
-            print(token)
-            self.logger.insert(
-                "Cpod Token was Recieved.",
-            )
-            if token.startswith("Bearer "):
-                token = (
-                    token.split("Bearer ")[1] if token.startswith("Bearer ") else token
-                )
-
-            self.settings.set_value("cpod_token", token)
-        else:
-            self.logger.insert("Failed to Receive Cpod Token.", "ERROR")
 
     # def setup_session(self):
     #     if self.session_manager.load_session():

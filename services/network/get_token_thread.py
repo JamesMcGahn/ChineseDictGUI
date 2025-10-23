@@ -1,9 +1,8 @@
 from PySide6.QtCore import QThread, Signal, Slot
 
+from core.scrapers.cpod.lessons.web_scrape import WebScrape
 from keys import keys
 from services.network import SessionManager
-
-from .lessons.web_scrape import WebScrape
 
 
 class GetTokenThread(QThread):
