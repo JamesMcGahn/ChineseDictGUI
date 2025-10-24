@@ -16,6 +16,7 @@ from ..central_widget import CentralWidget
 
 class MainWindow(QMainWindow):
     appshutdown = Signal()
+    check_token = Signal()
 
     def __init__(self, app):
         super().__init__()
@@ -46,6 +47,8 @@ class MainWindow(QMainWindow):
         self.appshutdown.connect(self.logger.close)
         self.appshutdown.connect(self.centralwidget.notified_app_shutting)
         self.token_manager = TokenManager()
+        self.check_token.connect(self.token_manager.check_token)
+        self.check_token.emit()
 
     def setup_database(self):
         db = DatabaseManager("chineseDict.db")
