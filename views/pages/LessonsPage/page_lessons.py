@@ -16,6 +16,7 @@ from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Sentence, Word
 from models.table import SentenceTableModel, WordTableModel
 from services.audio import AudioThread, CombineAudioThread, WhisperThread
+from services.network import TokenManager
 from utils.files import PathManager
 
 from .page_lessons_ui import PageLessonsView
@@ -60,6 +61,8 @@ class PageLessons(QWidgetBase):
         self.appshutdown.connect(lambda: print("app shutdown lesson"))
         self.dbw = DatabaseManager("chineseDict.db")
         self.dbs = DatabaseManager("chineseDict.db")
+
+        self.token_manager = TokenManager()
 
     def select_all_words(self):
         self.ui.table_view_w.selectAll()
@@ -179,9 +182,7 @@ class PageLessons(QWidgetBase):
         if update_db:
             audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
         audio_thread.start_combine_audio.connect(self.combine_audio)
-        audio_thread.finished.connect(
-            lambda: self.remove_threads(audio_thread, "Audio")
-        )
+        audio_thread.done.connect(lambda: self.remove_threads(audio_thread, "Audio"))
         audio_thread.start_whisper.connect(self.whisper_audio)
         self.audio_threads.append(audio_thread)
         if len(self.audio_threads) == 1:
@@ -232,11 +233,12 @@ class PageLessons(QWidgetBase):
         elif audio_thread:
             self.audio_threads.remove(thread)
 
-            try:
-                thread.quit()
-            except Exception:
-                self.logging(f"Failed to quit {thread_type} thread {thread}")
-            thread.deleteLater()
+        try:
+            thread.quit()
+            thread.wait()
+        except Exception:
+            self.logging(f"Failed to quit {thread_type} thread {thread}")
+        thread.deleteLater()
 
         if combine_whisper:
             self.maybe_start_next_combo()
@@ -312,11 +314,16 @@ class PageLessons(QWidgetBase):
         self.lesson_scrape_thread.send_sents_sig.connect(
             self.get_sentences_from_thread_loop
         )
+
+        self.lesson_scrape_thread.request_token.connect(
+            self.token_manager.request_token
+        )
+        self.token_manager.send_token.connect(self.lesson_scrape_thread.receive_token)
+
         self.lesson_scrape_thread.send_dialogue.connect(self.receive_dialogues)
         self.lesson_scrape_thread.lesson_done.connect(self.save_lesson)
-        self.lesson_scrape_thread.finished.connect(self.lesson_scrape_thread.quit)
-        self.lesson_scrape_thread.finished.connect(
-            self.lesson_scrape_thread.deleteLater
+        self.lesson_scrape_thread.done.connect(
+            lambda: self.remove_threads(self.lesson_scrape_thread, "Lesson")
         )
 
     def receive_dialogues(self, lesson, dialogue):
