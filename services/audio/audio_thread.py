@@ -1,4 +1,4 @@
-from PySide6.QtCore import QThread, Signal, Slot
+from PySide6.QtCore import QThread, QTimer, Signal, Slot
 
 from .audio_download_worker import AudioDownloadWorker
 
@@ -40,7 +40,8 @@ class AudioThread(QThread):
         self.worker.updateAnkiAudio.connect(self.updateAnkiAudio)
         self.worker.start_whisper.connect(self.start_whisper)
         self.stop_worker.connect(self.worker.stop)
-        self.worker.do_work()
+        QTimer.singleShot(0, self.worker.do_work)
+        self.exec()
 
     def worker_finished(self):
         self.worker.deleteLater()

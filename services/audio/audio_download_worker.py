@@ -1,9 +1,8 @@
 import urllib.request
 from collections import deque
 from random import randint
-from time import sleep
 
-from PySide6.QtCore import Signal, Slot
+from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QObjectBase
 from models.dictionary import Dialogue, Sentence
@@ -29,7 +28,7 @@ class AudioDownloadWorker(QObjectBase):
         self.data_length = len(self.data)
 
     def do_work(self):
-        self.download_next_audio()
+        QTimer.singleShot(0, self.download_next_audio)
 
     def schedule_next_download(self):
         if not self.data:
@@ -41,8 +40,8 @@ class AudioDownloadWorker(QObjectBase):
             self.count += 1
             wait_time = randint(5, 20)
             self.logging(f"Waiting {wait_time} seconds before next audio download")
-            sleep(wait_time)
-            self.download_next_audio()
+
+            QTimer.singleShot(wait_time * 1000, self.download_next_audio)
 
     def check_done(self):
         if not self.data and not self.queue_downloading:
