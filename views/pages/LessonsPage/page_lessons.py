@@ -174,6 +174,7 @@ class PageLessons(QWidgetBase):
             combine_audio_export_folder=combine_audio_export_folder,
             combine_audio_export_filename=combine_audio_export_filename,
             combine_audio_delay_between_audio=combine_audio_delay_between_audio,
+            project_name=project_name,
         )
         if update_db:
             audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
@@ -299,8 +300,9 @@ class PageLessons(QWidgetBase):
 
     @Slot(dict)
     def get_dialog_submitted(self, form_data, check_for_dups):
-        self.logging(f"Lessons urls: {", ".join(form_data)}", "INFO")
-        self.lesson_scrape_thread = LessonScraperThread(form_data)
+        lesson_urls = [x.strip() for x in form_data if x]
+        self.logging(f"Lessons urls: {", ".join(lesson_urls)}", "INFO")
+        self.lesson_scrape_thread = LessonScraperThread(lesson_urls)
         # TODO add list to the screen
         self.check_for_dups = check_for_dups
         self.lesson_scrape_thread.start()
@@ -318,7 +320,9 @@ class PageLessons(QWidgetBase):
         )
 
     def receive_dialogues(self, lesson, dialogue):
-        self.download_audio([lesson, dialogue], f"./test/{lesson.lesson}")
+        self.download_audio(
+            [lesson, dialogue], f"./test/{lesson.lesson}", project_name=lesson.lesson
+        )
 
     @Slot()
     def add_word_dialog_closed(self):
