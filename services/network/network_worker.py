@@ -48,6 +48,11 @@ class NetworkWorker(QObject):
                     headers=self.headers,
                 )
 
+                if response.status_code in (200, 201, 202, 203):
+                    self.response_sig.emit("success", response)
+                else:
+                    self.error_sig.emit("error", response, str(response.status_code))
+
             elif self.operation == "SESSION":
                 response = self.session_mangager.post(
                     self.url, data=self.data, json=self.json, timeout=self.timeout
@@ -69,9 +74,7 @@ class NetworkWorker(QObject):
                             continue
                         else:
                             print("status check - error", response)
-                            self.error_sig.emit(
-                                "error", response, str(response.status_code)
-                            )
+                            self.error_sig.emit("error", response, response.status_code)
 
         except requests.exceptions.ConnectionError as e:
             # TODO - handle error
