@@ -4,13 +4,14 @@ from collections import deque
 from random import randint
 from urllib.parse import urlparse
 
-from PySide6.QtCore import QMutexLocker, QObject, QThread, Signal
+from PySide6.QtCore import QMutexLocker, QObject, QThread, QTimer, Signal
 
 from keys import keys
 from models.dictionary import Dialogue, Sentence, Word
 from services.network import NetworkWorker, SessionManager
 
 
+# TODO use QTimer instead of sleep
 class LessonScraperWorkerV2(QObject):
     finished = Signal()
     send_sents_sig = Signal(object)
@@ -35,9 +36,9 @@ class LessonScraperWorkerV2(QObject):
     def do_work(self):
         self.get_next_lesson()
 
-    def wait_time(self, num):
+    def wait_time(self, num, fn):
         print(f"Waiting {num} secs before sending out next request.")
-        time.sleep(num)
+        QTimer.singleShot(num * 1000, fn)
 
     def get_next_lesson(self):
         print(f"Total Lessons to Scrape: {len(self.lesson_list)} Lessons")
@@ -83,8 +84,10 @@ class LessonScraperWorkerV2(QObject):
                 print("Cannot find Lesson Slug. Please that URL is correct.")
                 self.lesson_completed()
             self.check_lesson_complete()
-            self.wait_time(self.wait_time_between_reqs)
-            self.get_lesson_info(slug)
+            self.wait_time(
+                self.wait_time_between_reqs, lambda: self.get_lesson_info(slug)
+            )
+
         else:
             print("Finished getting all lessons.")
             self.finished.emit()
@@ -195,8 +198,8 @@ class LessonScraperWorkerV2(QObject):
             )
 
             self.send_dialogue.emit(lesson_audio, dialogue_audio)
-            self.wait_time(self.wait_time_between_reqs)
-            self.get_dialogue()
+            self.wait_time(self.wait_time_between_reqs, self.get_dialogue)
+
         else:
             print("Error getting information for the lesson")
             self.lesson_completed()
@@ -221,11 +224,11 @@ class LessonScraperWorkerV2(QObject):
         print("Received Response for Dialog")
         if status == "error":
             print(f"Error recieving Dialog - {status_code} ")
-            self.get_lesson_vocab()
+            self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
             return
         dialogue_payload = payload.json()
         dialogue = []
-        self.wait_time(self.wait_time_between_reqs)
+
         if "dialogue" in dialogue_payload:
             for sentence in dialogue_payload["dialogue"]:
                 audio_path = sentence["audio"]
@@ -244,8 +247,7 @@ class LessonScraperWorkerV2(QObject):
         else:
             print(f"Lesson - {self.lesson_title} doesnt have a Dialogue Section")
         self.send_sents_sig.emit(dialogue)
-
-        self.get_lesson_vocab()
+        self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
 
     def get_lesson_vocab(self):
         print("Getting Vocabulary for Lesson")
@@ -266,12 +268,12 @@ class LessonScraperWorkerV2(QObject):
     def vocab_received(self, status, payload, status_code=None):
         if status == "error":
             print(f"Error recieving Vocab - {status_code} ")
-            self.get_expansion()
+            self.wait_time(self.wait_time_between_reqs, self.get_expansion)
             return
         print("Received Vocab Response for Lesson")
         vocab = payload.json()
         words = []
-        self.wait_time(self.wait_time_between_reqs)
+
         if isinstance(vocab, list) and vocab:
             for word in vocab:
                 audio_path = word["audio"]
@@ -287,7 +289,7 @@ class LessonScraperWorkerV2(QObject):
         else:
             print(f"Lesson - {self.lesson_title} doesnt have Vocabulary Words")
         self.send_words_sig.emit(words)
-        self.get_expansion()
+        self.wait_time(self.wait_time_between_reqs, self.get_expansion)
 
     def get_expansion(self):
         print("Getting Expansion for Lesson")
@@ -309,12 +311,12 @@ class LessonScraperWorkerV2(QObject):
         print("Received Expansion Response")
         if status == "error":
             print(f"Error recieving Expansion - {status_code} ")
-            self.get_grammar()
+            self.wait_time(self.wait_time_between_reqs, self.get_grammar)
             return
 
         expansion_payload = payload.json()
         expansion = []
-        self.wait_time(self.wait_time_between_reqs)
+
         if expansion_payload and not status == "error":
             for section in expansion_payload:
                 for sentence in section["examples"]:
@@ -336,7 +338,7 @@ class LessonScraperWorkerV2(QObject):
         else:
             print(f"Lesson - {self.lesson_title} doesnt have a Expansion Section")
         self.send_sents_sig.emit(expansion)
-        self.get_grammar()
+        self.wait_time(self.wait_time_between_reqs, self.get_grammar)
 
     def get_grammar(self):
         print("Getting Grammar for Lesson")
@@ -362,7 +364,7 @@ class LessonScraperWorkerV2(QObject):
             return
         grammar_payload = payload.json()
         grammar = []
-        self.wait_time(self.wait_time_between_reqs)
+
         if grammar_payload and not status == "error":
             for section in grammar_payload:
                 for sentence in section["examples"]:
@@ -390,6 +392,5 @@ class LessonScraperWorkerV2(QObject):
         print(f"Completed Lesson - {self.lesson_title}")
         wait_time = randint(10, 90)
         print(f"Waing {wait_time} seconds before scraping next lesson.")
-        time.sleep(wait_time)
+        QTimer.singleShot(wait_time * 1000, self.get_next_lesson)
         print("Trying to get next lesson")
-        self.get_next_lesson()

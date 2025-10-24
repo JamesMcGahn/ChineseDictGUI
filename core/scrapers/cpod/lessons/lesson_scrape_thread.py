@@ -25,10 +25,11 @@ class LessonScraperThread(QThread):
     @Slot()
     def run(self):
         print("Starting Lesson Scraper Thread")
-
+        # TODO need to re-write using session manager, right now its cross thread
         sess = SessionManager()
         print("set up session")
         # TODO remove keys.py file
+        # TODO - rewrite webscrape to use signals - check how other scrapers use webscrape
         self.wb = WebScrape(sess, keys["url"])
         print("finished setting up webscrape")
         self.wb.init_driver()
@@ -48,6 +49,7 @@ class LessonScraperThread(QThread):
         self.worker.send_dialogue.connect(self.send_dialogue)
         self.worker.lesson_done.connect(self.lesson_done)
         self.worker.do_work()
+        self.exec()
 
     def worker_finished(self):
         self.wb.close()
