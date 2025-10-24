@@ -8,6 +8,7 @@ class AudioThread(QThread):
     start_combine_audio = Signal(str, str, str, int, str)
     start_whisper = Signal(str, str)
     stop_worker = Signal()
+    done = Signal()
 
     def __init__(
         self,
@@ -30,6 +31,7 @@ class AudioThread(QThread):
         self.project_name = project_name
 
     def run(self):
+        print("Starting Audio Thread")
         self.worker = AudioDownloadWorker(
             self.data, self.folder_path, project_name=self.project_name
         )
@@ -53,6 +55,7 @@ class AudioThread(QThread):
                 self.combine_audio_delay_between_audio,
                 self.project_name,
             )
+        self.done.emit()
 
     @Slot()
     def stop(self):
