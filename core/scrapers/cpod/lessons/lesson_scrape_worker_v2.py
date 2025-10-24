@@ -1,27 +1,25 @@
 import re
-import time
 from collections import deque
 from random import randint
 from urllib.parse import urlparse
 
-from PySide6.QtCore import QMutexLocker, QObject, QThread, QTimer, Signal
+from PySide6.QtCore import QMutexLocker, QObject, QThread, QTimer, Signal, Slot
 
 from keys import keys
 from models.dictionary import Dialogue, Sentence, Word
 from services.network import NetworkWorker, SessionManager
 
 
-# TODO use QTimer instead of sleep
 class LessonScraperWorkerV2(QObject):
     finished = Signal()
     send_sents_sig = Signal(object)
     send_words_sig = Signal(list)
     send_dialogue = Signal(object, object)
     lesson_done = Signal(str, str)
+    request_token = Signal()
 
-    def __init__(self, web_driver, lesson_list, mutex, wait_condition, parent_thread):
+    def __init__(self, lesson_list, mutex, wait_condition, parent_thread):
         super().__init__()
-        self.web_driver = web_driver
         self.lesson_list = deque(lesson_list)
         self._mutex = mutex
         self._wait_condition = wait_condition
@@ -33,7 +31,16 @@ class LessonScraperWorkerV2(QObject):
         self.token = None
         self.wait_time_between_reqs = randint(5, 15)
 
+    @Slot()
     def do_work(self):
+        if self.token:
+            self.get_next_lesson()
+        else:
+            self.request_token.emit()
+
+    @Slot()
+    def receive_token(self, token):
+        self.token = token
         self.get_next_lesson()
 
     def wait_time(self, num, fn):
@@ -43,6 +50,12 @@ class LessonScraperWorkerV2(QObject):
     def get_next_lesson(self):
         print(f"Total Lessons to Scrape: {len(self.lesson_list)} Lessons")
         print("starting since")
+        if not self.token:
+            self.request_token.emit()
+            return
+
+        self.lesson_id = None
+
         if self.lesson_list:
             with QMutexLocker(self._mutex):
                 if self.parent_thread._stop:
@@ -50,40 +63,22 @@ class LessonScraperWorkerV2(QObject):
 
                 while self.parent_thread._paused:
                     self._wait_condition.wait(self._mutex)
-            driver_alive = self.web_driver.is_driver_alive()
-            print(f"Webdriver Alive Check: {driver_alive}")
+
             c_lesson = self.lesson_list.popleft()
             print(f"Trying to scrape {c_lesson}")
 
             c_lesson = re.sub(r"[.,;:!?)]*$", "", c_lesson.strip())
 
-            if not self.token:
-                try:
-                    self.web_driver.find_bearer()
-                    token = self.web_driver.get_bearer()
-                    # TODO save token to settings?
-                    if not token:
-                        raise RuntimeError("Bearer token is None after login flow.")
-                    self.token = token
-                except RuntimeError as e:
-                    print(e)
-                except Exception as e:
-                    print(e)
             if not c_lesson:
                 self.lesson_completed()
 
-            # TODO : potentially not needed - duplicate check?
-            self.lesson_id = self.web_driver.find_lesson_id(c_lesson)
-
-            print("Lesson Id is ", self.lesson_id)
-
-            self.headers = {"Authorization": self.token}
+            self.headers = {"Authorization": f"Bearer {self.token}"}
             slug = self.extract_slug(c_lesson)
 
             if not slug:
                 print("Cannot find Lesson Slug. Please that URL is correct.")
                 self.lesson_completed()
-            self.check_lesson_complete()
+
             self.wait_time(
                 self.wait_time_between_reqs, lambda: self.get_lesson_info(slug)
             )
@@ -133,7 +128,7 @@ class LessonScraperWorkerV2(QObject):
     def check_lesson_complete(self):
         if not self.lesson_id:
             return
-        print("Trying to check Complete for Lesson")
+        print(f"Trying to check Complete for Lesson for {self.lesson_id}")
         self.check_lesson_thread = QThread()
         self.check_lesson_net = NetworkWorker(
             self.session,
@@ -142,15 +137,21 @@ class LessonScraperWorkerV2(QObject):
             headers=self.headers,
             json={"lessonId": f"{self.lesson_id}", "status": True},
         )
-        self.check_lesson_thread.start()
         self.check_lesson_net.moveToThread(self.check_lesson_thread)
+        self.check_lesson_thread.start()
+
         self.check_lesson_net.response_sig.connect(self.received_lesson_complete)
+        self.check_lesson_net.error_sig.connect(self.received_lesson_complete)
         self.check_lesson_net.do_work()
         self.check_lesson_net.finished.connect(self.check_lesson_thread.deleteLater)
 
-    def received_lesson_complete(self, status, paylod, status_code):
+    def received_lesson_complete(self, status, payload, status_code=None):
+        self.lesson_id = None
         if status == "success":
             print("Successfully Marked Lesson Complete.")
+        else:
+            print("Failed to mark complete")
+        self.lesson_completed()
 
     def get_lesson_info(self, slug):
         print(f"Getting Lesson Info for - {slug}")
@@ -388,8 +389,11 @@ class LessonScraperWorkerV2(QObject):
         self.lesson_completed()
 
     def lesson_completed(self):
-        self.lesson_done.emit(self.lesson_title, self.lesson_level)
-        print(f"Completed Lesson - {self.lesson_title}")
+        if self.lesson_id:
+            self.lesson_done.emit(self.lesson_title, self.lesson_level)
+            print(f"Completed Lesson - {self.lesson_title}")
+            self.check_lesson_complete()
+            return
         wait_time = randint(10, 90)
         print(f"Waing {wait_time} seconds before scraping next lesson.")
         QTimer.singleShot(wait_time * 1000, self.get_next_lesson)

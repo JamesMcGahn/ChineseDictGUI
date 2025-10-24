@@ -1,18 +1,24 @@
-from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal, Slot
-
-from keys import keys
-from services.network import SessionManager
+from PySide6.QtCore import (
+    QMutex,
+    QMutexLocker,
+    QThread,
+    QTimer,
+    QWaitCondition,
+    Signal,
+    Slot,
+)
 
 from .lesson_scrape_worker_v2 import LessonScraperWorkerV2
-from .web_scrape import WebScrape
 
 
 class LessonScraperThread(QThread):
-    finished = Signal()
+    done = Signal()
     send_words_sig = Signal(list)
     send_sents_sig = Signal(object)
     send_dialogue = Signal(object, object)
     lesson_done = Signal(str, str)
+    request_token = Signal()
+    send_token = Signal(str)
 
     def __init__(self, lesson_list):
         super().__init__()
@@ -25,36 +31,30 @@ class LessonScraperThread(QThread):
     @Slot()
     def run(self):
         print("Starting Lesson Scraper Thread")
-        # TODO need to re-write using session manager, right now its cross thread
-        sess = SessionManager()
-        print("set up session")
-        # TODO remove keys.py file
-        # TODO - rewrite webscrape to use signals - check how other scrapers use webscrape
-        self.wb = WebScrape(sess, keys["url"])
-        print("finished setting up webscrape")
-        self.wb.init_driver()
-        print("initting driver")
-
         self.lesson_list = [x for x in self.lesson_list if x]
 
         self.worker = LessonScraperWorkerV2(
-            self.wb, self.lesson_list, self._mutex, self._wait_condition, self
+            self.lesson_list, self._mutex, self._wait_condition, self
         )
         self.worker.moveToThread(self)
 
-        self.worker.finished.connect(self.quit)
         self.worker.finished.connect(self.worker_finished)
         self.worker.send_sents_sig.connect(self.send_sents_sig)
         self.worker.send_words_sig.connect(self.send_words_sig)
         self.worker.send_dialogue.connect(self.send_dialogue)
         self.worker.lesson_done.connect(self.lesson_done)
-        self.worker.do_work()
+        self.worker.request_token.connect(self.request_token)
+        self.send_token.connect(self.worker.receive_token)
+        QTimer.singleShot(0, self.worker.do_work)
         self.exec()
 
+    @Slot(str)
+    def receive_token(self, token):
+        self.send_token.emit(token)
+
     def worker_finished(self):
-        self.wb.close()
         self.worker.deleteLater()
-        self.finished.emit()
+        self.done.emit()
 
     @Slot()
     def resume(self):
