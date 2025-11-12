@@ -6,6 +6,8 @@ from logging.handlers import RotatingFileHandler
 
 from PySide6.QtCore import QMutex, QMutexLocker, QThread, Signal, Slot
 
+from .log_level import LOGLEVEL
+
 
 class LogWorker(QThread):
     """
@@ -90,7 +92,7 @@ class LogWorker(QThread):
             self.logger.addHandler(logfile)
             self.insert_log(
                 (
-                    "INFO",
+                    LOGLEVEL.INFO,
                     f"Starting LogWorker Thread: {threading.get_ident()} - {self.thread()}",
                     True,
                 )
@@ -109,11 +111,11 @@ class LogWorker(QThread):
         """
         level, msg, print_msg = log
 
-        if level not in ["INFO", "WARN", "ERROR"]:
-            level = "INFO"
+        if level not in LOGLEVEL:
+            level = LOGLEVEL.INFO
 
         if print_msg and not self.log_turn_off_print:
-            print(log)
+            print(f"{level} - {msg}")
 
         self.log_queue.put((level, msg))
 
@@ -130,11 +132,11 @@ class LogWorker(QThread):
                 current_time_str = time.asctime(time.localtime())
                 level, msg = self.log_queue.get(timeout=1)
                 with QMutexLocker(self.mutex):
-                    if level == "INFO":
+                    if level == LOGLEVEL.INFO:
                         self.logger.info(msg)
-                    elif level == "ERROR":
+                    elif level == LOGLEVEL.ERROR:
                         self.logger.error(msg)
-                    elif level == "WARN":
+                    elif level == LOGLEVEL.WARN:
                         self.logger.warning(msg)
                     self.log_signal.emit(f"{current_time_str} - {level} - {msg}")
                 self.log_queue.task_done()

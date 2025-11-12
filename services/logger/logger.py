@@ -7,6 +7,7 @@ from base import QSingleton
 from models.settings import LogSettingsModel
 from utils.files import PathManager
 
+from .log_level import LOGLEVEL
 from .log_worker import LogWorker
 
 
@@ -146,13 +147,15 @@ class Logger(QObject, metaclass=QSingleton):
         self.send_log.emit(msg)
 
     @Slot(str, str, bool)
-    def insert(self, msg: str, level: str = "INFO", print_msg: bool = True) -> None:
+    def insert(
+        self, msg: str, level: str = LOGLEVEL.INFO, print_msg: bool = True
+    ) -> None:
         """
         Inserts a log entry into the log worker.
 
         Args:
             msg (str): The log message to be inserted.
-            level (str): The log level (e.g., "INFO", "ERROR").
+            level (LOGLEVEL): The log level (e.g., "INFO", "ERROR").
             print_msg (bool): Whether to print the log message to the console.
 
         Returns:
@@ -172,7 +175,7 @@ class Logger(QObject, metaclass=QSingleton):
         log_dir = path["path"]
         if not PathManager.path_exists(log_dir, True):
             return
-
+        # BUG
         # Get current time
         current_time = time.time()
         self.insert("Checking For Old Log Files to Clean Up", "INFO")
@@ -189,7 +192,7 @@ class Logger(QObject, metaclass=QSingleton):
                     self.log_keep_files_days = 30
                 if file_age > self.log_keep_files_days * 24 * 60 * 60:
                     os.remove(file_path)
-                    self.insert(f"Removing old log file {file_path}", "INFO")
+                    self.insert(f"Removing old log file {file_path}", LOGLEVEL.INFO)
 
     @Slot()
     def close(self) -> None:
@@ -199,7 +202,7 @@ class Logger(QObject, metaclass=QSingleton):
         Returns:
             None: This function does not return a value.
         """
-        self.insert("Shutting down logging", "INFO", True)
+        self.insert("Shutting down logging", LOGLEVEL.INFO, True)
         self.log_worker.stop()
         self.log_worker.cleanup()
         self.log_worker.quit()
