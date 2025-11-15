@@ -70,6 +70,9 @@ class TokenManager(QObject, metaclass=QSingleton):
                     )
                     fetch_new_token = max((minutes_left - 60) * 60000, 0)
                     QTimer.singleShot(fetch_new_token, self.get_token)
+                    self.logger.insert(
+                        f"Scheduling a new token request in {minutes_left} minutes."
+                    )
             except Exception as e:
                 print(e)
 
@@ -95,14 +98,14 @@ class TokenManager(QObject, metaclass=QSingleton):
     def receive_token(self, token, wasReceived):
         self._clear_fetch_flag()
         if wasReceived:
-            self.logger.insert(
-                "Cpod Token was Recieved.",
-            )
+            self.logger.insert("Cpod Token was Recieved.")
             self.token = self.remove_bearer(token)
+            self.check_token()
             self.send_token.emit(self.token)
 
         else:
             self.logger.insert("Failed to Receive Cpod Token.", "ERROR")
+            # TODO retry one time
             self.token = None
 
     def _clear_fetch_flag(self):
