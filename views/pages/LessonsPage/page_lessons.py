@@ -26,6 +26,7 @@ class PageLessons(QWidgetBase):
     md_multi_selection_sig = Signal(int)
     use_cpod_def_sig = Signal(bool)
     updated_sents_levels_sig = Signal(bool, list)
+    set_button_disabled = Signal(bool)
 
     def __init__(self):
         super().__init__()
@@ -57,6 +58,7 @@ class PageLessons(QWidgetBase):
         self.ui.select_all_s.clicked.connect(self.select_all_sents)
         self.ui.clear_w.clicked.connect(self.clear_table_words)
         self.ui.clear_s.clicked.connect(self.clear_table_sents)
+        self.set_button_disabled.connect(self.ui.set_lesson_btn)
 
         self.appshutdown.connect(lambda: print("app shutdown lesson"))
         self.dbw = DatabaseManager("chineseDict.db")
@@ -298,6 +300,7 @@ class PageLessons(QWidgetBase):
 
     @Slot(list, bool, bool)
     def get_dialog_submitted(self, form_data, check_for_dups, transcribe_lesson):
+        self.set_button_disabled.emit(True)
         lesson_urls = [x.strip() for x in form_data if x]
         self.logging(f"Lessons urls: {", ".join(lesson_urls)}", "INFO")
         self.lesson_scrape_thread = LessonScraperThread(lesson_urls, transcribe_lesson)
@@ -320,6 +323,9 @@ class PageLessons(QWidgetBase):
         self.lesson_scrape_thread.lesson_done.connect(self.save_lesson)
         self.lesson_scrape_thread.done.connect(
             lambda: self.remove_threads(self.lesson_scrape_thread, "Lesson")
+        )
+        self.lesson_scrape_thread.finished.connect(
+            lambda: self.set_button_disabled.emit(False)
         )
 
     def receive_dialogues(self, lesson, dialogue):
@@ -399,6 +405,7 @@ class PageLessons(QWidgetBase):
 
     @Slot(object)
     def get_wdialog_submitted(self, form_data):
+
         self.word_scrape_thread = WordScraperThread(
             form_data["word_list"],
             form_data["definition_source"],

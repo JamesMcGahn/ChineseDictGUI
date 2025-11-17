@@ -1,4 +1,4 @@
-from PySide6.QtCore import QRect
+from PySide6.QtCore import QRect, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -82,3 +82,7 @@ class PageLessonsView(QWidget):
         self.stacked_widget.addWidget(self.sents_table)
 
         self.words_page_vlayout.addWidget(self.stacked_widget)
+
+    @Slot(bool)
+    def set_lesson_btn(self, disabled):
+        self.addwords_btn.setDisabled(disabled)
