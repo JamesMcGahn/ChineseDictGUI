@@ -72,11 +72,18 @@ class AddLessonsDialogView(QDialog):
         self.dialog_vlayout.addLayout(self.text_edit_horz_layout)
 
         self.check_for_dups_hlayout = QHBoxLayout()
+        self.transcribe_lesson_hlayout = QHBoxLayout()
         self.check_for_dups_lb = QLabel("Check For Duplicate Sentences?")
         self.check_for_dups_cb = QCheckBox()
+        self.transcribe_lesson_lb = QLabel("Do you want the lesson transcribed?")
+        self.transcribe_lesson_cb = QCheckBox()
+        self.transcribe_lesson_cb.setChecked(True)
         self.check_for_dups_hlayout.addWidget(self.check_for_dups_lb)
         self.check_for_dups_hlayout.addWidget(self.check_for_dups_cb)
+        self.transcribe_lesson_hlayout.addWidget(self.transcribe_lesson_lb)
+        self.transcribe_lesson_hlayout.addWidget(self.transcribe_lesson_cb)
         self.dialog_vlayout.addLayout(self.check_for_dups_hlayout)
+        self.dialog_vlayout.addLayout(self.transcribe_lesson_hlayout)
         self.dialog_vlayout.addLayout(self.submit_cnl_h_layout)
 
         self.setLayout(self.dialog_vlayout)

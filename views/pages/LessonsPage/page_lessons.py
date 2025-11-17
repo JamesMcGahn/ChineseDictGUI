@@ -139,7 +139,7 @@ class PageLessons(QWidgetBase):
         # return  # TODO REMOVE AFTER TESTING WHISPER
         # TODO add an option to disable downloading all sentences for lesson
         if sents_with_in_order:
-            self.logging("Starting Download All Lesson Sentences")
+            self.logging(f"Adding - {lesson} - Sentences Audio to Download Queue.")
             self.download_audio(
                 sents_with_in_order,
                 folder=f"./test/{lesson}/sents",
@@ -150,10 +150,6 @@ class PageLessons(QWidgetBase):
                 combine_audio_delay_between_audio=1500,
                 project_name=lesson,
             )
-
-        self.logging(
-            f"Finished getting all sentencess: Total {len(sents)}",
-        )
 
     @Slot(list)
     def download_audio(
@@ -300,11 +296,11 @@ class PageLessons(QWidgetBase):
     def addwords_btn_clicked(self):
         self.dialog.exec()
 
-    @Slot(dict)
-    def get_dialog_submitted(self, form_data, check_for_dups):
+    @Slot(list, bool, bool)
+    def get_dialog_submitted(self, form_data, check_for_dups, transcribe_lesson):
         lesson_urls = [x.strip() for x in form_data if x]
         self.logging(f"Lessons urls: {", ".join(lesson_urls)}", "INFO")
-        self.lesson_scrape_thread = LessonScraperThread(lesson_urls)
+        self.lesson_scrape_thread = LessonScraperThread(lesson_urls, transcribe_lesson)
         # TODO add list to the screen
         self.check_for_dups = check_for_dups
         self.lesson_scrape_thread.start()

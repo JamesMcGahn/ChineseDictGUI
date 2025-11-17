@@ -20,9 +20,10 @@ class LessonScraperThread(QThread):
     request_token = Signal()
     send_token = Signal(str)
 
-    def __init__(self, lesson_list):
+    def __init__(self, lesson_list, transcribe_lesson=True):
         super().__init__()
         self.lesson_list = lesson_list
+        self.transcribe_lesson = transcribe_lesson
         self._mutex = QMutex()
         self._wait_condition = QWaitCondition()
         self._stop = False
@@ -34,7 +35,11 @@ class LessonScraperThread(QThread):
         self.lesson_list = [x for x in self.lesson_list if x]
 
         self.worker = LessonScraperWorkerV2(
-            self.lesson_list, self._mutex, self._wait_condition, self
+            self.lesson_list,
+            self._mutex,
+            self._wait_condition,
+            self,
+            self.transcribe_lesson,
         )
         self.worker.moveToThread(self)
 

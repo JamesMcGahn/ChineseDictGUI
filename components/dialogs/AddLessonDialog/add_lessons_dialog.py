@@ -5,7 +5,7 @@ from .add_lessons_dialog_ui import AddLessonsDialogView
 
 
 class AddLessonsDialog(QWidget):
-    add_lesson_submited_signal = Signal(list, bool)
+    add_lesson_submited_signal = Signal(list, bool, bool)
     add_lesson_closed = Signal()
 
     def __init__(self):
@@ -13,12 +13,14 @@ class AddLessonsDialog(QWidget):
         self.lesson_list = []
 
         self.check_for_dups = False
+        self.transcribe_lesson = True
 
         self.ui = AddLessonsDialogView()
         self.ui.read_button.clicked.connect(self.read_button_clicked)
         self.ui.submit_btn.clicked.connect(self.submit_btn_clicked)
         self.ui.cancel_btn.clicked.connect(self.cancel_btn_clicked)
         self.ui.check_for_dups_cb.toggled.connect(self.check_for_dups_toggle)
+        self.ui.transcribe_lesson_cb.toggled.connect(self.transcribe_lesson_toggle)
 
     def exec(self):
         self.ui.exec()
@@ -55,11 +57,19 @@ class AddLessonsDialog(QWidget):
         else:
             self.check_for_dups = False
 
+    def transcribe_lesson_toggle(self, checked):
+        if checked:
+            self.transcribe_lesson = True
+        else:
+            self.transcribe_lesson = False
+
     def submit_btn_clicked(self):
         self.check_for_dups = False
         self.ui.check_for_dups_cb.setChecked(False)
         self.add_lesson_submited_signal.emit(
-            self.ui.textEdit.toPlainText().split("\n"), self.check_for_dups
+            self.ui.textEdit.toPlainText().split("\n"),
+            self.check_for_dups,
+            self.transcribe_lesson,
         )
         self.ui.textEdit.clear()
         self.lesson_list = []

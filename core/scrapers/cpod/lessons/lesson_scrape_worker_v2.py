@@ -18,7 +18,9 @@ class LessonScraperWorkerV2(QObject):
     lesson_done = Signal(str, str)
     request_token = Signal()
 
-    def __init__(self, lesson_list, mutex, wait_condition, parent_thread):
+    def __init__(
+        self, lesson_list, mutex, wait_condition, parent_thread, transcribe_lesson
+    ):
         super().__init__()
         self.lesson_list = deque(lesson_list)
         self._mutex = mutex
@@ -30,6 +32,7 @@ class LessonScraperWorkerV2(QObject):
         self.audio_host_url = keys["audio_host"]
         self.token = None
         self.wait_time_between_reqs = randint(5, 15)
+        self.transcribe_lesson = transcribe_lesson
 
     @Slot()
     def do_work(self):
@@ -188,6 +191,7 @@ class LessonScraperWorkerV2(QObject):
                 audio=lesson_info["mp3_dialogue"],
                 level=self.lesson_level,
                 lesson=self.lesson_title,
+                transcribe=False,
             )
 
             lesson_audio = Dialogue(
@@ -196,6 +200,7 @@ class LessonScraperWorkerV2(QObject):
                 audio=lesson_info["mp3_private"],
                 level=self.lesson_level,
                 lesson=self.lesson_title,
+                transcribe=self.transcribe_lesson,
             )
 
             self.send_dialogue.emit(lesson_audio, dialogue_audio)

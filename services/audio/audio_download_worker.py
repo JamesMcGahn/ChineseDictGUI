@@ -26,6 +26,7 @@ class AudioDownloadWorker(QObjectBase):
         self.queue_downloading = False
         self.count = 0
         self.data_length = len(self.data)
+        self.project_type = ""
 
     def do_work(self):
         QTimer.singleShot(0, self.download_next_audio)
@@ -45,6 +46,14 @@ class AudioDownloadWorker(QObjectBase):
 
     def check_done(self):
         if not self.data and not self.queue_downloading:
+            msg_text = (
+                f"Lesson: {self.project_name} - "
+                if self.project_type != "Words"
+                else ""
+            )
+            self.logging(
+                f"{msg_text}Finished Downloading {self.count} {self.project_type} Audio"
+            )
             self.finished.emit()
 
     def download_next_audio(self):
@@ -56,10 +65,13 @@ class AudioDownloadWorker(QObjectBase):
             filename = ""
             if isinstance(x, Sentence):
                 filename = f"10KS-{x.id}"
+                self.project_type = "Sentences"
             elif isinstance(x, Dialogue):
                 filename = x.title
+                self.project_type = "Dialogue"
             else:
                 filename = x.id
+                self.project_type = "Words"
 
             x.anki_audio = f"[sound:{filename}.mp3]"
             path = PathManager.check_dup(self.folder_path, filename, ".mp3")
@@ -75,7 +87,11 @@ class AudioDownloadWorker(QObjectBase):
                 urllib.request.urlretrieve(checkHttp, path)
                 self.logging(success_msg, "INFO")
 
-                if isinstance(x, Dialogue) and x.audio_type == "lesson":
+                if (
+                    isinstance(x, Dialogue)
+                    and x.audio_type == "lesson"
+                    and x.transcribe
+                ):
                     self.logging("Sending Lesson File to Whisper", "INFO")
                     self.start_whisper.emit(self.folder_path, filename)
                 self.queue_downloading = False
