@@ -1,8 +1,6 @@
-from time import sleep
-
 import google
 from google.cloud import texttospeech
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QObjectBase
 from utils.files import PathManager
@@ -33,6 +31,7 @@ class GoogleAudioWorker(QObjectBase):
         self.success_message = success_message
         self.project_name = project_name
 
+    @Slot()
     def do_work(self):
         self.logging(f"Starting Google Audio Worker in thread {self.thread()}")
         try:
@@ -58,29 +57,33 @@ class GoogleAudioWorker(QObjectBase):
                 }
             )
 
-            if self.folder_path != "./":
-                path = PathManager.check_dup(self.folder_path, self.filename, ".mp3")
+            path = PathManager.check_dup(self.folder_path, self.filename, ".mp3")
 
             with open(path, "wb") as out:
                 out.write(response.audio_content)
             self.logging(self.success_message)
             self.success.emit(self.audio_object)
-
-        # TODO: Handle File writing errors
+            self.send_finished()
         except google.api_core.exceptions.ServiceUnavailable as e:
-            if self.google_tried is False:
-                failure_msg_retry = f"({self.project_name} - {self.filename})Failed to get Audio From Google...Trying Again..."
-                self.logging(failure_msg_retry, "WARN")
-                self.error.emit()
-                sleep(15)
-                self.google_tried = True
-                self.do_work(text=self.text, filename=self.filename)
-            else:
-                self.logging(
-                    f"({self.project_name} - {self.filename})Failed to get Audio From Google",
-                    "ERROR",
-                )
-                self.logging(e, "ERROR", False)
-                return False
-        finally:
-            self.finished.emit()
+            self.maybe_try_again(e)
+        except Exception as e:
+            self.maybe_try_again(e)
+
+    def send_finished(self):
+        self.finished.emit()
+
+    def maybe_try_again(self, e):
+        if self.google_tried is False:
+            failure_msg_retry = f"({self.project_name} - {self.filename}.mp3) - Failed to get Audio From Google...Trying Again..."
+            self.logging(failure_msg_retry, "WARN")
+            self.google_tried = True
+            backoff_time = 1000 * 15
+            QTimer.singleShot(backoff_time, self.do_work)
+        else:
+            self.logging(
+                f"({self.project_name} - {self.filename}.mp3)Failed to get Audio From Google",
+                "ERROR",
+            )
+            self.logging(e, "ERROR", False)
+            self.send_finished()
+            return False
