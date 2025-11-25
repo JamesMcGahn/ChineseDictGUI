@@ -1,5 +1,6 @@
+<!DOCTYPE RCC>
 <RCC>
-  <qresource prefix=" ">
+  <qresource>
     <file>images/audio_file_off.png</file>
     <file>images/audio_file_on.png</file>
     <file>images/settings_off.png</file>
@@ -19,5 +20,6 @@
     <file>images/red_check.png</file>
     <file>images/logs_on.png</file>
     <file>images/logs_off.png</file>
+    <file>images/open_folder_on.png</file>
   </qresource>
 </RCC>

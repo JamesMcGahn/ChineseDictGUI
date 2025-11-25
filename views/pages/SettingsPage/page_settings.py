@@ -35,30 +35,30 @@ class PageSettings(QWidgetBase):
         wrap.addWidget(self.ui)
 
         self.settings = AppSettings()
-        self.ui.import_deck_btn.clicked.connect(self.import_anki_deck)
+        # self.ui.import_deck_btn.clicked.connect(self.import_anki_deck)
 
-        self.get_deck_names()
+        # self.get_deck_names()
 
-        self.ui.lineEdit_anki_sents_deck.textChanged.connect(
-            lambda word, caller="sents": self.change_deck_names(word, caller)
-        )
-        self.ui.lineEdit_anki_words_deck.textChanged.connect(
-            lambda word, caller="words": self.change_deck_names(word, caller)
-        )
+        # self.ui.lineEdit_anki_sents_deck.textChanged.connect(
+        #     lambda word, caller="sents": self.change_deck_names(word, caller)
+        # )
+        # self.ui.lineEdit_anki_words_deck.textChanged.connect(
+        #     lambda word, caller="words": self.change_deck_names(word, caller)
+        # )
 
-        self.ui.label_anki_sents_verify_btn.clicked.connect(
-            lambda checked, caller="sents": self.clicked_verify_deck_names(
-                checked, caller
-            )
-        )
-        self.ui.label_anki_words_verify_btn.clicked.connect(
-            lambda checked, caller="words": self.clicked_verify_deck_names(
-                checked, caller
-            )
-        )
+        # self.ui.label_anki_sents_verify_btn.clicked.connect(
+        #     lambda checked, caller="sents": self.clicked_verify_deck_names(
+        #         checked, caller
+        #     )
+        # )
+        # self.ui.label_anki_words_verify_btn.clicked.connect(
+        #     lambda checked, caller="words": self.clicked_verify_deck_names(
+        #         checked, caller
+        #     )
+        # )
 
-        self.ui.sync_import_btn.clicked.connect(self.anki_sync_import)
-        self.ui.sync_export_btn.clicked.connect(self.anki_sync_export)
+        # self.ui.sync_import_btn.clicked.connect(self.anki_sync_import)
+        # self.ui.sync_export_btn.clicked.connect(self.anki_sync_export)
 
     def get_deck_names(self):
         self.settings.begin_group("deckNames")

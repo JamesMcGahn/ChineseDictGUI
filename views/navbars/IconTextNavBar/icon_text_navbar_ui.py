@@ -21,54 +21,52 @@ class IconTextNavBarView(QWidget):
         self.setAttribute(Qt.WA_StyledBackground, True)
         icon = QIcon()
         icon.addFile(
-            ":/ /images/list_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/list_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
-        icon.addFile(
-            ":/ /images/list_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
-        )
+        icon.addFile(":/images/list_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On)
         icon1 = QIcon()
         icon1.addFile(
-            ":/ /images/dialogs_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/dialogs_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon1.addFile(
-            ":/ /images/dialogs_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/dialogs_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
         icon2 = QIcon()
         icon2.addFile(
-            ":/ /images/audio_file_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/audio_file_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon2.addFile(
-            ":/ /images/audio_file_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/audio_file_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
         icon3 = QIcon()
         icon3.addFile(
-            ":/ /images/dictionary_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/dictionary_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon3.addFile(
-            ":/ /images/dictionary_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/dictionary_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
         icon4 = QIcon()
         icon4.addFile(
-            ":/ /images/settings_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/settings_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon4.addFile(
-            ":/ /images/settings_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/settings_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
 
         icon6 = QIcon()
         icon6.addFile(
-            ":/ /images/logs_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/logs_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon6.addFile(
-            ":/ /images/logs_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/logs_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
 
         icon5 = QIcon()
         icon5.addFile(
-            ":/ /images/signout_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/signout_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon5.addFile(
-            ":/ /images/signout_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/signout_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
         self.icon_text_nav_vlayout = QVBoxLayout(self)
         self.icon_text_nav_vlayout.setObjectName("icon_text_nav_vlayout")

@@ -4,10 +4,12 @@ from PySide6.QtCore import QSize, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QCloseEvent, QFont, QFontDatabase, QIcon
 from PySide6.QtWidgets import QLabel, QMainWindow, QMenu, QMessageBox, QSystemTrayIcon
 
-import resources_rc as resources_rc
 from db import DatabaseManager
 from keys import keys
-from services.logger import Logger
+
+# trunk-ignore(ruff/F401)
+from resources import resources_rc
+from services.logger import LOGLEVEL, Logger
 from services.network import NetworkThread, SessionManager, TokenManager
 from services.settings import AppSettings
 
@@ -119,7 +121,7 @@ class MainWindow(QMainWindow):
             None: This function does not return a value.
         """
         if self.prompted_user_for_close:
-            Logger().insert("Closing Application", "INFO", True)
+            Logger().insert("Closing Application", LOGLEVEL.INFO, True)
             event.accept()
         else:
             event.ignore()

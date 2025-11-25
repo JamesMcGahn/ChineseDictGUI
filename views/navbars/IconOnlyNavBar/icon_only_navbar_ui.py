@@ -27,11 +27,9 @@ class IconOnlyNavBarView(QWidget):
         self.words_btn_ico.setObjectName("words_btn_ico")
         icon = QIcon()
         icon.addFile(
-            ":/ /images/list_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/list_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
-        icon.addFile(
-            ":/ /images/list_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
-        )
+        icon.addFile(":/images/list_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On)
         self.words_btn_ico.setIcon(icon)
         self.words_btn_ico.setIconSize(QSize(100, 20))
         self.words_btn_ico.setCheckable(True)
@@ -43,10 +41,10 @@ class IconOnlyNavBarView(QWidget):
         self.sents_btn_ico.setObjectName("sents_btn_ico")
         icon1 = QIcon()
         icon1.addFile(
-            ":/ /images/dialogs_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/dialogs_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon1.addFile(
-            ":/ /images/dialogs_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/dialogs_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
         self.sents_btn_ico.setIcon(icon1)
         self.sents_btn_ico.setIconSize(QSize(100, 20))
@@ -59,10 +57,10 @@ class IconOnlyNavBarView(QWidget):
         self.audio_btn_ico.setObjectName("audio_btn_ico")
         icon2 = QIcon()
         icon2.addFile(
-            ":/ /images/audio_file_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/audio_file_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon2.addFile(
-            ":/ /images/audio_file_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/audio_file_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
         self.audio_btn_ico.setIcon(icon2)
         self.audio_btn_ico.setIconSize(QSize(100, 20))
@@ -75,10 +73,10 @@ class IconOnlyNavBarView(QWidget):
         self.dictionary_btn_ico.setObjectName("dictionary_btn_ico")
         icon3 = QIcon()
         icon3.addFile(
-            ":/ /images/dictionary_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/dictionary_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon3.addFile(
-            ":/ /images/dictionary_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/dictionary_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
         self.dictionary_btn_ico.setIcon(icon3)
         self.dictionary_btn_ico.setIconSize(QSize(100, 20))
@@ -99,10 +97,10 @@ class IconOnlyNavBarView(QWidget):
         self.settings_btn_ico.setObjectName("settings_btn_ico")
         icon4 = QIcon()
         icon4.addFile(
-            ":/ /images/settings_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/settings_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon4.addFile(
-            ":/ /images/settings_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/settings_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
         self.settings_btn_ico.setIcon(icon4)
         self.settings_btn_ico.setIconSize(QSize(100, 20))
@@ -115,10 +113,10 @@ class IconOnlyNavBarView(QWidget):
         self.logs_btn_ico.setObjectName("logs_btn_ico")
         icon6 = QIcon()
         icon6.addFile(
-            ":/ /images/logs_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/logs_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon6.addFile(
-            ":/ /images/logs_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/logs_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
         self.logs_btn_ico.setIcon(icon6)
         self.logs_btn_ico.setIconSize(QSize(100, 20))
@@ -131,10 +129,10 @@ class IconOnlyNavBarView(QWidget):
         self.signout_btn_ico.setObjectName("signout_btn_ico")
         icon5 = QIcon()
         icon5.addFile(
-            ":/ /images/signout_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
+            ":/images/signout_off.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off
         )
         icon5.addFile(
-            ":/ /images/signout_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
+            ":/images/signout_on.png", QSize(), QIcon.Mode.Normal, QIcon.State.On
         )
         self.signout_btn_ico.setIcon(icon5)
         self.signout_btn_ico.setIconSize(QSize(100, 20))
