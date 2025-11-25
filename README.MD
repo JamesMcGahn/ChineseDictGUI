@@ -10,6 +10,10 @@ Chinese Dictionary App for managing sentences, lessons and words from a chinese 
 
 ### TODO - use LOGLEVEL enum instead of strings
 
+### TODO - disconnect audio threads from pages move to a manager
+
+### TODO - disconnect whisper and combine audio threads from page to manager
+
 ### FEATURE - Settings Page
 
 - login information
