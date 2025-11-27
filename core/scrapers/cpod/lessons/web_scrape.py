@@ -21,11 +21,12 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from keys import keys
 from services import Logger
+from services.network import SessionManager
 
 
 class WebScrape:
 
-    def __init__(self, session, url):
+    def __init__(self, url):
 
         caps = DesiredCapabilities.CHROME.copy()
         caps["goog:loggingPrefs"] = {"performance": "ALL"}
@@ -33,7 +34,7 @@ class WebScrape:
         self.chrome_options = Options()
         # chrome_options.add_argument("--headless=new")
         self.chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
-        self.session = session
+        self.session = SessionManager()
 
         self.driver = webdriver.Chrome(
             options=self.chrome_options,
@@ -43,7 +44,9 @@ class WebScrape:
         self.source = None
         self.url = url
         self.bearer = None
-        self.cookies = self.filter_cookies_for_url(url, session.jar_to_selenium_list())
+        self.cookies = self.filter_cookies_for_url(
+            url, self.session.jar_to_selenium_list()
+        )
 
     def get_source(self):
         return self.source
@@ -84,17 +87,26 @@ class WebScrape:
         sleep(3)
         try:
             self.driver.get(self.url)
+            print("cookies", cookies)
 
             for c in cookies:
-                self.driver.add_cookie(
-                    {
-                        "name": c.name,
-                        "value": c.value,
-                        "domain": c.domain,
-                        "path": c.path,
-                    }
-                )
 
+                # skip HttpOnly cookies
+                if c.get("httpOnly"):
+                    continue
+
+                try:
+                    self.driver.add_cookie(
+                        {
+                            "name": c["name"],
+                            "value": c["value"],
+                            "domain": c.get("domain"),
+                            "path": c.get("path", "/"),
+                        }
+                    )
+                except Exception as ce:
+                    print("Failed to add cookie:", c, ce)
+                    continue
         except Exception as e:
             Logger().insert("Failed loading cookies", "ERROR")
             Logger().insert(e, "ERROR", False)

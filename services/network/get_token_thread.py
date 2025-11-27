@@ -2,7 +2,6 @@ from PySide6.QtCore import QThread, Signal, Slot
 
 from core.scrapers.cpod.lessons.web_scrape import WebScrape
 from keys import keys
-from services.network import SessionManager
 
 
 class GetTokenThread(QThread):
@@ -16,11 +15,8 @@ class GetTokenThread(QThread):
     def run(self):
         print("Starting Lesson Scraper Thread")
 
-        sess = SessionManager()
-        print("set up session")
-
         try:
-            self.wb = WebScrape(sess, keys["url"])
+            self.wb = WebScrape(keys["url"])
             print("finished setting up webscrape")
             self.wb.init_driver()
             print("initting driver")

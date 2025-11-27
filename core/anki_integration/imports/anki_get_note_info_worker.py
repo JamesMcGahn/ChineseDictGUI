@@ -2,7 +2,7 @@ import threading
 
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
-from services.network import NetworkWorker, SessionManager
+from services.network import NetworkWorker
 
 
 # TODO Thread clean up
@@ -34,11 +34,11 @@ class AnkiGetNoteInfoWorker(QObject):
             self.finished.emit()
             return
         print("Starting to getting detailed note information")
-        sess = SessionManager()
+
         self.net_worker_thread = QThread()
 
         self.net_worker = NetworkWorker(
-            sess, "GET", "http://127.0.0.1:8765", json=json, timeout=60
+            "GET", "http://127.0.0.1:8765", json=json, timeout=60
         )
         self.net_worker_thread.start()
         self.net_worker.moveToThread(self.net_worker_thread)

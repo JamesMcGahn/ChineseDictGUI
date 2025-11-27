@@ -14,7 +14,6 @@ class NetworkWorker(QObject):
 
     def __init__(
         self,
-        session_mangager,
         operation,
         url,
         data=None,

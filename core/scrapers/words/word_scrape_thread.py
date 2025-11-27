@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from PySide6.QtCore import QMutex, QMutexLocker, QThread, QWaitCondition, Signal, Slot
 
 from keys import keys
-from services.network import NetworkWorker, SessionManager
+from services.network import NetworkWorker
 
 from ..cpod import ScrapeCpod
 from ..mdgb.md_scrape import ScrapeMd
@@ -47,7 +47,7 @@ class WordScraperThread(QThread):
         self.user_use_cpod_sel = False
 
     def run(self):
-        self.session = SessionManager()
+
         print("starting thread")
         for i, word in enumerate(self.word_list):
             if word.strip() == "":
@@ -106,7 +106,7 @@ class WordScraperThread(QThread):
             self._wait_condition.wakeOne()
 
     def get_soup(self, url, receiver):
-        self.net_worker = NetworkWorker(self.session, "GET", url, timeout=15, retry=2)
+        self.net_worker = NetworkWorker("GET", url, timeout=15, retry=2)
         self.net_worker.response_sig.connect(receiver)
         self.net_worker.error_sig.connect(receiver)
         self.net_worker.moveToThread(self)

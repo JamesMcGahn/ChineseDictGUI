@@ -8,7 +8,7 @@ from PySide6.QtCore import QThread, Signal, Slot
 from db import DatabaseManager
 from db.dals import AnkiIntegrationDAL, SentsDAL, WordsDAL
 from db.workers import AnkiIntQueryWorker, SentsQueryWorker, WordsQueryWorker
-from services.network import NetworkWorker, SessionManager
+from services.network import NetworkWorker
 
 
 class AnkiSyncExportThread(QThread):
@@ -28,7 +28,6 @@ class AnkiSyncExportThread(QThread):
         self.wordsDAL = WordsDAL(self.db)
         self.sync_in_progress = False
         self.sync_tasks_remaining = 0
-        self.session = SessionManager()
 
         # self.update_add_sync_completed.connect(self.get_all_anki_deck_ids)
 
@@ -190,7 +189,7 @@ class AnkiSyncExportThread(QThread):
 
             self.new_record_verify_net_thread = QThread()
             self.networker_verify_add = NetworkWorker(
-                self.session, "GET", "http://127.0.0.1:8765", json=json, timeout=20
+                "GET", "http://127.0.0.1:8765", json=json, timeout=20
             )
             self.new_record_verify_net_thread.start()
             self.networker_verify_add.moveToThread(self.new_record_verify_net_thread)
@@ -221,7 +220,7 @@ class AnkiSyncExportThread(QThread):
 
         #     self.update_record_net_thread = QThread()
         #     self.networker_update = NetworkWorker(
-        #         self.session, "GET", "http://127.0.0.1:8765", json=json, timeout=20
+        #          "GET", "http://127.0.0.1:8765", json=json, timeout=20
         #     )
         #     self.update_record_net_thread.start()
         #     self.networker_update.moveToThread(self.update_record_net_thread)
@@ -297,7 +296,7 @@ class AnkiSyncExportThread(QThread):
 
         self.new_record_verify_net_thread = QThread()
         self.networker_verify_add = NetworkWorker(
-            self.session, "GET", "http://127.0.0.1:8765", json=json, timeout=20
+            "GET", "http://127.0.0.1:8765", json=json, timeout=20
         )
         self.new_record_verify_net_thread.start()
         self.networker_verify_add.moveToThread(self.new_record_verify_net_thread)
@@ -379,7 +378,7 @@ class AnkiSyncExportThread(QThread):
 
             self.update_record_verify_net_thread = QThread()
             self.networker_verify_add = NetworkWorker(
-                self.session, "GET", "http://127.0.0.1:8765", json=json, timeout=20
+                "GET", "http://127.0.0.1:8765", json=json, timeout=20
             )
             self.update_record_verify_net_thread.start()
             self.networker_verify_add.moveToThread(self.update_record_verify_net_thread)

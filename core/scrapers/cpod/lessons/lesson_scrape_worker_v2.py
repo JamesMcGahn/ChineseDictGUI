@@ -7,7 +7,7 @@ from PySide6.QtCore import QMutexLocker, QObject, QThread, QTimer, Signal, Slot
 
 from keys import keys
 from models.dictionary import Dialogue, Sentence, Word
-from services.network import NetworkWorker, SessionManager
+from services.network import NetworkWorker
 
 
 class LessonScraperWorkerV2(QObject):
@@ -27,7 +27,6 @@ class LessonScraperWorkerV2(QObject):
         self._wait_condition = wait_condition
         self.parent_thread = parent_thread
         self.temp_file_paths = []
-        self.session = SessionManager()
         self.host_url = keys["url"]
         self.audio_host_url = keys["audio_host"]
         self.token = None
@@ -134,7 +133,6 @@ class LessonScraperWorkerV2(QObject):
         print(f"Trying to check Complete for Lesson for {self.lesson_id}")
         self.check_lesson_thread = QThread()
         self.check_lesson_net = NetworkWorker(
-            self.session,
             "POST",
             f"{self.host_url}api/v1/dashboard/toggle-studied",
             headers=self.headers,
@@ -160,7 +158,6 @@ class LessonScraperWorkerV2(QObject):
         print(f"Getting Lesson Info for - {slug}")
         self.lesi_net_thread = QThread()
         self.lesi_net = NetworkWorker(
-            self.session,
             "GET",
             f"{self.host_url}api/v2/lessons/get-lesson?slug={slug}",
             headers=self.headers,
@@ -214,7 +211,6 @@ class LessonScraperWorkerV2(QObject):
         print("Getting Dialogue for Lesson")
         self.d_net_thread = QThread()
         self.dialogue_net = NetworkWorker(
-            self.session,
             "GET",
             f"{self.host_url}api/v1/lessons/get-dialogue?lessonId={self.lesson_id}",
             headers=self.headers,
@@ -259,7 +255,6 @@ class LessonScraperWorkerV2(QObject):
         print("Getting Vocabulary for Lesson")
         self.v_net_thread = QThread()
         self.vocab_net = NetworkWorker(
-            self.session,
             "GET",
             f"{self.host_url}api/v2/lessons/get-vocab?lessonId={self.lesson_id}",
             headers=self.headers,
@@ -301,7 +296,6 @@ class LessonScraperWorkerV2(QObject):
         print("Getting Expansion for Lesson")
         self.e_net_thread = QThread()
         self.expansion_net = NetworkWorker(
-            self.session,
             "GET",
             f"{self.host_url}api/v1/lessons/get-expansion?lessonId={self.lesson_id}",
             headers=self.headers,
@@ -350,7 +344,6 @@ class LessonScraperWorkerV2(QObject):
         print("Getting Grammar for Lesson")
         self.g_net_thread = QThread()
         self.grammer_net = NetworkWorker(
-            self.session,
             "GET",
             f"{self.host_url}api/v1/lessons/get-grammar?lessonId={self.lesson_id}",
             headers=self.headers,

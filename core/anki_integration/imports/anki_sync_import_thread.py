@@ -11,7 +11,7 @@ from db import DatabaseManager
 from db.dals import AnkiIntegrationDAL, SentsDAL, WordsDAL
 from db.workers import AnkiIntQueryWorker, SentsQueryWorker, WordsQueryWorker
 from models.dictionary import Sentence, Word
-from services.network import NetworkWorker, SessionManager
+from services.network import NetworkWorker
 
 from .anki_find_id_inlocal_worker import FindAnkiIDsInLocalWorker
 from .anki_get_ids_worker import AnkiGetNoteIDsWorker
@@ -92,7 +92,7 @@ class AnkiSyncImportThread(QThread):
         delta_days = (today - last_sync_date).days
         last_edited_days = max(delta_days, 1)
         # step 5 query edited notes ids from anki for this time interval
-        self.session = SessionManager()
+
         # TODO REMOVE hardcoded test time
         print("days", last_edited_days)
         deck_name = (
@@ -106,7 +106,7 @@ class AnkiSyncImportThread(QThread):
         }
         self.networker_worker_thread = QThread()
         self.networker_w = NetworkWorker(
-            self.session, "GET", "http://127.0.0.1:8765", json=json, timeout=20
+            "GET", "http://127.0.0.1:8765", json=json, timeout=20
         )
         self.networker_worker_thread.start()
         self.networker_w.moveToThread(self.networker_worker_thread)

@@ -8,18 +8,15 @@ class NetworkThread(QThread):
     error_sig = Signal(str, str, str)
     finished = Signal()
 
-    def __init__(self, session_mangager, operation, url, data=None, json=None):
+    def __init__(self, operation, url, data=None, json=None):
         super().__init__()
-        self.session_mangager = session_mangager
         self.url = url
         self.data = data
         self.operation = operation
         self.json = json
 
     def run(self):
-        self.worker = NetworkWorker(
-            self.session_mangager, self.operation, self.url, self.data, self.json
-        )
+        self.worker = NetworkWorker(self.operation, self.url, self.data, self.json)
         self.worker.moveToThread(self)
         self.worker.finished.connect(self.quit)
         self.worker.finished.connect(self.worker_finished)

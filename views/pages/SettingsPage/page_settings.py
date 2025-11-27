@@ -10,7 +10,7 @@ from core.anki_integration.imports import (
     AnkiSyncExportThread,
     AnkiSyncImportThread,
 )
-from services.network import NetworkThread, SessionManager
+from services.network import NetworkThread
 from services.settings import AppSettings
 
 from .page_settings_ui import PageSettingsUI
@@ -101,11 +101,8 @@ class PageSettings(QWidgetBase):
 
     def clicked_verify_deck_names(self, _, caller):
         print("sss", caller)
-        sess = SessionManager()
         json = {"action": "deckNames", "version": 6}
-        self.net_thread = NetworkThread(
-            sess, "GET", "http://127.0.0.1:8765/", json=json
-        )
+        self.net_thread = NetworkThread("GET", "http://127.0.0.1:8765/", json=json)
         self.net_thread.response_sig.connect(
             lambda status, response, errorType=None, caller=caller: self.verify_decks_response(
                 status, response, errorType, caller

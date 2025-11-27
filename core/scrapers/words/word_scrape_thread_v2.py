@@ -9,7 +9,7 @@ from PySide6.QtCore import QMutex, QThread, QWaitCondition, Signal, Slot
 
 from keys import keys
 from models.dictionary import Sentence, Word
-from services.network import NetworkWorker, SessionManager
+from services.network import NetworkWorker
 from utils.files import WriteFile
 
 from ..cpod import ScrapeCpod
@@ -52,8 +52,7 @@ class WordScraperThreadV2(QThread):
         self.user_md_multi = None
         self.user_use_cpod_sel = False
 
-        self.session = SessionManager()
-        self.web_driver = WebScrape(self.session, keys["url"])
+        self.web_driver = WebScrape(keys["url"])
         self.host_url = keys["url"]
         self.audio_host_url = keys["audio_host"]
         self.token = None
@@ -96,7 +95,6 @@ class WordScraperThreadV2(QThread):
                 self.headers = {"Authorization": self.token}
                 self.word_search_thread = QThread()
                 self.word_search_worker = NetworkWorker(
-                    self.session,
                     "GET",
                     f"{self.host_url}api/v1/search/search-dictionary/{encoded_word}?skip=0",
                     headers=self.headers,
@@ -135,7 +133,6 @@ class WordScraperThreadV2(QThread):
             print(f"{self.host_url}api/v1/dictionary/get-details?word={encoded_word}")
             self.word_detail_search_thread = QThread()
             self.word_detail_search_worker = NetworkWorker(
-                self.session,
                 "GET",
                 f"{self.host_url}api/v1/dictionary/get-details?word={encoded_word}",
                 headers=self.headers,
@@ -309,7 +306,6 @@ class WordScraperThreadV2(QThread):
         encoded_params = urlencode(params)
         self.mg_word_thread = QThread()
         self.mg_word_worker = NetworkWorker(
-            self.session,
             "GET",
             f"{keys['murl']}/dictionary/english-chinese?{encoded_params}",
             timeout=15,

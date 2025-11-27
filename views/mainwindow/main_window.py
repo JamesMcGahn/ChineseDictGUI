@@ -69,7 +69,7 @@ class MainWindow(QMainWindow):
     #         # TODO: check for keyring - if it doesnt exist -> notify user -> send them to settings page
 
     #         self.network_thread = NetworkThread(
-    #             self.session_manager,
+    #
     #             "SESSION",
     #             f"{keys['old_url']}accounts/signin",
     #             data={"email": keys["email"], "password": keys["password"]},

@@ -2,7 +2,7 @@ import threading
 
 from PySide6.QtCore import QObject, Signal, Slot
 
-from services.network import NetworkWorker, SessionManager
+from services.network import NetworkWorker
 
 
 class AnkiGetNoteIDsWorker(QObject):
@@ -21,7 +21,6 @@ class AnkiGetNoteIDsWorker(QObject):
             f"Starting anki get ID worker in thread: {threading.get_ident()} - {self.thread()}"
         )
 
-        sess = SessionManager()
         json = {
             "action": "findNotes",
             "version": 6,
@@ -29,7 +28,7 @@ class AnkiGetNoteIDsWorker(QObject):
         }
 
         net_worker = NetworkWorker(
-            sess, "GET", "http://127.0.0.1:8765", json=json, timeout=30
+            "GET", "http://127.0.0.1:8765", json=json, timeout=30
         )
 
         net_worker.response_sig.connect(self.handle_response)
