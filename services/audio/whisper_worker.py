@@ -14,20 +14,26 @@ class WhisperWorker(QObjectBase):
         super().__init__()
         self.folder = Path(folder)
         self.filename = file_name
-        self.language = "zh"
+        self.language = "Mandarin"
         self.model_name = model_name
         self._stopped = False
-        self.model_name = "medium"
+        self.model_name = "large"
         self.compute_type = "auto"
-        self.beam_size = 5
-        self.min_silence_ms = 1000
-        self.chunk_length = 60
-        self.initial_prompt = (
-            "Hello, how are you? 你好，请问你最近好吗？ "
-            "This is a bilingual conversation in English and Mandarin Chinese. "
-            "Transcribe Mandarin using Simplified Chinese characters. "
-            "Transcribe English in standard English."
-        )
+        self.beam_size = 8
+        self.min_silence_ms = 2500
+        self.chunk_length = 120
+
+        if any(
+            level in file_name
+            for level in ["Newbie", "Elementary", "Pre-Intermediate", "Intermediate"]
+        ):
+            self.initial_prompt = """
+                "Transcribe Mandarin in Simplified Chinese. Transcribe English in Standard English"
+            """
+        else:
+            self.initial_prompt = (
+                "Transcribe Mandarin using Simplified Chinese characters. "
+            )
 
     @Slot()
     def do_work(self):
@@ -69,9 +75,9 @@ class WhisperWorker(QObjectBase):
                 task="transcribe",
                 chunk_length=self.chunk_length,
                 language=self.language,
-                vad_filter=True,
+                vad_filter=False,
                 vad_parameters={"min_silence_duration_ms": self.min_silence_ms},
-                condition_on_previous_text=False,
+                condition_on_previous_text=True,
                 beam_size=self.beam_size,
                 word_timestamps=False,
                 initial_prompt=self.initial_prompt,
