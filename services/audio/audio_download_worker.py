@@ -24,7 +24,9 @@ class AudioDownloadWorker(QObjectBase):
         self._stopped = False
         self.project_name = project_name
         self.queue_downloading = False
-        self.count = 0
+        self.count = 1
+        self.download_success = 0
+        self.download_error = 0
         self.data_length = len(self.data)
         self.project_type = ""
 
@@ -38,7 +40,6 @@ class AudioDownloadWorker(QObjectBase):
             self.logging("Audio Download Process Stopped.", "WARN")
             self.finished.emit()
         else:
-            self.count += 1
             wait_time = randint(5, 20)
             self.logging(f"Waiting {wait_time} seconds before next audio download")
 
@@ -52,7 +53,7 @@ class AudioDownloadWorker(QObjectBase):
                 else ""
             )
             self.logging(
-                f"{msg_text}Finished Downloading {self.count} {self.project_type} Audio"
+                f"{msg_text}Finished Downloading {self.project_type} Audio - Success: {self.download_success} Failure: {self.download_error}"
             )
             self.finished.emit()
 
@@ -77,7 +78,7 @@ class AudioDownloadWorker(QObjectBase):
             path = PathManager.check_dup(self.folder_path, filename, ".mp3")
             filename = PathManager.regex_path(path)["filename"]
 
-            success_msg = f'(Lesson: {self.project_name} - {self.count+1}/{self.data_length}) Audio content written to file "{filename}.mp3"'
+            success_msg = f'(Lesson: {self.project_name} - {self.count}/{self.data_length}) Audio content written to file "{filename}.mp3"'
 
             if getattr(x, "audio", None):
                 self.queue_downloading = True
@@ -97,6 +98,8 @@ class AudioDownloadWorker(QObjectBase):
                 self.queue_downloading = False
                 self.updateAnkiAudio.emit(x)
                 self.schedule_next_download()
+                self.count += 1
+                self.download_success += 1
             else:
                 self.logging("There is not an audio link for the file", "WARN")
                 if isinstance(x, Dialogue):
@@ -130,12 +133,15 @@ class AudioDownloadWorker(QObjectBase):
 
     @Slot(object)
     def google_download_success(self, x):
+        self.count += 1
+        self.download_success += 1
         self.updateAnkiAudio.emit(x)
         self.queue_downloading = False
         self.schedule_next_download()
 
     @Slot()
     def google_download_error(self):
+        self.download_error += 1
         self.queue_downloading = False
         self.schedule_next_download()
 
