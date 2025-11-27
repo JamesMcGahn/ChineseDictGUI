@@ -38,7 +38,7 @@ class MainWindow(QMainWindow):
         self.label = QLabel(self)
         self.setCentralWidget(self.centralwidget)
 
-        # self.setup_session()
+        self.setup_session()
         self.setup_database()
         self.prompted_user_for_close = False
         print(
@@ -59,9 +59,10 @@ class MainWindow(QMainWindow):
         db.create_anki_integration_record()
         db.disconnect()
 
-    # def setup_session(self):
-    #     if self.session_manager.load_session():
-    #         return
+    def setup_session(self):
+        if self.session_manager.load_session():
+            return
+
     #     else:
     #         print("session expired, getting new session")
     #         # TODO: remove py email and password dict - use keyring
