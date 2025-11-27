@@ -1,6 +1,7 @@
 import json
 import time
 from time import sleep
+from urllib.parse import urlparse
 
 from PySide6.QtCore import QMutexLocker, QObject, Signal
 from selenium import webdriver
@@ -33,7 +34,7 @@ class WebScrape:
         # chrome_options.add_argument("--headless=new")
         self.chrome_options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
         self.session = session
-        self.cookies = session.get_cookies()
+
         self.driver = webdriver.Chrome(
             options=self.chrome_options,
             service=Service(ChromeDriverManager().install()),
@@ -42,6 +43,7 @@ class WebScrape:
         self.source = None
         self.url = url
         self.bearer = None
+        self.cookies = self.filter_cookies_for_url(url, session.jar_to_selenium_list())
 
     def get_source(self):
         return self.source
@@ -58,22 +60,40 @@ class WebScrape:
     def capture_page_source(self):
         self.source = self.driver.page_source
 
+    def filter_cookies_for_url(self, url: str, cookies: list) -> list:
+
+        parsed = urlparse(url.strip())
+        if not parsed.hostname:
+            parsed = urlparse("https://" + url.strip())
+
+        host = parsed.hostname or ""
+        base_host = host.removeprefix("www.")
+        valid_cookies = []
+        for c in cookies:
+            cookie_domain = c.get("domain") or ""
+            cookie_domain = cookie_domain.removeprefix(".")
+            cookie_domain = cookie_domain.removeprefix("www.")
+            if cookie_domain == base_host or base_host.endswith(cookie_domain):
+                valid_cookies.append(c)
+
+        return valid_cookies
+
     def init_driver(self):
         cookies = self.cookies
 
         sleep(3)
         try:
             self.driver.get(self.url)
+
             for c in cookies:
-                if c.domain not in keys["mdomain"]:
-                    self.driver.add_cookie(
-                        {
-                            "name": c.name,
-                            "value": c.value,
-                            "domain": c.domain,
-                            "path": c.path,
-                        }
-                    )
+                self.driver.add_cookie(
+                    {
+                        "name": c.name,
+                        "value": c.value,
+                        "domain": c.domain,
+                        "path": c.path,
+                    }
+                )
 
         except Exception as e:
             Logger().insert("Failed loading cookies", "ERROR")

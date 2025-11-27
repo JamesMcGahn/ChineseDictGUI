@@ -4,7 +4,7 @@ from time import sleep, time
 
 import requests
 from bs4 import BeautifulSoup
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QMutex, QMutexLocker, QObject
 
 from base import QSingleton
 from services import Logger
@@ -12,20 +12,45 @@ from utils.files import OpenFile, WriteFile
 
 
 class SessionManager(QObject, metaclass=QSingleton):
-    session = requests.Session()
 
     def __init__(self):
         super().__init__()
+        self.cookie_jar = requests.cookies.RequestsCookieJar()
+        self.cookie_lock = QMutex()
+
+    def build_session(self):
+        session = requests.Session()
+        session.cookies = self.get_cookies()
+        return session
 
     def post(self, url, data=None, json=None, timeout=10, headers=None):
-        return SessionManager.session.post(
+        session = self.build_session()
+        response = session.post(
             url, data=data, json=json, timeout=timeout, headers=headers
         )
+        self.update_cookie_jar(session)
+        return response
 
     def get(self, url, data=None, json=None, timeout=10, headers=None):
-        return SessionManager.session.get(
+        session = self.build_session()
+        response = session.get(
             url, data=data, json=json, timeout=timeout, headers=headers
         )
+        self.update_cookie_jar(session)
+        return response
+
+    def update_cookie_jar(self, session):
+        with QMutexLocker(self.cookie_lock):
+            for cookie in session.cookies:
+                self.cookie_jar.set(
+                    cookie.name,
+                    cookie.value,
+                    domain=cookie.domain,
+                    path=cookie.path,
+                    secure=cookie.secure,
+                    expires=cookie.expires,
+                    rest=cookie._rest,
+                )
 
     # TODO used in web_scrape - need to remove
     def get_session_url(self):
@@ -57,15 +82,15 @@ class SessionManager(QObject, metaclass=QSingleton):
         )
 
     def set_cookies(self, cookies):
-        SessionManager.session.cookies = cookies
+        self.cookie_jar = cookies
 
     def get_cookies(self):
-        return SessionManager.session.cookies
+        return self.cookie_jar.copy()
 
     # TODO remove from session
     def get_html(self, url):
         Logger().insert("Getting HTML...", "INFO")
-        req = SessionManager.session.get(f"{url}")
+        req = self.build_session().get(f"{url}")
         soup = BeautifulSoup(req.text, "html.parser")
         sleep(randint(6, 15))
         return soup
@@ -80,3 +105,22 @@ class SessionManager(QObject, metaclass=QSingleton):
                 path=cookie.get("path", "/"),
             )
         return jar
+
+    def jar_to_selenium_list(self, allowed_domains=None):
+        cookies_list = []
+        for c in self.cookie_jar:
+            if allowed_domains and c.domain not in allowed_domains:
+                continue
+
+            cookies_list.append(
+                {
+                    "name": c.name,
+                    "value": c.value,
+                    "domain": c.domain,
+                    "path": c.path,
+                    "secure": c.secure,
+                    "httpOnly": c._rest.get("HttpOnly", False),
+                    "expiry": c.expires,
+                }
+            )
+        return cookies_list

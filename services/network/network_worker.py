@@ -3,6 +3,8 @@ import threading
 import requests
 from PySide6.QtCore import QObject, QThread, Signal, Slot
 
+from .session_manager import SessionManager
+
 
 class NetworkWorker(QObject):
     finished = Signal()
@@ -22,7 +24,7 @@ class NetworkWorker(QObject):
         headers=None,
     ):
         super().__init__()
-        self.session_mangager = session_mangager
+        self.session_manager = SessionManager()
         self.url = url
         self.data = data
         self.operation = operation
@@ -40,7 +42,7 @@ class NetworkWorker(QObject):
 
         try:
             if self.operation == "POST":
-                response = self.session_mangager.post(
+                response = self.session_manager.post(
                     self.url,
                     data=self.data,
                     json=self.json,
@@ -54,7 +56,7 @@ class NetworkWorker(QObject):
                     self.error_sig.emit("error", response, str(response.status_code))
 
             elif self.operation == "SESSION":
-                response = self.session_mangager.post(
+                response = self.session_manager.post(
                     self.url, data=self.data, json=self.json, timeout=self.timeout
                 )
                 if not any(c.name == "lang" for c in response.cookies):
@@ -91,7 +93,7 @@ class NetworkWorker(QObject):
             self.finished.emit()
 
     def operation_get(self):
-        return self.session_mangager.get(
+        return self.session_manager.get(
             self.url,
             data=self.data,
             json=self.json,
