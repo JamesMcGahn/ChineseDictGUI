@@ -13,14 +13,14 @@ from PySide6.QtWidgets import (
     QSpacerItem,
     QTextEdit,
     QVBoxLayout,
-    QWidget,
 )
 
+from base import QSingleton, QWidgetBase
 from components.utils import ColoredSpacer
 from models.settings import AppSettingsModel
 
 
-class PageSettingsUI(QWidget):
+class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
     folder_submit = Signal(str, str)
     secure_setting_change = Signal(str, str)
 
@@ -223,8 +223,16 @@ class PageSettingsUI(QWidget):
             lambda: self.open_folder_dialog("anki_audio_path")
         )
 
+    def get_element(self, el_type, key):
+        if el_type == "line_edit":
+
+            line_edit = getattr(self, f"lineEdit_{key}")
+            if not line_edit:
+                raise ValueError(f"No line edit found for key '{key}'")
+            return line_edit
+
     def get_line_edit_text(self, key):
-        line_edit = getattr(self, f"lineEdit_{key}")
+        line_edit = getattr(self, f"lineEdit_{key}", None)
         if not line_edit:
             raise ValueError(f"No line edit found for key '{key}'")
         return line_edit.text()
