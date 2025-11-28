@@ -39,14 +39,12 @@ class VerifySettings(QWidgetBase):
     def verify_settings(self, key, value=None):
         if key == "apple_note_name":
             self._verify_apple_note_name()
-        elif key == "anki_words_deck_name":
-            self._verify_deck_name(key)
-        elif key == "anki_sents_deck_name":
-            self._verify_deck_name(key)
-        elif key == "anki_model_name":
-            self._verify_deck_model()
+        elif key == "anki_words_deck_name" or key == "anki_sents_deck_name":
+            self._verify_anki(key, {"action": "deckNames", "version": 6})
+        elif key == "anki_sents_model_name" or key == "anki_words_model_name":
+            self._verify_anki(key, {"action": "modelNames", "version": 6})
         elif key == "anki_user":
-            self._verify_anki_user()
+            self._verify_anki(key, {"action": "getProfiles", "version": 6})
         elif key == "google_api_key":
             self._verify_google_api_key()
         elif key == "anki_audio_path":
@@ -119,6 +117,7 @@ class VerifySettings(QWidgetBase):
     def _verify_apple_note_name(self):
         self.change_verify_btn_disable.emit("apple_note_name", False)
         self.apple_note_thread = QThread(self)
+        ui_note_name = self.view.get_line_edit_text("apple_note_name")
         self.apple_worker = AppleNoteImport(
             self.view.get_line_edit_text("apple_note_name")
         )
@@ -127,36 +126,21 @@ class VerifySettings(QWidgetBase):
             self.apple_worker,
         )
         self.apple_worker.moveToThread(self.apple_note_thread)
-        self.apple_worker.note_name_verified.connect(self.apple_note_response)
+        self.apple_worker.note_name_verified.connect(
+            lambda response: self.response_update(
+                ui_note_name if response else "", "apple_note_name", False
+            )
+        )
         self.apple_worker.finished.connect(lambda: self.cleanup_task("apple_note_name"))
         self.apple_note_thread.started.connect(self.apple_worker.verify_note_name)
         self.apple_note_thread.start()
 
-    def _verify_deck_name(self, key):
-        json_data = {"action": "deckNames", "version": 6}
+    def _verify_anki(self, key, json_data):
         self.run_network_check(
             key,
             "http://127.0.0.1:8765/",
             json_data,
-            self.deck_response,
-        )
-
-    def _verify_deck_model(self):
-        json_data = {"action": "modelNames", "version": 6}
-        self.run_network_check(
-            "anki_model_name",
-            "http://127.0.0.1:8765/",
-            json_data,
-            self.model_response,
-        )
-
-    def _verify_anki_user(self):
-        json_data = {"action": "getProfiles", "version": 6}
-        self.run_network_check(
-            "anki_user",
-            "http://127.0.0.1:8765/",
-            json_data,
-            self.user_response,
+            self.response_update,
         )
 
     def _verify_google_api_key(self):
@@ -175,16 +159,6 @@ class VerifySettings(QWidgetBase):
         # self.audio_thread.finished.connect(self.reset_thread_reference)
 
         self.audio_thread.start()
-
-    def _verify_merriam_webster_api_key(self):
-        key = self.view.get_line_edit_text("merriam_webster_api_key")
-        print(key, "key")
-        self.run_network_check(
-            "merriam_webster_api_key",
-            f"https://www.dictionaryapi.com/api/v3/references/collegiate/json/voluminous?key={key}",
-            None,
-            self.merriam_webster_response,
-        )
 
     def _verify_path_keys(self, key, folder):
 
@@ -208,36 +182,14 @@ class VerifySettings(QWidgetBase):
         #     self.removal_thread.finished.connect(self.removal_thread.deleteLater)
         #     self.removal_thread.start()
 
-    def response_update(self, response, key, value, type="str"):
-        print("a", response, key, value)
-        if value in response:
-            print("b")
-            self.update_ui_verified(key, value)
+    def response_update(self, response, key, json_res=True):
+        if json_res:
+            res = response.json()["result"]
+        else:
+            res = response
+        print(res)
+        el = self.view.get_element("line_edit", key)
+        if el and el.text() in res:
+            self.update_ui_verified(key, el.text())
         else:
             self.verify_response_update_ui.emit(key, False)
-
-    def apple_note_response(self, response):
-        text = self.view.get_line_edit_text("apple_note_name")
-        self.response_update(
-            [f"{text if response else False}"], "apple_note_name", text
-        )
-
-    def deck_response(self, response, key):
-        res = response.json()["result"]
-        print(res)
-        text = self.view.get_line_edit_text(key)
-
-        self.response_update(res, key, text)
-
-    def model_response(self, response, key):
-        res = response["result"]
-        print(res)
-        text = self.view.get_line_edit_text(key)
-        self.response_update(res, key, text)
-
-    def user_response(self, response, key):
-        res = response.json()["result"]
-        print(res)
-        text = self.view.get_line_edit_text(key)
-
-        self.response_update(res, key, text)

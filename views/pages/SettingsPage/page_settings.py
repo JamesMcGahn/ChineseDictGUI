@@ -16,7 +16,7 @@ class PageSettings(QWidgetBase):
     audio_page_settings = Signal(str, bool, str, bool)
     sync_page_settings = Signal(str, bool, str, bool)
     log_page_settings = Signal(str, bool, str, bool)
-    define_page_settings = Signal(str, bool, str, bool)
+    define_page_settings = Signal(str, bool)
     save_log_settings_model = Signal(str, str, int, int, int, bool)
     verify_response_update_ui = Signal(str, bool)
     handle_change_update_ui = Signal(str)
