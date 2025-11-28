@@ -93,18 +93,18 @@ class PageSettings(QWidgetBase):
         )
 
         self.line_edit_connections = [
-            (self.view.lineEdit_apple_note_name, "apple_note_name", "str"),
-            (self.view.lineEdit_anki_sents_deck_name, "anki_sents_deck_name", "str"),
-            (self.view.lineEdit_anki_sents_model_name, "anki_sents_model_name", "str"),
-            (self.view.lineEdit_anki_words_deck_name, "anki_words_deck_name", "str"),
-            (self.view.lineEdit_anki_words_model_name, "anki_words_model_name", "str"),
-            (self.view.lineEdit_anki_user, "anki_user", "str"),
-            (self.view.lineEdit_anki_audio_path, "anki_audio_path", "str"),
-            (self.view.lineEdit_log_file_path, "log_file_path", "str"),
-            (self.view.lineEdit_log_file_name, "log_file_name", "str"),
-            (self.view.lineEdit_log_backup_count, "log_backup_count", "int"),
-            (self.view.lineEdit_log_file_max_mbs, "log_file_max_mbs", "int"),
-            (self.view.lineEdit_log_keep_files_days, "log_keep_files_days", "int"),
+            ("apple_note_name", "str"),
+            ("anki_sents_deck_name", "str"),
+            ("anki_sents_model_name", "str"),
+            ("anki_words_deck_name", "str"),
+            ("anki_words_model_name", "str"),
+            ("anki_user", "str"),
+            ("anki_audio_path", "str"),
+            ("log_file_path", "str"),
+            ("log_file_name", "str"),
+            ("log_backup_count", "int"),
+            ("log_file_max_mbs", "int"),
+            ("log_keep_files_days", "int"),
         ]
         # self.view.lineEdit_merriam_webster_api_key.textChanged.connect(
         #     lambda text, key="merriam_webster_api_key", field=self.view.lineEdit_merriam_webster_api_key: self.handle_secure_text_change_timer(
@@ -125,8 +125,7 @@ class PageSettings(QWidgetBase):
 
     def setup_text_changed_connections(self):
         for item in self.line_edit_connections:
-            line_edit, key, field_type = item
-            print(line_edit, key, field_type)
+            key, field_type = item
 
             el = self.view.get_element("line_edit", key)
             el.textChanged.connect(
@@ -230,15 +229,10 @@ class PageSettings(QWidgetBase):
         dictionary_source, dict_source_verifed = self.settings_model.get_setting(
             "dictionary_source"
         )
-        merriam_webster_api_key, merriam_webster_verifed = (
-            self.settings_model.get_setting("merriam_webster_api_key")
-        )
 
         self.define_page_settings.emit(
             dictionary_source,
             dict_source_verifed,
-            merriam_webster_api_key,
-            merriam_webster_verifed,
         )
 
     def send_import_page_settings(self):
