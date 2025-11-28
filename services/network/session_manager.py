@@ -62,15 +62,30 @@ class SessionManager(QObject, metaclass=QSingleton):
 
             cookies = OpenFile.open_pickle("./data/session.pickle")
             expired = False
+            cookie_domains = {}
             for cookie in cookies:
+                cookie_domain = cookie.domain
+                cookie_domain = cookie_domain.removeprefix(".")
+                cookie_domain = cookie_domain.removeprefix("www.")
+
+                if cookie_domain not in cookie_domains:
+                    cookie_domains[cookie_domain] = False
+
                 if cookie.expires and cookie.expires < time():
+                    cookie_domains[cookie_domain] = True
                     expired = True
+                    Logger().insert(
+                        f"Found an expired cookie for {cookie_domain}", "WARN"
+                    )
+
             if expired or len(cookies) == 0:
-                return False
+
+                return (False, cookie_domains)
             else:
                 self.set_cookies(cookies)
                 Logger().insert("Session Loaded...", "INFO")
-                return True
+
+                return (True, cookie_domains)
         except ValueError:
             Logger().insert("Error loading session - Filepath doesn't exist", "ERROR")
             return False
