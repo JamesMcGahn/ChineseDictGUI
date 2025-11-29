@@ -5,12 +5,14 @@ from PySide6.QtWidgets import QApplication
 
 from base import QWidgetBase
 from core.apple_note import AppleNoteImport
+from models.dictionary import Word
 from models.settings import AppSettingsModel, LogSettingsModel
 
 # from services.audio import RemoveDuplicateAudioWorker, AudioThread
 from services.audio import AudioThread
 from services.network import NetworkWorker
 from services.settings import AppSettings, SecureCredentials
+from utils.files import RemoveFileWorker
 
 from .page_settings_ui import PageSettingsUI
 
@@ -144,16 +146,15 @@ class VerifySettings(QWidgetBase):
         )
 
     def _verify_google_api_key(self):
-        # self.start_define.setDisabled(True)
-        # print(WordModel("", "", "test", "", "", "", "", ""))
-        # self.audio_thread = AudioThread(
-        #     [WordModel("", "", "test", "", "", "", "", "")],
-        #     folder_path="./",
-        #     credential_string=self.view.get_text_edit_text("google_api_key"),
-        # )
 
-        self.audio_thread.audio_word.connect(self.google_api_key_response)
-        self.audio_thread.error_word.connect(self.google_api_key_response)
+        # print(WordModel("", "", "test", "", "", "", "", ""))
+        self.audio_thread = AudioThread(
+            [Word("test", "", "", "", "", 0)],
+            folder_path="./",
+            google_audio_credential=self.view.get_text_edit_text("google_api_key"),
+        )
+
+        self.audio_thread.updateAnkiAudio.connect(self.google_api_key_response)
         self.audio_thread.finished.connect(self.audio_thread.deleteLater)
 
         # self.audio_thread.finished.connect(self.reset_thread_reference)
@@ -169,27 +170,48 @@ class VerifySettings(QWidgetBase):
     def google_api_key_response(self, response):
         print()
         # success = response.status == Status.AUDIO
-        text = self.view.get_text_edit_text("google_api_key")
-        # self.response_update([f"{text if success else False}"], "google_api_key", text)
+        if os.path.exists("./0.mp3"):
 
-        # if success:
-        #     paths = [response.audio_path]
-        #     self.removal_thread = QThread(self)
-        #     self.removal_worker = RemoveDuplicateAudio(paths)
-        #     self.removal_worker.moveToThread(self.removal_thread)
-        #     self.removal_thread.started.connect(self.removal_worker.do_work)
-        #     self.removal_thread.finished.connect(self.removal_worker.deleteLater)
-        #     self.removal_thread.finished.connect(self.removal_thread.deleteLater)
-        #     self.removal_thread.start()
+            self.response_update(
+                "google_api_key",
+                "google_api_key",
+                False,
+                "text_edit",
+                override_check=True,
+            )
 
-    def response_update(self, response, key, json_res=True):
+            paths = ["./0.mp3"]
+            self.removal_thread = QThread(self)
+            self.removal_worker = RemoveFileWorker(paths)
+            self.removal_worker.moveToThread(self.removal_thread)
+            self.removal_thread.started.connect(self.removal_worker.do_work)
+            self.removal_thread.finished.connect(self.removal_worker.deleteLater)
+            self.removal_thread.finished.connect(self.removal_thread.deleteLater)
+            self.removal_thread.start()
+
+    def response_update(
+        self, response, key, json_res=True, field_type="line_edit", override_check=False
+    ):
+        success = False
+        value = ""
+
         if json_res:
             res = response.json()["result"]
         else:
             res = response
         print(res)
-        el = self.view.get_element("line_edit", key)
-        if el and el.text() in res:
-            self.update_ui_verified(key, el.text())
+        if field_type == "line_edit":
+            el = self.view.get_element("line_edit", key)
+            value = el.text()
+            if el and value in res:
+                success = True
+        elif field_type == "text_edit":
+            el = self.view.get_element("text_edit", key)
+            value = el.toPlainText()
+            if el and el.toPlainText() in res:
+                success = True
+
+        if success or override_check:
+            self.update_ui_verified(key, value)
         else:
             self.verify_response_update_ui.emit(key, False)

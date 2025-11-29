@@ -230,6 +230,11 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
             if not line_edit:
                 raise ValueError(f"No line edit found for key '{key}'")
             return line_edit
+        elif el_type == "text_edit":
+            text_edit = getattr(self, f"textEdit_{key}")
+            if not text_edit:
+                raise ValueError(f"No line edit found for key '{key}'")
+            return text_edit
 
     def get_line_edit_text(self, key):
         line_edit = getattr(self, f"lineEdit_{key}", None)

@@ -1,3 +1,5 @@
+import json
+
 import google
 from google.cloud import texttospeech
 from PySide6.QtCore import QTimer, Signal, Slot
@@ -20,6 +22,7 @@ class GoogleAudioWorker(QObjectBase):
         success_message="Google Audio Successfully Downloaded.",
         audio_object=None,
         project_name="",
+        google_audio_credential="",
     ):
         super().__init__()
         self.text = text
@@ -30,13 +33,23 @@ class GoogleAudioWorker(QObjectBase):
         self.audio_object = audio_object
         self.success_message = success_message
         self.project_name = project_name
+        self.google_audio_credential = google_audio_credential
 
     @Slot()
     def do_work(self):
         self.logging(f"Starting Google Audio Worker in thread {self.thread()}")
         try:
-            client = texttospeech.TextToSpeechClient.from_service_account_json(
-                self.access_key_location
+            if self.google_audio_credential:
+
+                service_account_info = json.loads(self.google_audio_credential)
+
+            elif self.access_key_location:
+                service_account_info = json.load(open(self.folder_path))
+            else:
+                raise ValueError("Service account json file or string not provided.")
+
+            client = texttospeech.TextToSpeechClient.from_service_account_info(
+                service_account_info
             )
 
             input_text = texttospeech.SynthesisInput(text=self.text)

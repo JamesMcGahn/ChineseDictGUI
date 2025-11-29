@@ -17,7 +17,9 @@ class AudioDownloadWorker(QObjectBase):
     progress = Signal(str)
     start_whisper = Signal(str, str)
 
-    def __init__(self, data, folder_path=None, project_name=None):
+    def __init__(
+        self, data, folder_path=None, project_name=None, google_audio_credential=""
+    ):
         super().__init__()
         self.folder_path = folder_path
         self.data = deque(data)
@@ -29,6 +31,7 @@ class AudioDownloadWorker(QObjectBase):
         self.download_error = 0
         self.data_length = len(self.data)
         self.project_type = ""
+        self.google_audio_credential = google_audio_credential
 
     def do_work(self):
         QTimer.singleShot(0, self.download_next_audio)
@@ -123,6 +126,7 @@ class AudioDownloadWorker(QObjectBase):
             project_name=self.project_name,
             success_message=success_message,
             audio_object=x,
+            google_audio_credential=self.google_audio_credential,
         )
 
         self.google_audio.success.connect(self.google_download_success)

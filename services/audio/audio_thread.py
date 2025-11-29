@@ -19,6 +19,7 @@ class AudioThread(QThread):
         combine_audio_export_filename="combined_audio.mp3",
         combine_audio_delay_between_audio=1500,
         project_name=None,
+        google_audio_credential="",
     ):
         super().__init__()
         self.folder_path = folder_path
@@ -29,11 +30,15 @@ class AudioThread(QThread):
         self.combine_audio_delay_between_audio = combine_audio_delay_between_audio
         self.combine_audio_delay_between_audio = combine_audio_delay_between_audio
         self.project_name = project_name
+        self.google_audio_credential = google_audio_credential
 
     def run(self):
         print("Starting Audio Thread")
         self.worker = AudioDownloadWorker(
-            self.data, self.folder_path, project_name=self.project_name
+            self.data,
+            self.folder_path,
+            project_name=self.project_name,
+            google_audio_credential=self.google_audio_credential,
         )
 
         self.worker.moveToThread(self)
