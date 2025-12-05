@@ -8,6 +8,7 @@ from services.settings import AppSettings, SecureCredentials
 
 from .field_registry import FieldRegistry
 from .page_settings_ui import PageSettingsUI
+from .settings_ui_helper import SettingsUIHelper
 from .verify_settings import VerifySettings
 
 
@@ -33,6 +34,7 @@ class PageSettings(QWidgetBase):
         self.settings = AppSettings()
         self.settings_model = AppSettingsModel()
         self.log_settings = LogSettingsModel()
+        self.sui = SettingsUIHelper()
 
         self.secure_creds = SecureCredentials()
         self.timers = {}
@@ -115,12 +117,12 @@ class PageSettings(QWidgetBase):
         # )
         self.setup_text_changed_connections()
         self.verify_settings.verify_response_update_ui.connect(
-            self.view.verify_response_update
+            self.sui.verify_response_update
         )
         self.verify_settings.send_settings_update.connect(self.send_settings_update)
-        self.handle_change_update_ui.connect(self.view.handle_setting_change_update)
+        self.handle_change_update_ui.connect(self.sui.handle_setting_change_update)
         self.verify_settings.change_verify_btn_disable.connect(
-            self.view.set_verify_btn_disable
+            self.sui.set_verify_btn_disable
         )
         self.view.folder_submit.connect(self.folder_change)
         self.view.secure_setting_change.connect(self.handle_secure_setting_change)
