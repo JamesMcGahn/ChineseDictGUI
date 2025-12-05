@@ -1,4 +1,4 @@
-from PySide6.QtCore import QObject, QSize, Qt, Slot
+from PySide6.QtCore import QObject, QSize, Qt, QTimer, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QComboBox,
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from models.settings import AppSettingsModel
+from services.settings import AppSettings, SecureCredentials
 
 from .field_registry import FieldRegistry
 
@@ -19,8 +20,13 @@ from .field_registry import FieldRegistry
 class SettingsUIHelper(QObject):
 
     def __init__(self):
+        super().__init__()
         self.field_registery = FieldRegistry()
         self.app_settings = AppSettingsModel()
+        self.settings = AppSettings()
+
+        self.timers = {}
+
         self.x_icon = QIcon()
         self.x_icon.addFile(
             ":/images/red_check.png",
@@ -76,6 +82,8 @@ class SettingsUIHelper(QObject):
         lineEdit=True,
         folder_icon=False,
         comboBox=False,
+        field_type="str",
+        secure_setting=False,
     ):
 
         value, verified = self.app_settings.get_setting(key)
@@ -120,8 +128,15 @@ class SettingsUIHelper(QObject):
         if lineEdit:
             line_edit_field = QLineEdit()
             self.field_registery.register_field(f"lineEdit_{key}", line_edit_field)
+
             line_edit_field.setText(str(value))
+
             h_layout.addWidget(line_edit_field)
+            line_edit_field.textChanged.connect(
+                lambda word, key=key, field_type=field_type, secure=secure_setting: self.handle_text_change_timer(
+                    key, word, field_type, secure
+                )
+            )
             if folder_icon:
                 h_layout.addWidget(folder_icon_button)
             settings_grid_layout.addLayout(h_layout, last_row, 1, Qt.AlignTop)
@@ -132,6 +147,11 @@ class SettingsUIHelper(QObject):
             comboBox_widget.setCurrentText(str(value))
             h_layout.addWidget(comboBox_widget)
             settings_grid_layout.addLayout(h_layout, last_row, 1, Qt.AlignTop)
+            comboBox_widget.currentIndexChanged.connect(
+                lambda index, key=key, type="bool": self.onComboBox_changed(
+                    index, key, type
+                )
+            )
         else:
             h_layout = QVBoxLayout()
             text_edit_field = QTextEdit()
@@ -161,3 +181,41 @@ class SettingsUIHelper(QObject):
             verify_button,
             h_layout,
         )
+
+    def handle_setting_change(self, key, word, field_type="str"):
+        """
+        Handles the setting change: saves the new value and updates the icon.
+
+        Args:
+            key (str): The field name for the setting.
+            word (str): The new value of the setting.
+            icon_label (QLabel): The icon label to update.
+        """
+
+        self.app_settings.change_setting(key, word, type=field_type)
+        self.handle_setting_change_update(key)
+
+    def handle_text_change_timer(self, key, text, field_type, secure=False):
+        if key in self.timers:
+            self.timers[key].stop()
+
+        self.timers[key] = QTimer(self)
+        self.timers[key].setSingleShot(True)
+        if secure:
+            self.timers[key].timeout.connect(
+                lambda: self.handle_secure_user_done_typing(key, text)
+            )
+        else:
+            self.timers[key].timeout.connect(
+                lambda: self.handle_setting_change(key, text, field_type)
+            )
+
+        self.timers[key].start(500)
+
+    def onComboBox_changed(self, _, key, field_type="str"):
+        selected_text = self.field_registery.get_field(f"comboBox_{key}").currentText()
+        self.handle_setting_change(key, selected_text, field_type)
+
+    def handle_secure_setting_change(self, field, word):
+        self.app_settings.change_secure_setting(field, word)
+        self.handle_setting_change_update(field)

@@ -24,6 +24,9 @@ class PageSettings(QWidgetBase):
     handle_change_update_ui = Signal(str)
     change_verify_btn_disable = Signal(str, bool)
 
+    handle_setting_change = Signal(str, str, str)
+    handle_text_change_timer = Signal(str, str, str)
+
     def __init__(self):
         super().__init__()
 
@@ -85,37 +88,6 @@ class PageSettings(QWidgetBase):
             lambda: self.handle_verify("auto_save_on_close")
         )
 
-        self.view.comboBox_dictionary_source.currentIndexChanged.connect(
-            lambda index, sender=self.view.comboBox_dictionary_source, key="dictionary_source": self.onComboBox_changed(
-                index, sender, key
-            )
-        )
-        self.view.comboBox_auto_save_on_close.currentIndexChanged.connect(
-            lambda index, sender=self.view.comboBox_auto_save_on_close, key="auto_save_on_close", type="bool": self.onComboBox_changed(
-                index, sender, key, type
-            )
-        )
-
-        self.line_edit_connections = [
-            ("apple_note_name", "str"),
-            ("anki_sents_deck_name", "str"),
-            ("anki_sents_model_name", "str"),
-            ("anki_words_deck_name", "str"),
-            ("anki_words_model_name", "str"),
-            ("anki_user", "str"),
-            ("anki_audio_path", "str"),
-            ("log_file_path", "str"),
-            ("log_file_name", "str"),
-            ("log_backup_count", "int"),
-            ("log_file_max_mbs", "int"),
-            ("log_keep_files_days", "int"),
-        ]
-        # self.view.lineEdit_merriam_webster_api_key.textChanged.connect(
-        #     lambda text, key="merriam_webster_api_key", field=self.view.lineEdit_merriam_webster_api_key: self.handle_secure_text_change_timer(
-        #         text, key, field
-        #     )
-        # )
-        self.setup_text_changed_connections()
         self.verify_settings.verify_response_update_ui.connect(
             self.sui.verify_response_update
         )
@@ -125,74 +97,9 @@ class PageSettings(QWidgetBase):
             self.sui.set_verify_btn_disable
         )
         self.view.folder_submit.connect(self.folder_change)
-        self.view.secure_setting_change.connect(self.handle_secure_setting_change)
-
-    def setup_text_changed_connections(self):
-        for item in self.line_edit_connections:
-            key, field_type = item
-
-            el = self.view.get_element("line_edit", key)
-            el.textChanged.connect(
-                lambda word, key=key, field_type=field_type: self.handle_text_change_timer(
-                    key=key, text=word, field_type=field_type
-                )
-            )
-
-    def handle_text_change_timer(self, key, text, field_type):
-        if key in self.timers:
-            self.timers[key].stop()
-
-        self.timers[key] = QTimer(self)
-        self.timers[key].setSingleShot(True)
-        self.timers[key].timeout.connect(
-            lambda: self.handle_setting_change(key, text, field_type)
-        )
-
-        self.timers[key].start(500)
-
-    def handle_user_done_typing(self, key, field):
-        text = field.text()
-        self.handle_secure_setting_change(key, text)
-
-    def handle_secure_text_change_timer(self, text, key, field):
-        if key not in self.timers:
-            self.timers[key] = QTimer()
-            self.timers[key].setSingleShot(True)
-            self.timers[key].timeout.connect(
-                lambda: self.handle_secure_user_done_typing(key, field)
-            )
-
-        self.timers[key].start(1000)
-
-    def handle_secure_user_done_typing(self, key, field):
-        text = field.text()
-        self.handle_secure_setting_change(key, text)
-
-    def onComboBox_changed(self, index, sender, key, field_type="str"):
-        selected_text = sender.currentText()
-        print("currentText", selected_text)
-        self.handle_setting_change(key, selected_text, field_type)
-
-    def handle_setting_change(self, field, word, field_type="str"):
-        """
-        Handles the setting change: saves the new value and updates the icon.
-
-        Args:
-            field (str): The field name for the setting.
-            word (str): The new value of the setting.
-            icon_label (QLabel): The icon label to update.
-        """
-
-        self.settings_model.change_setting(field, word, type=field_type)
-        self.handle_change_update_ui.emit(field)
-
-    @Slot(str, str)
-    def handle_secure_setting_change(self, field, word):
-        self.settings_model.change_secure_setting(
-            field,
-            word,
-        )
-        self.handle_change_update_ui.emit(field)
+        self.view.secure_setting_change.connect(self.sui.handle_secure_setting_change)
+        self.handle_setting_change.connect(self.sui.handle_setting_change)
+        self.handle_text_change_timer.connect(self.sui.handle_text_change_timer)
 
     def handle_verify(self, key):
         self.verify_settings.verify_settings(key)
@@ -299,171 +206,3 @@ class PageSettings(QWidgetBase):
         self.send_logs_page_setting()
         self.send_define_page_settings()
         self.send_main_app_settings()
-
-
-# import os
-
-# from PySide6.QtCore import Signal
-# from PySide6.QtWidgets import QVBoxLayout
-
-# from base import QWidgetBase
-# from components.toasts import QToast
-# from core.anki_integration.imports import (
-#     AnkiInitialImportThread,
-#     AnkiSyncExportThread,
-#     AnkiSyncImportThread,
-# )
-# from services.network import NetworkThread
-# from services.settings import AppSettings
-
-# from .page_settings_ui import PageSettingsUI
-
-
-# class PageSettings(QWidgetBase):
-#     md_multi_selection_sig = Signal(int)
-#     use_cpod_def_sig = Signal(bool)
-#     updated_sents_levels_sig = Signal(bool, list)
-
-#     def __init__(self):
-
-#         super().__init__()
-#         self.setObjectName("settings_page")
-#         module_dir = os.path.dirname(os.path.realpath(__file__))
-#         file_path = os.path.join(module_dir, "settings.css")
-#         with open(file_path, "r") as ss:
-#             self.setStyleSheet(ss.read())
-#         self.ui = PageSettingsUI()
-#         wrap = QVBoxLayout(self)
-#         wrap.setContentsMargins(0, 0, 0, 0)
-#         wrap.addWidget(self.ui)
-
-#         self.settings = AppSettings()
-#         # self.ui.import_deck_btn.clicked.connect(self.import_anki_deck)
-
-#         # self.get_deck_names()
-
-#         # self.ui.lineEdit_anki_sents_deck.textChanged.connect(
-#         #     lambda word, caller="sents": self.change_deck_names(word, caller)
-#         # )
-#         # self.ui.lineEdit_anki_words_deck.textChanged.connect(
-#         #     lambda word, caller="words": self.change_deck_names(word, caller)
-#         # )
-
-#         # self.ui.label_anki_sents_verify_btn.clicked.connect(
-#         #     lambda checked, caller="sents": self.clicked_verify_deck_names(
-#         #         checked, caller
-#         #     )
-#         # )
-#         # self.ui.label_anki_words_verify_btn.clicked.connect(
-#         #     lambda checked, caller="words": self.clicked_verify_deck_names(
-#         #         checked, caller
-#         #     )
-#         # )
-
-#         # self.ui.sync_import_btn.clicked.connect(self.anki_sync_import)
-#         # self.ui.sync_export_btn.clicked.connect(self.anki_sync_export)
-
-#     def get_deck_names(self):
-#         self.settings.begin_group("deckNames")
-#         self.sents_deck = self.settings.get_value("sents", "")
-#         self.words_deck = self.settings.get_value("words", "")
-#         self.ui.lineEdit_anki_sents_deck.setText(self.sents_deck)
-#         self.ui.lineEdit_anki_words_deck.setText(self.words_deck)
-#         self.words_verified = self.settings.get_value("words-verified", False)
-#         self.sents_verified = self.settings.get_value("sents-verified", False)
-
-#         self.ui.label_anki_words_deck_verfied.setIcon(
-#             self.ui.check_icon if self.words_verified else self.ui.x_icon
-#         )
-#         self.ui.label_anki_sents_deck_verfied.setIcon(
-#             self.ui.check_icon if self.sents_verified else self.ui.x_icon
-#         )
-
-#         self.ui.label_anki_sents_verify_btn.setDisabled(self.sents_verified)
-#         self.ui.label_anki_words_verify_btn.setDisabled(self.words_verified)
-
-#         self.settings.end_group()
-
-#     def change_deck_names(self, deckName, caller, verified=False):
-#         self.settings.begin_group("deckNames")
-#         self.settings.set_value(caller, deckName)
-#         self.settings.set_value(f"{caller}-verified", verified)
-#         self.settings.end_group()
-#         self.get_deck_names()
-
-#     def import_anki_deck(self):
-#         self.import_anki_w = AnkiInitialImportThread("Mandarin Words", "words")
-#         self.import_anki_w.start()
-#         self.import_anki_w.finished.connect(self.import_anki_sents)
-
-#     # # TODO: Refesh dictionary view when loaded
-#     # # TODO: Remove threads
-#     def import_anki_sents(self):
-#         self.import_anki_s = AnkiInitialImportThread("Mandarin 10k Sentences", "sents")
-#         self.import_anki_s.start()
-
-#     def clicked_verify_deck_names(self, _, caller):
-#         print("sss", caller)
-#         json = {"action": "deckNames", "version": 6}
-#         self.net_thread = NetworkThread("GET", "http://127.0.0.1:8765/", json=json)
-#         self.net_thread.response_sig.connect(
-#             lambda status, response, errorType=None, caller=caller: self.verify_decks_response(
-#                 status, response, errorType, caller
-#             )
-#         )
-#         self.net_thread.error_sig.connect(
-#             lambda status, err, errorType, caller=caller: self.verify_decks_response(
-#                 status, err, errorType, caller
-#             )
-#         )
-#         self.net_thread.finished.connect(self.net_thread.deleteLater)
-#         self.net_thread.start()
-
-#     def verify_decks_response(self, status, response, errorType, caller):
-#         if status == "success":
-#             response = response.json()
-#             deckName = self.settings.get_value(f"deckNames/{caller}", None)
-#             if deckName in response["result"]:
-#                 self.change_deck_names(deckName, caller, True)
-#                 QToast(
-#                     self,
-#                     "success",
-#                     "Deck Name Verified",
-#                     "Deck Name found in Anki, verify all decks and then start the integration!",
-#                 ).show()
-#             else:
-#                 QToast(
-#                     self,
-#                     "error",
-#                     "Deck Name Not Found",
-#                     "Deck Name not found in Anki, please make sure you have it typed correctly.",
-#                 ).show()
-#         else:
-#             QToast(
-#                 self,
-#                 "error",
-#                 "Anki API Error",
-#                 "Make sure that you have Anki Opened",
-#             ).show()
-
-#     def anki_sync_import(self):
-#         if (
-#             self.sents_deck
-#             and self.words_deck
-#             and self.words_verified
-#             and self.sents_verified
-#         ):
-#             self.sync_thread = AnkiSyncImportThread(self.words_deck, self.sents_deck)
-#             self.sync_thread.start()
-#             print("Sync Import")
-
-#     def anki_sync_export(self):
-#         if (
-#             self.sents_deck
-#             and self.words_deck
-#             and self.words_verified
-#             and self.sents_verified
-#         ):
-#             self.sync_thread = AnkiSyncExportThread(self.words_deck, self.sents_deck)
-#             self.sync_thread.start()
-#             print("Sync Import")

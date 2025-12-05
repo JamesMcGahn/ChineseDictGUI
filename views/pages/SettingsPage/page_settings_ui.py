@@ -162,6 +162,7 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
             "Log Backup Count:",
             "Save Log Backup Count",
             self.settings_grid_layout,
+            field_type="int",
         )
         (
             self.lineEdit_log_file_max_mbs,
@@ -173,6 +174,7 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
             "Log File Max Mbs:",
             "Save Log File Max Mbs",
             self.settings_grid_layout,
+            field_type="int",
         )
         (
             self.lineEdit_log_keep_files_days,
@@ -184,6 +186,7 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
             "Keep Log File Days:",
             "Save Log File Days",
             self.settings_grid_layout,
+            field_type="int",
         )
 
         (
