@@ -6,6 +6,7 @@ from base import QWidgetBase
 from models.settings import AppSettingsModel, LogSettingsModel
 from services.settings import AppSettings, SecureCredentials
 
+from .field_registry import FieldRegistry
 from .page_settings_ui import PageSettingsUI
 from .verify_settings import VerifySettings
 
@@ -36,6 +37,7 @@ class PageSettings(QWidgetBase):
         self.secure_creds = SecureCredentials()
         self.timers = {}
         self.home_directory = os.path.expanduser("~")
+        self.field_registery = FieldRegistry()
         print("home", self.home_directory)
         # self.get_settings("ALL", setText=True)
 
@@ -217,7 +219,7 @@ class PageSettings(QWidgetBase):
         elif key in ["dictionary_source", "merriam_webster_api_key"]:
             self.send_define_page_settings()
         elif key in ["auto_save_on_close"]:
-            self.main_app_settings()
+            self.send_main_app_settings()
 
     def send_main_app_settings(self):
         auto_save_on_close, auto_save_on_close_verifed = (

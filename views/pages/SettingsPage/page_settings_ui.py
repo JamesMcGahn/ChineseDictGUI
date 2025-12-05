@@ -19,6 +19,8 @@ from base import QSingleton, QWidgetBase
 from components.utils import ColoredSpacer
 from models.settings import AppSettingsModel
 
+from .field_registry import FieldRegistry
+
 
 class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
     folder_submit = Signal(str, str)
@@ -27,7 +29,7 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
     def __init__(self):
         super().__init__()
         self.settings_page_layout = QHBoxLayout(self)
-
+        self.field_registery = FieldRegistry()
         self.app_settings = AppSettingsModel()
         self.app_settings.get_settings()
         self.inner_settings_page_layout = QHBoxLayout()
@@ -226,30 +228,30 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
     def get_element(self, el_type, key):
         if el_type == "line_edit":
 
-            line_edit = getattr(self, f"lineEdit_{key}")
+            line_edit = self.field_registery.get_field(f"lineEdit_{key}")
             if not line_edit:
                 raise ValueError(f"No line edit found for key '{key}'")
             return line_edit
         elif el_type == "text_edit":
-            text_edit = getattr(self, f"textEdit_{key}")
+            text_edit = self.field_registery.get_field(f"textEdit_{key}")
             if not text_edit:
                 raise ValueError(f"No line edit found for key '{key}'")
             return text_edit
 
     def get_line_edit_text(self, key):
-        line_edit = getattr(self, f"lineEdit_{key}", None)
+        line_edit = self.field_registery.get_field(f"lineEdit_{key}")
         if not line_edit:
             raise ValueError(f"No line edit found for key '{key}'")
         return line_edit.text()
 
     def get_combo_box_text(self, key):
-        combo_box = getattr(self, f"comboBox_{key}")
+        combo_box = self.field_registery.get_field(f"comboBox_{key}")
         if not combo_box:
             raise ValueError(f"No line edit found for key '{key}'")
         return combo_box.currentText()
 
     def get_text_edit_text(self, key):
-        textEdit = getattr(self, f"textEdit_{key}")
+        textEdit = self.field_registery.get_field(f"textEdit_{key}")
         if not textEdit:
             raise ValueError(f"No line edit found for key '{key}'")
         return textEdit.toPlainText()
@@ -283,10 +285,14 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
         label.setStyleSheet("color:white;")
 
         verify_icon_button = QPushButton()
+        self.field_registery.register_field(
+            f"label_{key}_verified_icon", verify_icon_button
+        )
         verify_icon_button.setMaximumWidth(40)
         verify_icon_button.setStyleSheet("background:transparent;border: none;")
         verify_icon_button.setIcon(self.check_icon if verified else self.x_icon)
         verify_button = QPushButton(verify_button_text)
+        self.field_registery.register_field(f"btn_{key}_verify", verify_button)
         verify_button.setCursor(Qt.PointingHandCursor)
         if isinstance(verified, bool):
             verify_button.setDisabled(verified)
@@ -297,6 +303,7 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
 
         if folder_icon:
             folder_icon_button = QPushButton()
+            self.field_registery.register_field(f"btn_{key}_folder", folder_icon_button)
             folder_icon_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
             folder_icon_button.setStyleSheet(
                 "background:transparent;border: none; margin: 0px; padding: 0px;"
@@ -308,6 +315,7 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
 
         if lineEdit:
             line_edit_field = QLineEdit()
+            self.field_registery.register_field(f"lineEdit_{key}", line_edit_field)
             line_edit_field.setText(str(value))
             h_layout.addWidget(line_edit_field)
             if folder_icon:
@@ -315,6 +323,7 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
             self.settings_grid_layout.addLayout(h_layout, last_row, 1, Qt.AlignTop)
         elif comboBox and len(comboBox) > 0:
             comboBox_widget = QComboBox()
+            self.field_registery.register_field(f"comboBox_{key}", comboBox_widget)
             comboBox_widget.addItems(comboBox)
             comboBox_widget.setCurrentText(str(value))
             h_layout.addWidget(comboBox_widget)
@@ -322,6 +331,7 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
         else:
             h_layout = QVBoxLayout()
             text_edit_field = QTextEdit()
+            self.field_registery.register_field(f"textEdit_{key}", text_edit_field)
             text_edit_field.setText(value)
             h_layout.addWidget(text_edit_field)
             self.settings_grid_layout.addLayout(h_layout, last_row, 1, Qt.AlignTop)
@@ -355,8 +365,8 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
 
     @Slot(str, bool)
     def verify_response_update(self, key, verified):
-        icon_label = getattr(self, f"label_{key}_verified_icon")
-        verify_btn = getattr(self, f"btn_{key}_verify")
+        icon_label = self.field_registery.get_field(f"label_{key}_verified_icon")
+        verify_btn = self.field_registery.get_field(f"btn_{key}_verify")
         if verified:
             self.change_icon_button(icon_label, True)
             verify_btn.setDisabled(True)
@@ -366,15 +376,15 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
 
     @Slot(str)
     def handle_setting_change_update(self, key):
-        icon_label = getattr(self, f"label_{key}_verified_icon")
+        icon_label = self.field_registery.get_field(f"label_{key}_verified_icon")
         self.change_icon_button(icon_label, False)
 
-        verify_btn = getattr(self, f"btn_{key}_verify")
+        verify_btn = self.field_registery.get_field(f"btn_{key}_verify")
         verify_btn.setDisabled(False)
 
     @Slot(str, bool)
     def set_verify_btn_disable(self, key, disable):
-        verify_btn = getattr(self, f"btn_{key}_verify")
+        verify_btn = self.field_registery.get_field(f"btn_{key}_verify")
         verify_btn.setDisabled(disable)
 
     def open_folder_dialog(self, key) -> None:
@@ -385,7 +395,7 @@ class PageSettingsUI(QWidgetBase, metaclass=QSingleton):
         Returns:
             None: This function does not return a value.
         """
-        line_edit = getattr(self, f"lineEdit_{key}")
+        line_edit = self.field_registery.get_field(f"lineEdit_{key}")
         path = line_edit.text() or "./"
 
         folder = QFileDialog.getExistingDirectory(self, "Select Folder", dir=path)
