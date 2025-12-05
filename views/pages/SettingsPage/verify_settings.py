@@ -147,7 +147,6 @@ class VerifySettings(QWidgetBase):
 
     def _verify_google_api_key(self):
 
-        # print(WordModel("", "", "test", "", "", "", "", ""))
         self.audio_thread = AudioThread(
             [Word("test", "", "", "", "", 0)],
             folder_path="./",
@@ -156,8 +155,6 @@ class VerifySettings(QWidgetBase):
 
         self.audio_thread.updateAnkiAudio.connect(self.google_api_key_response)
         self.audio_thread.finished.connect(self.audio_thread.deleteLater)
-
-        # self.audio_thread.finished.connect(self.reset_thread_reference)
 
         self.audio_thread.start()
 
