@@ -14,7 +14,7 @@ class WhisperWorker(QObjectBase):
         super().__init__()
         self.folder = Path(folder)
         self.filename = file_name
-        self.language = "Mandarin"
+        self.language = "zh"
         self.model_name = model_name
         self._stopped = False
         self.model_name = "large"
