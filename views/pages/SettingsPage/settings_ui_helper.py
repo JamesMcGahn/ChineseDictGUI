@@ -1,7 +1,8 @@
-from PySide6.QtCore import QObject, QSize, Qt, QTimer, Slot
+from PySide6.QtCore import QObject, QSize, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QComboBox,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -11,19 +12,20 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from base import QSingleton
 from models.settings import AppSettingsModel
-from services.settings import AppSettings, SecureCredentials
+from services.settings import SecureCredentials
 
 from .field_registry import FieldRegistry
 
 
 class SettingsUIHelper(QObject):
+    send_to_verify = Signal(str, str)
 
     def __init__(self):
         super().__init__()
         self.field_registery = FieldRegistry()
         self.app_settings = AppSettingsModel()
-        self.settings = AppSettings()
 
         self.timers = {}
 
@@ -51,6 +53,7 @@ class SettingsUIHelper(QObject):
 
     @Slot(str, bool)
     def verify_response_update(self, key, verified):
+        print("ssss11111")
         icon_label = self.field_registery.get_field(f"label_{key}_verified_icon")
         verify_btn = self.field_registery.get_field(f"btn_{key}_verify")
         if verified:
@@ -73,6 +76,10 @@ class SettingsUIHelper(QObject):
         verify_btn = self.field_registery.get_field(f"btn_{key}_verify")
         verify_btn.setDisabled(disable)
 
+    def handle_verify(self, key, value=None):
+        print("ee", key, value)
+        self.send_to_verify.emit(key, value)
+
     def create_input_fields(
         self,
         key,
@@ -85,7 +92,7 @@ class SettingsUIHelper(QObject):
         field_type="str",
         secure_setting=False,
     ):
-
+        print(key)
         value, verified = self.app_settings.get_setting(key)
         last_row = settings_grid_layout.count() // 4
         h_layout = QHBoxLayout()
@@ -106,6 +113,7 @@ class SettingsUIHelper(QObject):
         verify_button = QPushButton(verify_button_text)
         self.field_registery.register_field(f"btn_{key}_verify", verify_button)
         verify_button.setCursor(Qt.PointingHandCursor)
+
         if isinstance(verified, bool):
             verify_button.setDisabled(verified)
         else:
@@ -124,11 +132,15 @@ class SettingsUIHelper(QObject):
             folder_icon_button.setCursor(Qt.PointingHandCursor)
 
             folder_icon_button.setIcon(self.folder_icon)
+            folder_icon_button.clicked.connect(lambda: self.open_folder_dialog(key))
+            verify_button.clicked.connect(lambda: self.open_folder_dialog(key))
+        else:
+            verify_button.clicked.connect(lambda: self.handle_verify(key))
 
         if lineEdit:
             line_edit_field = QLineEdit()
             self.field_registery.register_field(f"lineEdit_{key}", line_edit_field)
-
+            print(key, value)
             line_edit_field.setText(str(value))
 
             h_layout.addWidget(line_edit_field)
@@ -219,3 +231,24 @@ class SettingsUIHelper(QObject):
     def handle_secure_setting_change(self, field, word):
         self.app_settings.change_secure_setting(field, word)
         self.handle_setting_change_update(field)
+
+    def open_folder_dialog(self, key) -> None:
+        """
+        Opens a dialog for the user to select a folder for storing log files.
+        Once a folder is selected, the path is updated in the corresponding input field.
+
+        Returns:
+            None: This function does not return a value.
+        """
+
+        line_edit = self.field_registery.get_field(f"lineEdit_{key}")
+        path = line_edit.text() or "./"
+
+        folder = QFileDialog.getExistingDirectory(caption="Select Folder", dir=path)
+
+        if folder:
+            folder = folder if folder[-1] == "/" else folder + "/"
+            line_edit.blockSignals(True)
+            line_edit.setText(folder)
+            line_edit.blockSignals(False)
+            self.handle_verify(key, folder)

@@ -1,9 +1,9 @@
 import os
 
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QObject, QThread, Signal
 from PySide6.QtWidgets import QApplication
 
-from base import QWidgetBase
+from base import QSingleton, QWidgetBase
 from core.apple_note import AppleNoteImport
 from models.dictionary import Word
 from models.settings import AppSettingsModel, LogSettingsModel
@@ -14,12 +14,13 @@ from services.network import NetworkWorker
 from services.settings import AppSettings, SecureCredentials
 from utils.files import RemoveFileWorker
 
-from .page_settings_ui import PageSettingsUI
+from .field_registry import FieldRegistry
 
 
-class VerifySettings(QWidgetBase):
+class VerifySettings(QObject):
     send_settings_verified = Signal(str)
     verify_response_update_ui = Signal(str, bool)
+    verify_response_update_sui = Signal(str, bool)
     send_settings_update = Signal(str)
     change_verify_btn_disable = Signal(str, bool)
     signal_request_line_value = Signal(str)  # key
@@ -31,14 +32,13 @@ class VerifySettings(QWidgetBase):
         self.settings = AppSettings()
         self.settings_model = AppSettingsModel()
         self.log_settings = LogSettingsModel()
-
+        self.field_registery = FieldRegistry()
         self.secure_creds = SecureCredentials()
-        self.view = PageSettingsUI()
+
         self.home_directory = os.path.expanduser("~")
-        print("home", self.home_directory)
-        # self.get_settings("ALL", setText=True)
 
     def verify_settings(self, key, value=None):
+        print("inn")
         if key == "apple_note_name":
             self._verify_apple_note_name()
         elif key == "anki_words_deck_name" or key == "anki_sents_deck_name":
@@ -54,31 +54,32 @@ class VerifySettings(QWidgetBase):
         elif key == "log_file_path":
             self._verify_path_keys("log_file_path", value)
         elif key == "log_backup_count":
-            text = self.view.get_line_edit_text("log_backup_count")
+            text = self.field_registery.get_line_edit_text("log_backup_count")
             self.update_ui_verified("log_backup_count", text, "int")
         elif key == "log_file_name":
-            text = self.view.get_line_edit_text("log_file_name")
+            text = self.field_registery.get_line_edit_text("log_file_name")
             if not text.endswith(".log"):
                 text = text + ".log"
             self.update_ui_verified("log_file_name", text)
         elif key == "log_file_max_mbs":
-            text = self.view.get_line_edit_text("log_file_max_mbs")
+            text = self.field_registery.get_line_edit_text("log_file_max_mbs")
             self.update_ui_verified("log_file_max_mbs", text, "int")
         elif key == "log_keep_files_days":
-            text = self.view.get_line_edit_text("log_keep_files_days")
+            text = self.field_registery.get_line_edit_text("log_keep_files_days")
             self.update_ui_verified("log_keep_files_days", text, "int")
         elif key == "dictionary_source":
-            text = self.view.get_combo_box_text("dictionary_source")
+            text = self.field_registery.get_combo_box_text("dictionary_source")
             self.update_ui_verified("dictionary_source", text)
         elif key == "merriam_webster_api_key":
             self._verify_merriam_webster_api_key()
         elif key == "auto_save_on_close":
-            text = self.view.get_combo_box_text("auto_save_on_close")
+            text = self.field_registery.get_combo_box_text("auto_save_on_close")
             self.update_ui_verified("auto_save_on_close", text, "bool")
 
     def update_ui_verified(self, key, value, type="str"):
+        print("vverrr", key, value)
         self.settings_model.change_setting(key, value, True, type)
-        self.verify_response_update_ui.emit(key, True)
+        self.verify_response_update_sui.emit(key, True)
         self.send_settings_update.emit(key)
 
     def run_network_check(self, key, url, json_data, success_cb=None, error_cb=None):
@@ -119,10 +120,8 @@ class VerifySettings(QWidgetBase):
     def _verify_apple_note_name(self):
         self.change_verify_btn_disable.emit("apple_note_name", False)
         self.apple_note_thread = QThread(self)
-        ui_note_name = self.view.get_line_edit_text("apple_note_name")
-        self.apple_worker = AppleNoteImport(
-            self.view.get_line_edit_text("apple_note_name")
-        )
+        ui_note_name = self.field_registery.get_line_edit_text("apple_note_name")
+        self.apple_worker = AppleNoteImport(ui_note_name)
         self.running_tasks["apple_note_name"] = (
             self.apple_note_thread,
             self.apple_worker,
@@ -150,7 +149,9 @@ class VerifySettings(QWidgetBase):
         self.audio_thread = AudioThread(
             [Word("test", "", "", "", "", 0)],
             folder_path="./",
-            google_audio_credential=self.view.get_text_edit_text("google_api_key"),
+            google_audio_credential=self.field_registery.get_text_edit_text(
+                "google_api_key"
+            ),
         )
 
         self.audio_thread.updateAnkiAudio.connect(self.google_api_key_response)
@@ -198,17 +199,17 @@ class VerifySettings(QWidgetBase):
             res = response
         print(res)
         if field_type == "line_edit":
-            el = self.view.get_element("line_edit", key)
-            value = el.text()
-            if el and value in res:
+            value = self.field_registery.get_line_edit_text(key)
+
+            if value in res:
                 success = True
         elif field_type == "text_edit":
-            el = self.view.get_element("text_edit", key)
-            value = el.toPlainText()
-            if el and el.toPlainText() in res:
+            value = self.field_registery.get_text_edit_text(key)
+
+            if value in res:
                 success = True
 
         if success or override_check:
             self.update_ui_verified(key, value)
         else:
-            self.verify_response_update_ui.emit(key, False)
+            self.verify_response_update_sui.emit(key, False)

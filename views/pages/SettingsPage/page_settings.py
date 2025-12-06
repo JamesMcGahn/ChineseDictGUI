@@ -20,7 +20,7 @@ class PageSettings(QWidgetBase):
     log_page_settings = Signal(str, bool, str, bool)
     define_page_settings = Signal(str, bool)
     save_log_settings_model = Signal(str, str, int, int, int, bool)
-    verify_response_update_ui = Signal(str, bool)
+
     handle_change_update_ui = Signal(str)
     change_verify_btn_disable = Signal(str, bool)
 
@@ -30,83 +30,34 @@ class PageSettings(QWidgetBase):
     def __init__(self):
         super().__init__()
 
-        self.view = PageSettingsUI()
-        self.setLayout(self.view.layout())
-        self.verify_settings = VerifySettings()
-        self.running_tasks = {}
-        self.settings = AppSettings()
         self.settings_model = AppSettingsModel()
+        self.settings_model.get_settings()
         self.log_settings = LogSettingsModel()
-        self.sui = SettingsUIHelper()
 
+        self.sui = SettingsUIHelper()
+        self.view = PageSettingsUI(self.sui)
+        self.setLayout(self.view.layout())
+
+        self.verify_settings = VerifySettings()
         self.secure_creds = SecureCredentials()
         self.timers = {}
         self.home_directory = os.path.expanduser("~")
         self.field_registery = FieldRegistry()
         print("home", self.home_directory)
         # self.get_settings("ALL", setText=True)
-
+        self.sui.send_to_verify.connect(self.verify_settings.verify_settings)
         self.save_log_settings_model.connect(self.log_settings.save_log_settings)
-
-        self.view.btn_apple_note_name_verify.clicked.connect(
-            lambda: self.handle_verify("apple_note_name")
-        )
-        self.view.btn_anki_words_deck_name_verify.clicked.connect(
-            lambda: self.handle_verify("anki_words_deck_name")
-        )
-        self.view.btn_anki_sents_deck_name_verify.clicked.connect(
-            lambda: self.handle_verify("anki_sents_deck_name")
-        )
-        self.view.btn_anki_words_model_name_verify.clicked.connect(
-            lambda: self.handle_verify("anki_words_model_name")
-        )
-        self.view.btn_anki_sents_model_name_verify.clicked.connect(
-            lambda: self.handle_verify("anki_sents_model_name")
-        )
-        self.view.btn_anki_user_verify.clicked.connect(
-            lambda: self.handle_verify("anki_user")
-        )
-        self.view.btn_google_api_key_verify.clicked.connect(
-            lambda: self.handle_verify("google_api_key")
-        )
-        self.view.btn_log_file_name_verify.clicked.connect(
-            lambda: self.handle_verify("log_file_name")
-        )
-        self.view.btn_log_backup_count_verify.clicked.connect(
-            lambda: self.handle_verify("log_backup_count")
-        )
-        self.view.btn_log_file_max_mbs_verify.clicked.connect(
-            lambda: self.handle_verify("log_file_max_mbs")
-        )
-        self.view.btn_log_keep_files_days_verify.clicked.connect(
-            lambda: self.handle_verify("log_keep_files_days")
-        )
-        self.view.btn_dictionary_source_verify.clicked.connect(
-            lambda: self.handle_verify("dictionary_source")
-        )
-        self.view.btn_auto_save_on_close_verify.clicked.connect(
-            lambda: self.handle_verify("auto_save_on_close")
-        )
-
-        self.verify_settings.verify_response_update_ui.connect(
+        self.verify_settings.verify_response_update_sui.connect(
             self.sui.verify_response_update
         )
+
         self.verify_settings.send_settings_update.connect(self.send_settings_update)
-        self.handle_change_update_ui.connect(self.sui.handle_setting_change_update)
+
         self.verify_settings.change_verify_btn_disable.connect(
             self.sui.set_verify_btn_disable
         )
-        self.view.folder_submit.connect(self.folder_change)
+
         self.view.secure_setting_change.connect(self.sui.handle_secure_setting_change)
-        self.handle_setting_change.connect(self.sui.handle_setting_change)
-        self.handle_text_change_timer.connect(self.sui.handle_text_change_timer)
-
-    def handle_verify(self, key):
-        self.verify_settings.verify_settings(key)
-
-    @Slot(str, str)
-    def folder_change(self, key, folder):
-        self.verify_settings.verify_settings(key, folder)
 
     def send_settings_update(self, key):
 

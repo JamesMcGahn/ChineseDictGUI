@@ -37,3 +37,15 @@ class FieldRegistry(QObject, metaclass=QSingleton):
         raise TypeError(
             f"Widget type {type(widget)} is not supported by get_text_value()"
         )
+
+    def get_line_edit_text(self, key):
+        line_edit = self.get_text_value(f"lineEdit_{key}")
+        return line_edit
+
+    def get_combo_box_text(self, key):
+        combo_box = self.get_field(f"comboBox_{key}")
+        return combo_box
+
+    def get_text_edit_text(self, key):
+        textEdit = self.get_field(f"textEdit_{key}")
+        return textEdit
