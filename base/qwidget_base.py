@@ -1,7 +1,7 @@
 from typing import Optional
 
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from components.toasts import QToast
 
@@ -28,6 +28,15 @@ class QWidgetBase(QWidget):
 
         self.logger = Logger()
         self.send_logs.connect(self.logger.insert)
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+    def set_layout(self, new_layout):
+        old_layout = self.layout
+        if old_layout is not None:
+            QWidget().setLayout(self.layout)
+        self.layout = new_layout
+        self.setLayout(new_layout)
 
     @Slot(str, str, bool)
     def logging(self, msg, level="INFO", print_msg=True) -> None:

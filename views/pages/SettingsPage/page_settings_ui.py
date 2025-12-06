@@ -12,15 +12,15 @@ from PySide6.QtWidgets import (
     QSpacerItem,
     QTextEdit,
     QVBoxLayout,
+    QWidget,
 )
 
-from base import QWidgetBase
 from components.utils import ColoredSpacer
 
 from .field_registry import FieldRegistry
 
 
-class PageSettingsUI(QWidgetBase):
+class PageSettingsUI(QWidget):
     folder_submit = Signal(str, str)
     secure_setting_change = Signal(str, str)
 

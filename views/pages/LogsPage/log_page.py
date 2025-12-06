@@ -1,5 +1,5 @@
 from PySide6.QtCore import Slot
-from PySide6.QtWidgets import QScrollArea, QTextEdit, QVBoxLayout
+from PySide6.QtWidgets import QScrollArea, QTextEdit
 
 from base import QWidgetBase
 
@@ -23,8 +23,6 @@ class PageLogs(QWidgetBase):
         self.log_file_name = None
         self.log_file_name_verified = False
 
-        self.settings_layout = QVBoxLayout(self)
-
         # Text edit widget for displaying logs
         self.log_display = QTextEdit()
         self.log_display.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
@@ -36,7 +34,7 @@ class PageLogs(QWidgetBase):
         scroll_area.setWidget(self.log_display)
         scroll_area.setMinimumWidth(500)
         # scroll_area.setStyleSheet(SCROLL_AREA_STYLES)
-        self.settings_layout.addWidget(scroll_area)
+        self.layout.addWidget(scroll_area)
 
     def load_all_logs(self):
         self.log_display.setText("")

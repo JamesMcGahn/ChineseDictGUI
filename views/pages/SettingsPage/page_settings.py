@@ -36,7 +36,7 @@ class PageSettings(QWidgetBase):
 
         self.sui = SettingsUIHelper()
         self.view = PageSettingsUI(self.sui)
-        self.setLayout(self.view.layout())
+        self.layout.addWidget(self.view)
 
         self.verify_settings = VerifySettings()
         self.secure_creds = SecureCredentials()

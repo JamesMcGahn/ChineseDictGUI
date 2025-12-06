@@ -1,7 +1,7 @@
 import time
 
 from PySide6.QtCore import QThread, Signal, Slot
-from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QMessageBox
 
 from base import QWidgetBase
 from components.dialogs import (
@@ -31,9 +31,9 @@ class PageLessons(QWidgetBase):
     def __init__(self):
         super().__init__()
         self.ui = PageLessonsView()
-        wrap = QVBoxLayout(self)
-        wrap.setContentsMargins(0, 0, 0, 0)
-        wrap.addWidget(self.ui)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(self.ui)
+
         self.audio_threads = []
         self.combine_audio_n_whisper_threads = []
         self.setObjectName("lessons_page")

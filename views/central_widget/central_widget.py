@@ -1,7 +1,6 @@
 import os
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QVBoxLayout
 
 from base import QWidgetBase
 
@@ -12,9 +11,8 @@ class CentralWidget(QWidgetBase):
     def __init__(self):
         super().__init__()
         self.ui = CentralWidgetView()
-        wrap = QVBoxLayout(self)
-        wrap.setContentsMargins(0, 0, 0, 0)
-        wrap.addWidget(self.ui)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(self.ui)
 
         self.setObjectName("centralwidget")
         self.setAttribute(Qt.WA_StyledBackground, True)
