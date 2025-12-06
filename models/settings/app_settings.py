@@ -12,61 +12,7 @@ class AppSettingsModel(QObject, metaclass=QSingleton):
         self.settings = AppSettings()
         self.secure_creds = SecureCredentials()
 
-        # ANKI
-        self.anki_user = ""
-        self.anki_user_verified = False
-        self.anki_audio_path = ""
-        self.anki_audio_path_verified = False
-
-        self.anki_words_deck_name = ""
-        self.anki_sents_deck_name = ""
-        self.anki_words_deck_name_verified = False
-        self.anki_sents_deck_name_verified = False
-
-        self.anki_words_model_name = ""
-        self.anki_sents_model_name = ""
-        self.anki_words_model_name_verified = False
-        self.anki_sents_model_name_verified = False
-
-        self.apple_note_name = ""
-        self.apple_note_name_verified = False
-
-        self.google_api_key = ""
-        self.google_api_key_verified = False
-
-        self.dictionary_source = ""
-        self.dictionary_source_verified = False
-
-        self.log_file_path_verified = False
-        self.log_file_name_verified = False
-        self.log_file_max_mbs_verified = False
-        self.log_backup_count_verified = False
-        self.log_keep_files_days_verified = False
-
-        self.log_file_path = ""
-        self.log_file_name = ""
-        self.log_file_max_mbs = 5
-        self.log_backup_count = 5
-        self.log_keep_files_days = 5
-
         self.home_directory = os.path.expanduser("~")
-
-        self.settings_keys = [
-            "anki_words_deck_name",
-            "anki_sents_deck_name",
-            "anki_words_model_name",
-            "anki_sents_model_name",
-            "anki_user",
-            "anki_audio_path",
-            "apple_note_name",
-            "google_api_key",
-            "log_file_name",
-            "log_file_max_mbs",
-            "log_file_path",
-            "log_keep_files_days",
-            "log_backup_count",
-            "dictionary_source",
-        ]
 
         self.settings_mapping = {
             "apple_note_name": {
@@ -94,7 +40,7 @@ class AppSettingsModel(QObject, metaclass=QSingleton):
                 "type": "str",
             },
             "anki_audio_path": {
-                "default": f"{self.home_directory}/Library/Application Support/Anki2/{self.anki_user}/collection.media",
+                "default": f"{self.home_directory}/Library/Application Support/Anki2/User 1/collection.media",
                 "type": "str",
             },
             "google_api_key": {
@@ -125,7 +71,10 @@ class AppSettingsModel(QObject, metaclass=QSingleton):
                 "default": "cpod",
                 "type": "str",
             },
-            "auto_save_on_close": {"default": True, "type": "bool"},
+            "auto_save_on_close": {
+                "default": True,
+                "type": "bool",
+            },
         }
 
     def get_settings(self):
