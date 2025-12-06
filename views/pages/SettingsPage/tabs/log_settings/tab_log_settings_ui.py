@@ -7,6 +7,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from models.settings import settings_mapping
+
 from ...field_registry import FieldRegistry
 
 
@@ -16,7 +18,7 @@ class TabLogSettingsUI(QWidget):
 
     def __init__(self, ui_helper):
         super().__init__()
-
+        self.tab_id = "log_settings"
         self.settings_page_layout = QHBoxLayout(self)
         self.field_registery = FieldRegistry()
 
@@ -39,42 +41,11 @@ class TabLogSettingsUI(QWidget):
 
         self.settings_page_layout.addItem(self.hspacer1)
 
-        self.uih.create_input_fields(
-            "log_file_path",
-            "Log File path:",
-            "Verify Log Path",
-            self.settings_grid_layout,
-            folder_icon=True,
-        )
-        self.uih.create_input_fields(
-            "log_file_name",
-            "Log File Name:",
-            "Save Log File Name",
-            self.settings_grid_layout,
-        )
-        self.uih.create_input_fields(
-            "log_backup_count",
-            "Log Backup Count:",
-            "Save Log Backup Count",
-            self.settings_grid_layout,
-            field_type="int",
-        )
-
-        self.uih.create_input_fields(
-            "log_file_max_mbs",
-            "Log File Max Mbs:",
-            "Save Log File Max Mbs",
-            self.settings_grid_layout,
-            field_type="int",
-        )
-
-        self.uih.create_input_fields(
-            "log_keep_files_days",
-            "Keep Log File Days:",
-            "Save Log File Days",
-            self.settings_grid_layout,
-            field_type="int",
-        )
+        self.fields_to_map = settings_mapping[self.tab_id]
+        for key, config in self.fields_to_map.items():
+            self.uih.create_input_fields(
+                self.tab_id, key, config, self.settings_grid_layout
+            )
 
         self.vspacer2 = QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.vspacer3 = QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)

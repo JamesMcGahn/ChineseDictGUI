@@ -21,12 +21,6 @@ class PageSettings(QWidgetBase):
     define_page_settings = Signal(str, bool)
     save_log_settings_model = Signal(str, str, int, int, int, bool)
 
-    handle_change_update_ui = Signal(str)
-    change_verify_btn_disable = Signal(str, bool)
-
-    handle_setting_change = Signal(str, str, str)
-    handle_text_change_timer = Signal(str, str, str)
-
     def __init__(self):
         super().__init__()
 
@@ -59,7 +53,7 @@ class PageSettings(QWidgetBase):
 
         self.view.secure_setting_change.connect(self.sui.handle_secure_setting_change)
 
-    def send_settings_update(self, key):
+    def send_settings_update(self, tab, key):
 
         # Import Page settings
         if key in ["apple_note_name"]:

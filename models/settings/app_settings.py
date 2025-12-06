@@ -5,6 +5,8 @@ from PySide6.QtCore import QObject
 from base import QSingleton
 from services.settings import AppSettings, SecureCredentials
 
+from .settings_mapping import settings_mapping
+
 
 class AppSettingsModel(QObject, metaclass=QSingleton):
 
@@ -13,69 +15,7 @@ class AppSettingsModel(QObject, metaclass=QSingleton):
         self.secure_creds = SecureCredentials()
 
         self.home_directory = os.path.expanduser("~")
-
-        self.settings_mapping = {
-            "apple_note_name": {
-                "default": "",
-                "type": "str",
-            },
-            "anki_words_deck_name": {
-                "default": "",
-                "type": "str",
-            },
-            "anki_sents_deck_name": {
-                "default": "",
-                "type": "str",
-            },
-            "anki_words_model_name": {
-                "default": "",
-                "type": "str",
-            },
-            "anki_sents_model_name": {
-                "default": "",
-                "type": "str",
-            },
-            "anki_user": {
-                "default": "User 1",
-                "type": "str",
-            },
-            "anki_audio_path": {
-                "default": f"{self.home_directory}/Library/Application Support/Anki2/User 1/collection.media",
-                "type": "str",
-            },
-            "google_api_key": {
-                "default": "{}",
-                "type": "secure",
-            },
-            "log_file_path": {
-                "default": "./logs/",
-                "type": "str",
-            },
-            "log_file_name": {
-                "default": "file.log",
-                "type": "str",
-            },
-            "log_file_max_mbs": {
-                "default": 5,
-                "type": "int",
-            },
-            "log_keep_files_days": {
-                "default": 5,
-                "type": "int",
-            },
-            "log_backup_count": {
-                "default": 5,
-                "type": "int",
-            },
-            "dictionary_source": {
-                "default": "cpod",
-                "type": "str",
-            },
-            "auto_save_on_close": {
-                "default": True,
-                "type": "bool",
-            },
-        }
+        self.settings_mapping = settings_mapping
 
     def get_settings(self):
         """
@@ -86,51 +26,65 @@ class AppSettingsModel(QObject, metaclass=QSingleton):
             set_text (bool): Whether to update the widgets with the retrieved values.
         """
         self.settings.begin_group("settings")
-        for key, config in self.settings_mapping.items():
+        for tab_key, tab_configs in self.settings_mapping.items():
+            for key, config in tab_configs.items():
 
-            if config["type"] == "secure":
-                value = self.secure_creds.get_creds("chinese-dict-secure-settings", key)
-                verified = self.settings.get_value(f"{key}-verified", False)
-            else:
-                value = self.settings.get_value(key, config["default"])
-                verified = self.settings.get_value(f"{key}-verified", False)
-            setattr(self, key, value)
-            setattr(self, f"{key}_verified", verified)
+                if config["type"] == "secure":
+                    value = self.secure_creds.get_creds(
+                        "chinese-dict-secure-settings", f"{tab_key}/{key}"
+                    )
+                    verified = self.settings.get_value(
+                        f"{tab_key}/{key}-verified", False
+                    )
+                else:
+                    value = self.settings.get_value(
+                        f"{tab_key}/{key}", config["default"]
+                    )
+                    verified = self.settings.get_value(
+                        f"{tab_key}/{key}-verified", False
+                    )
+                setattr(self, f"{tab_key}/{key}", value)
+                setattr(self, f"{tab_key}/{key}_verified", verified)
+                print(tab_key, key, value, verified)
         self.settings.end_group()
 
-    def get_setting(self, key):
+    def get_setting(self, tab_key, key):
         try:
-            value = getattr(self, key)
-            verified = getattr(self, f"{key}_verified", False)
+            value = getattr(self, f"{tab_key}/{key}")
+            verified = getattr(self, f"{tab_key}/{key}_verified", False)
             return value, verified
         except AttributeError as e:
-            print(f"Error: Attribute '{key}' or '{key}_verified' does not exist. {e}")
+            print(
+                f"Error: Attribute '{tab_key}/{key}' or '{tab_key}/{key}_verified' does not exist. {e}"
+            )
 
-    def change_setting(self, key, value, verified=False, type="str"):
+    def change_setting(self, tab_key, key, value, verified=False, type="str"):
         self.settings.begin_group("settings")
         try:
             if type == "int":
                 value = int(value if value else 0)
-                self.settings.set_value(key, value)
+                self.settings.set_value(f"{tab_key}/{key}", value)
             elif type == "bool":
                 value = bool(value.lower() == "true")
-                self.settings.set_value(key, value)
+                self.settings.set_value(f"{tab_key}/{key}", value)
             else:
-                self.settings.set_value(key, str(value))
-            self.settings.set_value(f"{key}-verified", verified)
-            setattr(self, key, value)
-            setattr(self, f"{key}_verified", verified)
-            print("ss", key, value)
+                self.settings.set_value(f"{tab_key}/{key}", str(value))
+            self.settings.set_value(f"{tab_key}/{key}-verified", verified)
+            setattr(self, f"{tab_key}/{key}", value)
+            setattr(self, f"{tab_key}/{key}_verified", verified)
+            print("change_setting", tab_key, key, value)
 
         except AttributeError as e:
             print(f"Error: Attribute '{key}' or '{key}_verified' does not exist. {e}")
         self.settings.end_group()
 
-    def change_secure_setting(self, key, value, verified=False):
-        print(key, value)
-        setattr(self, key, value)
+    def change_secure_setting(self, tab_key, key, value, verified=False):
+        print("change_secure_setting", tab_key, key, value)
+        setattr(self, f"{tab_key}/{key}", value)
         setattr(self, f"{key}_verified", verified)
-        self.secure_creds.save_creds("chinese-dict-secure-settings", key, value)
+        self.secure_creds.save_creds(
+            "chinese-dict-secure-settings", f"{tab_key}/{key}", value
+        )
         self.settings.begin_group("settings")
-        self.settings.set_value(f"{key}-verified", verified)
+        self.settings.set_value(f"{tab_key}/{key}-verified", verified)
         self.settings.end_group()

@@ -15,7 +15,7 @@ class TabLogSettings(QWidgetBase):
 
     def __init__(self):
         super().__init__()
-
+        self.tab_id = "log_settings"
         self.settings_model = AppSettingsModel()
         self.settings_model.get_settings()
         self.log_settings = LogSettingsModel()
@@ -37,8 +37,8 @@ class TabLogSettings(QWidgetBase):
             self.sui.set_verify_btn_disable
         )
 
-    @Slot(str)
-    def send_settings_update(self, key):
+    @Slot(str, str)
+    def send_settings_update(self, tab, key):
         if key in [
             "log_file_path",
             "log_file_name",
@@ -49,11 +49,21 @@ class TabLogSettings(QWidgetBase):
             self.send_logs_page_setting()
 
     def send_logs_page_setting(self):
-        log_file_path, lfp_verifed = self.settings_model.get_setting("log_file_path")
-        log_file_name, lfn_verifed = self.settings_model.get_setting("log_file_name")
-        log_file_max_mbs, _ = self.settings_model.get_setting("log_file_max_mbs")
-        log_backup_count, _ = self.settings_model.get_setting("log_backup_count")
-        log_keep_files_days, _ = self.settings_model.get_setting("log_keep_files_days")
+        log_file_path, lfp_verifed = self.settings_model.get_setting(
+            self.tab_id, "log_file_path"
+        )
+        log_file_name, lfn_verifed = self.settings_model.get_setting(
+            self.tab_id, "log_file_name"
+        )
+        log_file_max_mbs, _ = self.settings_model.get_setting(
+            self.tab_id, "log_file_max_mbs"
+        )
+        log_backup_count, _ = self.settings_model.get_setting(
+            self.tab_id, "log_backup_count"
+        )
+        log_keep_files_days, _ = self.settings_model.get_setting(
+            self.tab_id, "log_keep_files_days"
+        )
 
         self.log_page_settings.emit(
             log_file_path,

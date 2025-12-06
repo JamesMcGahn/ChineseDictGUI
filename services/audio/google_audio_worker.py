@@ -38,6 +38,7 @@ class GoogleAudioWorker(QObjectBase):
     @Slot()
     def do_work(self):
         self.logging(f"Starting Google Audio Worker in thread {self.thread()}")
+        print("**", self.google_audio_credential)
         try:
             if self.google_audio_credential:
 
