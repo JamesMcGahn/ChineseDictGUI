@@ -9,6 +9,7 @@ settings_mapping = {
             "label": "Log File path:",
             "verify_btn": "Verify Log Path",
             "folder_icon": True,
+            "verify": "_verify_path_keys",
         },
         "log_file_name": {
             "default": "file.log",
@@ -16,6 +17,7 @@ settings_mapping = {
             "widget": "line_edit",
             "label": "Log File Name:",
             "verify_btn": "Save Log File Name",
+            "verify": "_verify_log_file_name",
         },
         "log_file_max_mbs": {
             "default": 5,
@@ -23,6 +25,7 @@ settings_mapping = {
             "widget": "line_edit",
             "label": "Log File Max Mbs:",
             "verify_btn": "Save Log File Max Mbs",
+            "verify": "_verify_no_check_save",
         },
         "log_keep_files_days": {
             "default": 5,
@@ -30,6 +33,7 @@ settings_mapping = {
             "widget": "line_edit",
             "label": "Keep Log File Days:",
             "verify_btn": "Save Log File Days",
+            "verify": "_verify_no_check_save",
         },
         "log_backup_count": {
             "default": 5,
@@ -37,6 +41,7 @@ settings_mapping = {
             "widget": "line_edit",
             "label": "Log Backup Count:",
             "verify_btn": "Save Log Backup Count",
+            "verify": "_verify_no_check_save",
         },
     },
     "app_settings": {
@@ -46,6 +51,7 @@ settings_mapping = {
             "widget": "line_edit",
             "label": "Apple Note Name:",
             "verify_btn": "Verify Apple Note",
+            "verify": "_verify_apple_note_name",
         },
         "dictionary_source": {
             "default": "cpod",
@@ -62,6 +68,7 @@ settings_mapping = {
             "label": "Auto Save on Close:",
             "verify_btn": "Save Auto Close",
             "combo_box": ["True", "False"],
+            "verify": "_verify_no_check_save",
         },
         "google_api_key": {
             "default": "{}",
@@ -69,6 +76,7 @@ settings_mapping = {
             "widget": "text_edit",
             "label": "Google Service:",
             "verify_btn": "Verify Google Service",
+            "verify": "_verify_google_api_key",
         },
     },
     "anki_settings": {
@@ -78,6 +86,7 @@ settings_mapping = {
             "widget": "line_edit",
             "label": "Word's Deck Name:",
             "verify_btn": "Verify Deck",
+            "verify": "_verify_anki_deck_name",
         },
         "anki_sents_deck_name": {
             "default": "",
@@ -85,6 +94,7 @@ settings_mapping = {
             "widget": "line_edit",
             "label": "Sents's Deck Name:",
             "verify_btn": "Verify Deck",
+            "verify": "_verify_anki_deck_name",
         },
         "anki_words_model_name": {
             "default": "",
@@ -92,6 +102,7 @@ settings_mapping = {
             "widget": "line_edit",
             "label": "Word's Model Name:",
             "verify_btn": "Verify Model",
+            "verify": "_verify_anki_model_name",
         },
         "anki_sents_model_name": {
             "default": "",
@@ -99,6 +110,7 @@ settings_mapping = {
             "widget": "line_edit",
             "label": "Sent's Model Name:",
             "verify_btn": "Verify Model",
+            "verify": "_verify_anki_model_name",
         },
         "anki_user": {
             "default": "User 1",
@@ -106,6 +118,7 @@ settings_mapping = {
             "widget": "line_edit",
             "label": "Anki User Name:",
             "verify_btn": "Verify User",
+            "verify": "_verify_anki_user_name",
         },
         "anki_audio_path": {
             "default": f"{os.path.expanduser("~")}/Library/Application Support/Anki2/User 1/collection.media",
@@ -114,6 +127,7 @@ settings_mapping = {
             "label": "Anki Audio path:",
             "verify_btn": "Verify Audio Path",
             "folder_icon": True,
+            "verify": "_verify_path_keys",
         },
     },
     "whisper_settings": {
