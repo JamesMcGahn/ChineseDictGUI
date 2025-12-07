@@ -38,7 +38,7 @@ class WebScrape:
 
         self.driver = webdriver.Chrome(
             options=self.chrome_options,
-            service=Service(ChromeDriverManager().install()),
+            service=Service(ChromeDriverManager(cache_valid_range=0).install()),
         )
         self.not_available = []
         self.source = None
