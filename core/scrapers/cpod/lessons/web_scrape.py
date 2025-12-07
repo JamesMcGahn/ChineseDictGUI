@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 import time
 from time import sleep
 from urllib.parse import urlparse
@@ -38,7 +40,7 @@ class WebScrape:
 
         self.driver = webdriver.Chrome(
             options=self.chrome_options,
-            service=Service(ChromeDriverManager(cache_valid_range=0).install()),
+            service=self.get_local_driver_service(),
         )
         self.not_available = []
         self.source = None
@@ -47,6 +49,18 @@ class WebScrape:
         self.cookies = self.filter_cookies_for_url(
             url, self.session.jar_to_selenium_list()
         )
+
+    def get_local_driver_service(self):
+        driver_path = ChromeDriverManager().install()
+        driver_dir = self.create_folder_in_app_data("driver_cache")
+        local_driver_path = os.path.join(driver_dir, "chromedriver")
+        shutil.copy(driver_path, local_driver_path)
+        try:
+            os.chmod(driver_path, 0o755)
+        except Exception:
+            pass
+
+        return Service(local_driver_path)
 
     def get_source(self):
         return self.source

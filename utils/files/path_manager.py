@@ -1,4 +1,5 @@
 import os
+import platform
 import re
 
 
@@ -48,3 +49,18 @@ class PathManager:
                 count += 1
             path = newpath
         return path
+
+    def create_folder_in_app_data(self, folder_name):
+        app_name = "ChineseDictGUI"
+
+        system = platform.system()
+        if system == "Darwin":
+            base = os.path.expanduser("~/Library/Application Support")
+        elif system == "Windows":
+            base = os.environ["LOCALAPPDATA"]
+        else:
+            base = os.path.expanduser("~/.local/share")
+
+        cache_dir = os.path.join(base, app_name, folder_name)
+        os.makedirs(cache_dir, exist_ok=True)
+        return cache_dir
