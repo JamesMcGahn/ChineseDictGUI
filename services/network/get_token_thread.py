@@ -22,10 +22,10 @@ class GetTokenThread(QThread):
             print("initting driver")
 
             self.wb.find_bearer()
-            token = self.wb.get_bearer()
+            self.token = self.wb.get_bearer()
             self.wb.close()
 
         except RuntimeError:
             self.token = None
         finally:
-            self.send_token.emit(token, True if token else False)
+            self.send_token.emit(self.token, True if self.token else False)
