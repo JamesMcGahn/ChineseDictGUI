@@ -4,11 +4,10 @@ import re
 from pydub import AudioSegment
 from PySide6.QtCore import Signal, Slot
 
-from base import QObjectBase
-from services import Logger
+from base import QWorkerBase
 
 
-class AudioCombineWorker(QObjectBase):
+class AudioCombineWorker(QWorkerBase):
     finished = Signal(str)
     progress = Signal(str)
 
@@ -27,6 +26,7 @@ class AudioCombineWorker(QObjectBase):
         self.project_name = project_name
         self.silence_ms = silence_ms
         self._stopped = False
+        self.log_thread()
 
     def natural_sort_key(self, s: str):
         return [
@@ -43,9 +43,7 @@ class AudioCombineWorker(QObjectBase):
         files.sort(key=self.natural_sort_key)
 
         if not files:
-            Logger().insert(
-                f"(Lesson: {self.project_name}) No audio files found.", "WARN"
-            )
+            self.logging(f"(Lesson: {self.project_name}) No audio files found.", "WARN")
             self.finished.emit("")
             return
 
@@ -54,7 +52,7 @@ class AudioCombineWorker(QObjectBase):
 
         for i, filename in enumerate(files):
             if self._stopped:
-                Logger().insert(
+                self.logging(
                     f"(Lesson: {self.project_name}) Combine Audio process stopped",
                     "WARN",
                 )
@@ -62,7 +60,7 @@ class AudioCombineWorker(QObjectBase):
                 return
 
             filepath = os.path.join(self.folder_path, filename)
-            Logger().insert(
+            self.logging(
                 f"(Lesson: {self.project_name}) Adding {filename} to combined audio file."
             )
             audio = AudioSegment.from_file(filepath)
@@ -75,7 +73,7 @@ class AudioCombineWorker(QObjectBase):
             format="mp3",
             bitrate="192k",
         )
-        Logger().insert(
+        self.logging(
             f"(Lesson: {self.project_name}) Saved combined audio to {self.output_file_folder}/{self.output_file_name}",
             "INFO",
         )

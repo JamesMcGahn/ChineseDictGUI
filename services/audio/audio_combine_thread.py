@@ -1,9 +1,11 @@
-from PySide6.QtCore import QThread, Signal, Slot
+from PySide6.QtCore import Signal, Slot
+
+from base import QThreadBase
 
 from .audio_combine_worker import AudioCombineWorker
 
 
-class CombineAudioThread(QThread):
+class CombineAudioThread(QThreadBase):
     updateAnkiAudio = Signal(object)
     start_combine_audio = Signal(str)
     stop_worker = Signal()
@@ -35,6 +37,7 @@ class CombineAudioThread(QThread):
         self.worker.moveToThread(self)
         self.worker.finished.connect(self.worker_finished)
         self.stop_worker.connect(self.worker.stop)
+        self.worker.send_logs(self.send_logs)
         self.worker.do_work()
 
     def worker_finished(self):

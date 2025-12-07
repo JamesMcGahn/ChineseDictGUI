@@ -208,6 +208,7 @@ class PageLessons(QWidgetBase):
         combine_audio_thread.finished.connect(
             lambda: self.remove_threads(combine_audio_thread, "Combine Audio")
         )
+        combine_audio_thread.send_logs.connect(self.logging)
         if len(self.combine_audio_n_whisper_threads) == 1:
             combine_audio_thread.start()
 
@@ -218,6 +219,7 @@ class PageLessons(QWidgetBase):
         whisper_thread.finished.connect(
             lambda: self.remove_threads(whisper_thread, "Whisper")
         )
+        whisper_thread.send_logs.connect(self.logging)
         if len(self.combine_audio_n_whisper_threads) == 1:
             whisper_thread.start()
 
