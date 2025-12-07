@@ -12,7 +12,6 @@ bs4 = "*"
 requests = "*"
 simple-term-menu = "*"
 selenium = "*"
-webdriver-manager = "*"
 google-cloud = "*"
 google-cloud-texttospeech = "*"
 google-api-python-client = "*"
@@ -26,6 +25,10 @@ pydub = "*"
 faster-whisper = "*"
 opencc-python-reimplemented = "*"
 pyjwt = "*"
+webdriver-manager = "*"
+numpy = "==1.26.4"
+torch = "*"
+openai-whisper = "*"
 
 [dev-packages]
 

@@ -1,5 +1,6 @@
 from .qobject_base import QObjectBase
 from .qsingleton import QSingleton
+from .qthread_base import QThreadBase
 from .qwidget_base import QWidgetBase
 from .qworker_base import QWorkerBase
 from .singleton import Singleton
@@ -11,4 +12,5 @@ __all__ = [
     "QObjectBase",
     "QWorkerBase",
     "ErrorWrappers",
+    "QThreadBase",
 ]
