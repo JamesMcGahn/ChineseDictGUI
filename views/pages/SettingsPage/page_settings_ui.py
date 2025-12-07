@@ -19,8 +19,10 @@ from PySide6.QtWidgets import (
 from components.utils import ColoredSpacer
 
 from .field_registry import FieldRegistry
+from .tabs.anki_settings import TabAnkiSettings
 from .tabs.app_settings import TabAppSettings
 from .tabs.log_settings import TabLogSettings
+from .tabs.whisper_settings import TabWhisperSettings
 
 
 class PageSettingsUI(QWidget):
@@ -34,8 +36,12 @@ class PageSettingsUI(QWidget):
         self.tabs = QTabWidget()
         self.app_settings_tab = TabAppSettings()
         self.log_settings_tab = TabLogSettings()
+        self.anki_settings_tab = TabAnkiSettings()
+        self.whisper_settings_tab = TabWhisperSettings()
 
         self.tabs.addTab(self.app_settings_tab, QIcon(), "App Settings")
+        self.tabs.addTab(self.anki_settings_tab, QIcon(), "Anki Settings")
+        self.tabs.addTab(self.whisper_settings_tab, QIcon(), "Whisper Settings")
         self.tabs.addTab(self.log_settings_tab, QIcon(), "Log Settings")
 
         self.tabs.setTabPosition(QTabWidget.West)

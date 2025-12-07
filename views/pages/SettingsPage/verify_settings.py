@@ -36,6 +36,7 @@ class VerifySettings(QObject):
 
     def verify_settings(self, tab, key, value=None):
         print("inn")
+
         if key == "apple_note_name":
             self._verify_apple_note_name(tab)
         elif key == "anki_words_deck_name" or key == "anki_sents_deck_name":

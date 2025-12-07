@@ -140,7 +140,8 @@ class SettingsUIHelper(QObject):
             )
 
             line_edit_field.setText(str(value))
-
+            line_edit_field.setMinimumWidth(300)
+            line_edit_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
             h_layout.addWidget(line_edit_field)
             line_edit_field.textChanged.connect(
                 lambda word, key=key, field_type=meta[
@@ -159,7 +160,7 @@ class SettingsUIHelper(QObject):
                 self.field_registery.register_field(
                     f"{tab}/combo_box_{key}", comboBox_widget
                 )
-                comboBox_widget.addItems(meta["combo_box"])
+                comboBox_widget.addItems([str(x) for x in meta["combo_box"]])
                 comboBox_widget.setCurrentText(str(value))
                 h_layout.addWidget(comboBox_widget)
                 layout.addLayout(h_layout, last_row, 1, Qt.AlignTop)

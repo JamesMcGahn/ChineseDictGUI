@@ -12,13 +12,12 @@ from models.settings import settings_mapping
 from ...field_registry import FieldRegistry
 
 
-class TabLogSettingsUI(QWidget):
-    folder_submit = Signal(str, str)
-    secure_setting_change = Signal(str, str)
+class TabAppSettingsUI(QWidget):
+    secure_setting_change = Signal(str, str, str)
 
     def __init__(self, ui_helper):
         super().__init__()
-        self.tab_id = "log_settings"
+        self.tab_id = "anki_settings"
         self.settings_page_layout = QHBoxLayout(self)
         self.field_registery = FieldRegistry()
 
@@ -42,6 +41,7 @@ class TabLogSettingsUI(QWidget):
         self.settings_page_layout.addItem(self.hspacer1)
 
         self.fields_to_map = settings_mapping[self.tab_id]
+
         for key, config in self.fields_to_map.items():
             self.uih.create_input_fields(
                 self.tab_id, key, config, self.settings_grid_layout
@@ -52,5 +52,4 @@ class TabLogSettingsUI(QWidget):
         self.settings_grid_layout.addItem(
             self.vspacer2, self.settings_grid_layout.count() // self.columns, 2
         )
-
         self.settings_page_layout.addItem(self.vspacer3)
