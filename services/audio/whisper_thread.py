@@ -1,11 +1,14 @@
 from pathlib import Path
 
-from PySide6.QtCore import QThread, Signal, Slot
+from PySide6.QtCore import QTimer, Signal, Slot
 
+from base import QThreadBase
+
+from .open_ai_whisper_worker import OpenAIWhisperWorker
 from .whisper_worker import WhisperWorker
 
 
-class WhisperThread(QThread):
+class WhisperThread(QThreadBase):
     stop_worker = Signal()
 
     def __init__(self, folder: str, file_name: str, model_name: str = "medium"):
@@ -15,19 +18,17 @@ class WhisperThread(QThread):
         self.model_name = model_name
 
     def run(self):
-        self.worker = WhisperWorker(self.folder, self.filename, self.model_name)
+        # self.worker = WhisperWorker(self.folder, self.filename, self.model_name) faster whisper version
+        self.worker = OpenAIWhisperWorker(self.folder, self.filename, self.model_name)
 
         self.worker.moveToThread(self)
         self.stop_worker.connect(self.worker.stop)
-        self.worker.finished.connect(self.worker_finished)
-        self.worker.do_work()
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.worker.send_logs.connect(self.send_logs)
+        QTimer.singleShot(0, self.worker.do_work)
+        self.exec()
 
     @Slot()
     def stop(self):
         if self.isRunning():
             self.stop_worker.emit()
-
-    def worker_finished(self):
-        self.worker.deleteLater()
-        self.wait()
-        self.quit()
