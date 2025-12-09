@@ -12,15 +12,13 @@ def main():
     QCoreApplication.setOrganizationName("ChineseDictGUI")
     QCoreApplication.setApplicationName("ChineseDictGUI")
     QCoreApplication.setApplicationVersion("0.1.0")
-
+    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
+        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+    )
     app = QApplication(sys.argv)
     window = MainWindow(app)
     window.show()
     app.exec()
-
-    QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
-        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-    )
 
 
 if __name__ == "__main__":
