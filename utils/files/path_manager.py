@@ -50,7 +50,8 @@ class PathManager:
             path = newpath
         return path
 
-    def create_folder_in_app_data(self, folder_name):
+    @staticmethod
+    def create_folder_in_app_data(folder_name):
         app_name = "ChineseDictGUI"
 
         system = platform.system()

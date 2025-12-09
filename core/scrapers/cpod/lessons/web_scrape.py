@@ -24,6 +24,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from keys import keys
 from services import Logger
 from services.network import SessionManager
+from utils.files import PathManager
 
 
 class WebScrape:
@@ -52,7 +53,7 @@ class WebScrape:
 
     def get_local_driver_service(self):
         driver_path = ChromeDriverManager().install()
-        driver_dir = self.create_folder_in_app_data("driver_cache")
+        driver_dir = PathManager.create_folder_in_app_data("driver_cache")
         local_driver_path = os.path.join(driver_dir, "chromedriver")
         shutil.copy(driver_path, local_driver_path)
         try:
