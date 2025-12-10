@@ -1,12 +1,13 @@
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import Signal
+
+from base import QThreadBase
 
 from .network_worker import NetworkWorker
 
 
-class NetworkThread(QThread):
+class NetworkThread(QThreadBase):
     response_sig = Signal(str, object)
     error_sig = Signal(str, str, str)
-    finished = Signal()
 
     def __init__(self, operation, url, data=None, json=None):
         super().__init__()
@@ -27,8 +28,7 @@ class NetworkThread(QThread):
 
     def worker_finished(self):
         self.worker.deleteLater()
-        self.finished.emit()
-        self.quit()
+        self.done.emit()
 
     def received_response(self, status, response):
         self.response_sig.emit(status, response)
