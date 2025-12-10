@@ -15,6 +15,7 @@ class QThreadBase(QThread):
     """
 
     send_logs = Signal(str, str, bool)
+    done = Signal()
 
     def __init__(self):
         """Initialize the worker base class."""
