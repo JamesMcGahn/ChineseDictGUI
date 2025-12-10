@@ -100,9 +100,10 @@ class AudioDownloadWorker(QObjectBase):
                     self.start_whisper.emit(self.folder_path, filename)
                 self.queue_downloading = False
                 self.updateAnkiAudio.emit(x)
-                self.schedule_next_download()
                 self.count += 1
                 self.download_success += 1
+                self.schedule_next_download()
+
             else:
                 self.logging("There is not an audio link for the file", "WARN")
                 if isinstance(x, Dialogue):

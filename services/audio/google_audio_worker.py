@@ -45,7 +45,8 @@ class GoogleAudioWorker(QObjectBase):
                 service_account_info = json.loads(self.google_audio_credential)
 
             elif self.access_key_location:
-                service_account_info = json.load(open(self.folder_path))
+                with open(self.access_key_location, "r", encoding="utf-8") as f:
+                    service_account_info = json.load(f)
             else:
                 raise ValueError("Service account json file or string not provided.")
 
@@ -95,9 +96,10 @@ class GoogleAudioWorker(QObjectBase):
             QTimer.singleShot(backoff_time, self.do_work)
         else:
             self.logging(
-                f"({self.project_name} - {self.filename}.mp3)Failed to get Audio From Google",
+                f"({self.project_name} - {self.filename}.mp3) - Failed to get Audio From Google",
                 "ERROR",
             )
-            self.logging(e, "ERROR", False)
+            self.logging(f"Error in Google Audio Worker: {e}", "ERROR", False)
+            self.error.emit()
             self.send_finished()
             return False
