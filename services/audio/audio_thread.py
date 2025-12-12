@@ -44,7 +44,6 @@ class AudioThread(QThreadBase):
         )
 
         self.worker.moveToThread(self)
-        self.worker.send_logs.connect(self.send_logs)
         self.worker.finished.connect(self.worker_finished)
         self.worker.updateAnkiAudio.connect(self.updateAnkiAudio)
         self.worker.start_whisper.connect(self.start_whisper)

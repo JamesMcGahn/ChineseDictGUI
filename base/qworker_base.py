@@ -24,6 +24,11 @@ class QWorkerBase(QObject):
         """Initialize the worker base class."""
         super().__init__()
 
+        from services.logger import Logger
+
+        self.logger = Logger()
+        self.send_logs.connect(self.logger.insert)
+
     def wait_time(self, num, fn):
         print(f"Waiting {num} secs before sending out next request.")
         QTimer.singleShot(num * 1000, fn)

@@ -37,7 +37,6 @@ class CombineAudioThread(QThreadBase):
         self.worker.moveToThread(self)
         self.worker.finished.connect(self.worker_finished)
         self.stop_worker.connect(self.worker.stop)
-        self.worker.send_logs.connect(self.send_logs)
         self.worker.do_work()
 
     def worker_finished(self):

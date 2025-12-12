@@ -18,6 +18,10 @@ class QObjectBase(QObject):
     def __init__(self):
         """Initialize the base class."""
         super().__init__()
+        from services.logger import Logger
+
+        self.logger = Logger()
+        self.send_logs.connect(self.logger.insert)
 
     @Slot(str, str, bool)
     def logging(self, msg: str, level: str = "INFO", print_msg: bool = True) -> None:

@@ -20,6 +20,10 @@ class QThreadBase(QThread):
     def __init__(self):
         """Initialize the worker base class."""
         super().__init__()
+        from services.logger import Logger
+
+        self.logger = Logger()
+        self.send_logs.connect(self.logger.insert)
 
     def logging(self, msg, level="INFO", print_msg=True) -> None:
         """

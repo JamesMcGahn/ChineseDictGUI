@@ -130,7 +130,6 @@ class AudioDownloadWorker(QWorkerBase):
             audio_object=x,
             google_audio_credential=self.google_audio_credential,
         )
-        self.google_audio.send_logs.connect(self.send_logs)
         self.google_audio.success.connect(self.google_download_success)
         self.google_audio.error.connect(self.google_download_error)
         self.google_audio.finished.connect(self.google_audio.deleteLater)
