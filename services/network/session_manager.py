@@ -1,26 +1,37 @@
+from __future__ import annotations
+
 import pickle
 from random import randint
 from time import sleep, time
+from typing import TYPE_CHECKING
 
 import requests
 from bs4 import BeautifulSoup
-from PySide6.QtCore import QMutex, QMutexLocker, QObject
+from PySide6.QtCore import QMutex, QMutexLocker
 
-from base import QSingleton
+from base import QObjectBase, QSingleton
 from services import Logger
-from utils.files import OpenFile, WriteFile
+from utils.files import OpenFile, PathManager, WriteFile
+
+if TYPE_CHECKING:
+    from context import AppContext
 
 
-class SessionManager(QObject, metaclass=QSingleton):
+class SessionManager(QObjectBase, metaclass=QSingleton):
+    _ctx: AppContext | None = None
 
     def __init__(self):
         super().__init__()
-        self.cookie_jar = requests.cookies.RequestsCookieJar()
         self.cookie_lock = QMutex()
+
+    def bind_context(self, ctx: AppContext):
+        if self._ctx is not None:
+            return  # or raise if you want strictness
+        self._ctx = ctx
 
     def build_session(self):
         session = requests.Session()
-        session.cookies = self.get_cookies()
+        self._copy_cookie_jar(session)
         return session
 
     def post(self, url, data=None, json=None, timeout=10, headers=None):
@@ -39,10 +50,35 @@ class SessionManager(QObject, metaclass=QSingleton):
         self.update_cookie_jar(session)
         return response
 
+    def _copy_cookie_jar(self, session):
+        with QMutexLocker(self.cookie_lock):
+            for cookie in self._ctx.cookie_jar:
+                session.cookies.set(
+                    cookie.name,
+                    cookie.value,
+                    domain=cookie.domain,
+                    path=cookie.path,
+                    secure=cookie.secure,
+                    expires=cookie.expires,
+                    rest=cookie._rest,
+                )
+
     def update_cookie_jar(self, session):
         with QMutexLocker(self.cookie_lock):
+
+            session_domains = {cookie.domain for cookie in session.cookies}
+            cookies_to_remove = [
+                c for c in self._ctx.cookie_jar if c.domain in session_domains
+            ]
+            for cookie in cookies_to_remove:
+                self._ctx.cookie_jar.clear(
+                    domain=cookie.domain,
+                    path=cookie.path,
+                    name=cookie.name,
+                )
+
             for cookie in session.cookies:
-                self.cookie_jar.set(
+                self._ctx.cookie_jar.set(
                     cookie.name,
                     cookie.value,
                     domain=cookie.domain,
@@ -58,9 +94,9 @@ class SessionManager(QObject, metaclass=QSingleton):
 
     def load_session(self):
         try:
-            Logger().insert("Loading Session...", "INFO")
-
-            cookies = OpenFile.open_pickle("./data/session.pickle")
+            self.logging("Try to Load Session From File", "INFO")
+            path = PathManager.create_folder_in_app_data("session")
+            cookies = OpenFile.open_pickle(f"{path}/session.pickle")
             expired = False
             cookie_domains = {}
             for cookie in cookies:
@@ -74,33 +110,30 @@ class SessionManager(QObject, metaclass=QSingleton):
                 if cookie.expires and cookie.expires < time():
                     cookie_domains[cookie_domain] = True
                     expired = True
-                    Logger().insert(
-                        f"Found an expired cookie for {cookie_domain}", "WARN"
-                    )
+                    self.logging(f"Found an expired cookie for {cookie_domain}", "WARN")
 
             if expired or len(cookies) == 0:
 
                 return (False, cookie_domains)
             else:
-                self.set_cookies(cookies)
-                Logger().insert("Session Loaded...", "INFO")
+                self._ctx.cookie_jar = cookies
+                self.logging("Session Loaded Successfully...", "INFO")
 
                 return (True, cookie_domains)
         except ValueError:
-            Logger().insert("Error loading session - Filepath doesn't exist", "ERROR")
-            return False
+            self.logging("Error loading session - Filepath doesn't exist", "ERROR")
+            return (False, {})
 
     def save_session(self):
-        Logger().insert("Saving Session...", "INFO")
+        self.logging("Saving Session...", "INFO")
+        path = PathManager.create_folder_in_app_data("session")
         WriteFile.write_file(
-            "./data/session.pickle", pickle.dumps(self.get_cookies()), "wb", True, False
+            f"{path}/session.pickle",
+            pickle.dumps(self._ctx.cookie_jar),
+            "wb",
+            True,
+            False,
         )
-
-    def set_cookies(self, cookies):
-        self.cookie_jar = cookies
-
-    def get_cookies(self):
-        return self.cookie_jar.copy()
 
     # TODO remove from session
     def get_html(self, url):

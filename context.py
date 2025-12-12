@@ -1,5 +1,7 @@
-from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
+import requests
+from PySide6.QtCore import QThread, QTimer, Signal, Slot
 
+from base import QObjectBase
 from core.lingq import LingqCollectionsWorker
 from db import DatabaseManager
 from keys import keys
@@ -8,15 +10,15 @@ from services.network import NetworkThread, SessionManager, TokenManager
 from services.settings import AppSettings
 
 
-class AppContext(QObject):
-    send_logs = Signal(str, str, bool)
+class AppContext(QObjectBase):
     check_token = Signal()
 
     def __init__(self):
         super().__init__()
+        self.cookie_jar = requests.cookies.RequestsCookieJar()
         self.logger = Logger()
-        self.send_logs.connect(self.logger.insert)
         self.session_manager = SessionManager()
+        self.session_manager.bind_context(self)
         self.settings = AppSettings()
         self.setup_database()
 
@@ -26,24 +28,6 @@ class AppContext(QObject):
         self.check_token.connect(self.token_manager.check_token)
         self.setup_session()
         self.check_token.emit()
-
-    @Slot(str, str, bool)
-    def logging(self, msg, level="INFO", print_msg=True) -> None:
-        """
-        Logs a message with the specified log level.
-
-        This method send logs to Logger with a message, log level, and
-        an optional flag to print the message.
-
-        Args:
-            msg (str): The message to be logged.
-            level (str, optional): The log level (e.g., "INFO", "WARN", "ERROR"). Defaults to "INFO".
-            print_msg (bool, optional): Flag to determine whether to print the log message. Defaults to True.
-
-        Returns:
-            None
-        """
-        self.send_logs.emit(msg, level, print_msg)
 
     def setup_database(self):
         db = DatabaseManager("chineseDict.db")
@@ -77,7 +61,6 @@ class AppContext(QObject):
             self.lingcollect = LingqCollectionsWorker()
             self.lingcollect.moveToThread(self.lingcollect_thread)
             self.lingcollect_thread.started.connect(self.lingcollect.do_work)
-            self.lingcollect.send_logs.connect(self.send_logs)
             self.lingcollect.lingq_categories.connect(self.lingq_courses_response)
             self.lingcollect.error.connect(self.lingq_courses_error)
             self.lingcollect.finished.connect(self.lingcollect_thread.quit)
