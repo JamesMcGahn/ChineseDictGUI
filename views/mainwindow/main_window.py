@@ -1,17 +1,15 @@
 import threading
 
-from PySide6.QtCore import QSize, QTimer, Signal, Slot
+from PySide6.QtCore import QSize, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QCloseEvent, QFont, QFontDatabase, QIcon
 from PySide6.QtWidgets import QLabel, QMainWindow, QMenu, QMessageBox, QSystemTrayIcon
 
-from db import DatabaseManager
+from context import AppContext
 from keys import keys
 
 # trunk-ignore(ruff/F401)
 from resources import resources_rc
 from services.logger import LOGLEVEL, Logger
-from services.network import NetworkThread, SessionManager, TokenManager
-from services.settings import AppSettings
 
 from ..central_widget import CentralWidget
 
@@ -19,10 +17,12 @@ from ..central_widget import CentralWidget
 class MainWindow(QMainWindow):
     appshutdown = Signal()
     check_token = Signal()
+    send_logs = Signal(str, str, bool)
 
     def __init__(self, app):
         super().__init__()
-        self.session_manager = SessionManager()
+        self.ctx = AppContext()
+
         self.app = app
         self.setWindowTitle("Custom MainWindow")
         self.setObjectName("MainWindow")
@@ -38,54 +38,15 @@ class MainWindow(QMainWindow):
         self.label = QLabel(self)
         self.setCentralWidget(self.centralwidget)
 
-        self.setup_session()
-        self.setup_database()
         self.prompted_user_for_close = False
         print(
             f"Starting MainWindow in thread: {threading.get_ident()} - {self.thread()}"
         )
+        self.send_logs.connect(self.ctx.logging)
         self.logger = Logger()
-        self.settings = AppSettings()
+
         self.appshutdown.connect(self.logger.close)
         self.appshutdown.connect(self.centralwidget.notified_app_shutting)
-        self.token_manager = TokenManager()
-        self.check_token.connect(self.token_manager.check_token)
-        self.check_token.emit()
-
-    def setup_database(self):
-        db = DatabaseManager("chineseDict.db")
-        db.connect()
-        db.create_tables_if_not_exist()
-        db.create_anki_integration_record()
-        db.disconnect()
-
-    def setup_session(self):
-        if self.session_manager.load_session():
-            return
-
-    #     else:
-    #         print("session expired, getting new session")
-    #         # TODO: remove py email and password dict - use keyring
-    #         # TODO: check for keyring - if it doesnt exist -> notify user -> send them to settings page
-
-    #         self.network_thread = NetworkThread(
-    #
-    #             "SESSION",
-    #             f"{keys['old_url']}accounts/signin",
-    #             data={"email": keys["email"], "password": keys["password"]},
-    #         )
-
-    #         self.network_thread.response_sig.connect(self.session_response)
-    #         self.network_thread.error_sig.connect(self.session_error)
-    #         self.network_thread.start()
-
-    def session_response(self, status, response):
-        self.session_manager.save_session()
-
-    def session_error(self, status, message):
-        print(status)
-        # TODO notify user - error logging them in
-        print("There was an error logging you in. ")
 
     @Slot()
     def close_main_window(self) -> None:
@@ -101,7 +62,7 @@ class MainWindow(QMainWindow):
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
         msg.setDefaultButton(QMessageBox.Cancel)
 
-        Logger().insert("Close Application Button Clicked", "INFO", True)
+        self.send_logs.emit("Close Application Button Clicked", "INFO", True)
         result = msg.exec()
         if result == QMessageBox.Yes:
 
@@ -109,7 +70,7 @@ class MainWindow(QMainWindow):
             self.appshutdown.emit()
             QTimer.singleShot(1000, self.close)
         else:
-            Logger().insert("Cancelled Closing Application", "INFO", True)
+            self.send_logs.emit("Cancelled Closing Application", "INFO", True)
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """
@@ -122,7 +83,7 @@ class MainWindow(QMainWindow):
             None: This function does not return a value.
         """
         if self.prompted_user_for_close:
-            Logger().insert("Closing Application", LOGLEVEL.INFO, True)
+            self.send_logs.emit("Closing Application", LOGLEVEL.INFO, True)
             event.accept()
         else:
             event.ignore()
