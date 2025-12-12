@@ -53,13 +53,12 @@ class Logger(QObject, metaclass=QSingleton):
 
         path = PathManager.regex_path(self.log_file_path + self.log_file_name)
         if not PathManager.path_exists(path["path"], True):
-            return
-            # TODO Notify user the path is bad
+            self.log_file_path = PathManager.create_folder_in_app_data("logs")
+        self.logs_queue_before_start = []
+
+        self.cleanup_old_logs()
 
         self.start_logging_thread()
-
-        # Perform initial cleanup of old logs
-        self.cleanup_old_logs()
 
     def start_logging_thread(self) -> None:
         """
@@ -78,6 +77,9 @@ class Logger(QObject, metaclass=QSingleton):
         )
         self.log_worker.log_signal.connect(self.send_logs_out)
         self.submit_log.connect(self.log_worker.insert_log)
+        self.log_worker.started.connect(
+            lambda: [self.insert(*log) for log in self.logs_queue_before_start]
+        )
         self.log_worker.start()
 
     def init_logging_settings(self) -> None:
@@ -171,28 +173,27 @@ class Logger(QObject, metaclass=QSingleton):
         Returns:
             None: This function does not return a value.
         """
-        path = PathManager.regex_path(self.log_file_path + self.log_file_name)
-        log_dir = path["path"]
+        log_dir = self.log_file_path
+
         if not PathManager.path_exists(log_dir, True):
-            return
-        # BUG
-        # Get current time
+            self.logs_queue_before_start.append(("log path doesnt exist"))
         current_time = time.time()
-        self.insert("Checking For Old Log Files to Clean Up", "INFO")
-        # Iterate through log files in the directory
+        self.logs_queue_before_start.append(
+            ("Checking For Old Log Files to Clean Up", "INFO")
+        )
+
         for log_file in os.listdir(log_dir):
-            # TODO Add Check if file is the current log --> skip
             file_path = os.path.join(log_dir, log_file)
-            # Check if it's a file
             if os.path.isfile(file_path):
-                # Get the file's last modification time
                 file_age = current_time - os.path.getmtime(file_path)
                 # Delete files older than 30 days (30 * 24 * 60 * 60 seconds)
                 if not isinstance(self.log_keep_files_days, int):
                     self.log_keep_files_days = 30
                 if file_age > self.log_keep_files_days * 24 * 60 * 60:
                     os.remove(file_path)
-                    self.insert(f"Removing old log file {file_path}", LOGLEVEL.INFO)
+                    self.logs_queue_before_start.append(
+                        (f"Removed old log file {file_path}", LOGLEVEL.INFO)
+                    )
 
     @Slot()
     def close(self) -> None:
