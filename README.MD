@@ -22,6 +22,32 @@ Priorities:
 
 # Core Architecture Refactor
 
+## Network Refactor – Unified Response
+
+- [ ] Define unified network result shape:
+
+  - [ ] `ok: bool`
+  - [ ] `status: int` (`0` = no HTTP response)
+  - [ ] `data: dict | None`
+  - [ ] `message: str | None`
+  - [ ] `raw: Response | None`
+
+- [ ] Update Networker to emit **one object** (`Signal(object)`)
+
+  - [ ] Normalize success responses into unified shape
+  - [ ] Normalize error responses into unified shape
+  - [ ] Never emit `None` at the top level
+
+- [ ] Add safe helpers in Networker:
+
+  - [ ] `safe_extract_json(response)`
+
+- [ ] Migrate consumers incrementally:
+  - [ ] Replace `response.status_code` → `result["status"]`
+  - [ ] Replace `response.json()` → `result["data"]`
+  - [ ] Replace exception handling → `result["message"]`
+  - [ ] Remove `if response is None` checks
+
 ## Database System Refactor 🔥
 
 - [ ] Convert `DatabaseManager` into a **stateless utility**.
@@ -150,6 +176,7 @@ Create a **generic progress pipeline** for all slow operations:
 - [ ] Add error dialogs for network/login failures
 - [ ] Expand README with a clear **architecture overview**
 - [ ] remove print statements / convert to logger
+  - [ ] Networker
 
 # Optional Future Features
 
