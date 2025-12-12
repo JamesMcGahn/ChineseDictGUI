@@ -1,6 +1,6 @@
 import threading
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, QTimer, Signal
 
 
 class QWorkerBase(QObject):
@@ -23,6 +23,10 @@ class QWorkerBase(QObject):
     def __init__(self):
         """Initialize the worker base class."""
         super().__init__()
+
+    def wait_time(self, num, fn):
+        print(f"Waiting {num} secs before sending out next request.")
+        QTimer.singleShot(num * 1000, fn)
 
     def logging(self, msg, level="INFO", print_msg=True) -> None:
         """
