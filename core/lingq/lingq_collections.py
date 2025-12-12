@@ -27,7 +27,7 @@ class LingqCollectionsWorker(QWorkerBase):
         net_thread = QThread()
         networker = NetworkWorker(
             "GET",
-            f"https://www.lingq.com/api/v3/zh/collections/my/?page={page}&page_size=10&search_criteria=contains&sort=recentUsed&username={keys["lingqusername"]}",
+            f"https://www.lingq.com/api/v3/zh/collections/my/?page={page}&page_size=25&search_criteria=contains&sort=recentUsed&username={keys["lingqusername"]}",
         )
         networker.moveToThread(net_thread)
         networker.response_sig.connect(

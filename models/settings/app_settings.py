@@ -45,7 +45,6 @@ class AppSettingsModel(QObject, metaclass=QSingleton):
                     )
                 setattr(self, f"{tab_key}/{key}", value)
                 setattr(self, f"{tab_key}/{key}_verified", verified)
-                print(tab_key, key, value, verified)
         self.settings.end_group()
 
     def get_setting(self, tab_key, key):
@@ -79,7 +78,6 @@ class AppSettingsModel(QObject, metaclass=QSingleton):
         self.settings.end_group()
 
     def change_secure_setting(self, tab_key, key, value, verified=False):
-        print("change_secure_setting", tab_key, key, value)
         setattr(self, f"{tab_key}/{key}", value)
         setattr(self, f"{key}_verified", verified)
         self.secure_creds.save_creds(
