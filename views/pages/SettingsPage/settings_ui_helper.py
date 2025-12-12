@@ -12,9 +12,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from base import QSingleton
 from models.settings import AppSettingsModel
-from services.settings import SecureCredentials
 
 from .field_registry import FieldRegistry
 

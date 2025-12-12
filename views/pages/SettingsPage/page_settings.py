@@ -4,7 +4,6 @@ from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QWidgetBase
 from models.settings import AppSettingsModel, LogSettingsModel
-from services.settings import AppSettings, SecureCredentials
 
 from .field_registry import FieldRegistry
 from .page_settings_ui import PageSettingsUI
@@ -33,7 +32,6 @@ class PageSettings(QWidgetBase):
         self.layout.addWidget(self.view)
 
         self.verify_settings = VerifySettings()
-        self.secure_creds = SecureCredentials()
         self.timers = {}
         self.home_directory = os.path.expanduser("~")
         self.field_registery = FieldRegistry()

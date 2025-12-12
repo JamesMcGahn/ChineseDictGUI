@@ -11,7 +11,7 @@ from models.settings import AppSettingsModel, LogSettingsModel, settings_mapping
 # from services.audio import RemoveDuplicateAudioWorker, AudioThread
 from services.audio import AudioThread
 from services.network import NetworkWorker
-from services.settings import AppSettings, SecureCredentials
+from services.settings import AppSettings
 from utils.files import RemoveFileWorker
 
 from .field_registry import FieldRegistry
@@ -30,7 +30,6 @@ class VerifySettings(QObject):
         self.settings_model = AppSettingsModel()
         self.log_settings = LogSettingsModel()
         self.field_registery = FieldRegistry()
-        self.secure_creds = SecureCredentials()
 
         self.home_directory = os.path.expanduser("~")
         self.settings_mapping = settings_mapping
@@ -65,6 +64,9 @@ class VerifySettings(QObject):
         )
         self.apple_worker.finished.connect(
             lambda: self.cleanup_task(f"{tab}/apple_note_name")
+        )
+        self.apple_note_thread.finished.connect(
+            lambda: self.cleanup_task(f"{tab}/apple_note_name", True)
         )
         self.apple_note_thread.started.connect(self.apple_worker.verify_note_name)
         self.apple_note_thread.start()
