@@ -3,7 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QProcess, Signal, Slot
+from PySide6.QtCore import QProcess, Slot
 
 from base import QWorkerBase
 from services.logger import LOGLEVEL
@@ -11,7 +11,6 @@ from utils.files import PathManager
 
 
 class OpenAIWhisperWorker(QWorkerBase):
-    finished = Signal()
 
     def __init__(self, folder: str, file_name: str, model_name: str = "medium"):
         super().__init__()
@@ -79,9 +78,12 @@ class OpenAIWhisperWorker(QWorkerBase):
 
         if progress_ts:
             progress_ts = progress_ts.strip()
-            self.logging(f"{progress_ts}% Percent done - Transcribing {self.filename}")
+            self.logging(
+                f"{progress_ts}% Percent done - Transcribing {self.filename}",
+                LOGLEVEL.INFO,
+            )
 
-        self.logging(f"OpenAI Whisper: {text.strip()}")
+        self.logging(f"OpenAI Whisper: {text.strip()}", LOGLEVEL.INFO)
 
     @Slot(int, QProcess.ExitStatus)
     def on_finished(self, code, status):
@@ -99,7 +101,6 @@ class OpenAIWhisperWorker(QWorkerBase):
             return None
 
     def get_audio_duration(self, path: str) -> float:
-        print("path", path)
         result = subprocess.run(
             [
                 "ffprobe",

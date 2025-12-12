@@ -1,14 +1,13 @@
 import re
 from pathlib import Path
 
-from PySide6.QtCore import Signal, Slot
+from PySide6.QtCore import Slot
 
-from base import QObjectBase
+from base import QWorkerBase
 from utils.files import PathManager
 
 
-class WhisperWorker(QObjectBase):
-    finished = Signal()
+class WhisperWorker(QWorkerBase):
 
     def __init__(self, folder: str, file_name: str, model_name: str = "medium"):
         super().__init__()

@@ -1,9 +1,11 @@
-from PySide6.QtCore import QThread, QTimer, Signal, Slot
+from PySide6.QtCore import QTimer, Signal, Slot
+
+from base import QThreadBase
 
 from .audio_download_worker import AudioDownloadWorker
 
 
-class AudioThread(QThread):
+class AudioThread(QThreadBase):
     updateAnkiAudio = Signal(object)
     start_combine_audio = Signal(str, str, str, int, str)
     start_whisper = Signal(str, str)
@@ -42,7 +44,7 @@ class AudioThread(QThread):
         )
 
         self.worker.moveToThread(self)
-
+        self.worker.send_logs.connect(self.send_logs)
         self.worker.finished.connect(self.worker_finished)
         self.worker.updateAnkiAudio.connect(self.updateAnkiAudio)
         self.worker.start_whisper.connect(self.start_whisper)

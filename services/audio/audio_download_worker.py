@@ -4,14 +4,14 @@ from random import randint
 
 from PySide6.QtCore import QTimer, Signal, Slot
 
-from base import QObjectBase
+from base import QWorkerBase
 from models.dictionary import Dialogue, Sentence
 from utils.files import PathManager
 
 from .google_audio_worker import GoogleAudioWorker
 
 
-class AudioDownloadWorker(QObjectBase):
+class AudioDownloadWorker(QWorkerBase):
     updateAnkiAudio = Signal(object)
     finished = Signal()
     progress = Signal(str)
@@ -34,6 +34,7 @@ class AudioDownloadWorker(QObjectBase):
         self.google_audio_credential = google_audio_credential
 
     def do_work(self):
+        self.log_thread()
         QTimer.singleShot(0, self.download_next_audio)
 
     def schedule_next_download(self):
@@ -129,7 +130,7 @@ class AudioDownloadWorker(QObjectBase):
             audio_object=x,
             google_audio_credential=self.google_audio_credential,
         )
-
+        self.google_audio.send_logs.connect(self.send_logs)
         self.google_audio.success.connect(self.google_download_success)
         self.google_audio.error.connect(self.google_download_error)
         self.google_audio.finished.connect(self.google_audio.deleteLater)

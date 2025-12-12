@@ -4,11 +4,11 @@ import google
 from google.cloud import texttospeech
 from PySide6.QtCore import QTimer, Signal, Slot
 
-from base import QObjectBase
+from base import QWorkerBase
 from utils.files import PathManager
 
 
-class GoogleAudioWorker(QObjectBase):
+class GoogleAudioWorker(QWorkerBase):
     success = Signal(object)
     error = Signal()
     finished = Signal()
@@ -37,8 +37,7 @@ class GoogleAudioWorker(QObjectBase):
 
     @Slot()
     def do_work(self):
-        self.logging(f"Starting Google Audio Worker in thread {self.thread()}")
-        print("**", self.google_audio_credential)
+        self.log_thread()
         try:
             if self.google_audio_credential:
 

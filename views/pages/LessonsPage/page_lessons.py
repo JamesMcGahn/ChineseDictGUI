@@ -216,7 +216,7 @@ class PageLessons(QWidgetBase):
         whisper_thread = WhisperThread(folder, filename)
         self.appshutdown.connect(whisper_thread.stop)
         self.combine_audio_n_whisper_threads.append(whisper_thread)
-        whisper_thread.finished.connect(
+        whisper_thread.done.connect(
             lambda: self.remove_threads(whisper_thread, "Whisper")
         )
         whisper_thread.send_logs.connect(self.logging)

@@ -25,6 +25,7 @@ class WhisperThread(QThreadBase):
         self.stop_worker.connect(self.worker.stop)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.send_logs.connect(self.send_logs)
+        self.worker.finished.connect(self.done)
         QTimer.singleShot(0, self.worker.do_work)
         self.exec()
 
