@@ -9,7 +9,7 @@ from .session_manager import SessionManager
 class NetworkWorker(QObject):
     finished = Signal()
     response_sig = Signal(str, object)
-    error_sig = Signal(str, str, str)
+    error_sig = Signal(str, object, int)
     start_work = Signal()
 
     def __init__(
@@ -52,7 +52,7 @@ class NetworkWorker(QObject):
                 if response.status_code in (200, 201, 202, 203):
                     self.response_sig.emit("success", response)
                 else:
-                    self.error_sig.emit("error", response, str(response.status_code))
+                    self.error_sig.emit("error", response, response.status_code)
 
             elif self.operation == "SESSION":
                 response = self.session_manager.post(
@@ -80,13 +80,17 @@ class NetworkWorker(QObject):
         except requests.exceptions.ConnectionError as e:
             # TODO - handle error
             print(e)
-            self.error_sig.emit("error", str(e), type(e).__name__)
+            self.error_sig.emit(
+                "error", {"message": str(e)}, getattr(e.response, "status_code", 0)
+            )
 
         except requests.exceptions.RequestException as e:
             print(e)
             # TODO - handle error
 
-            self.error_sig.emit("error", str(e), type(e).__name__)
+            self.error_sig.emit(
+                "error", {"message": str(e)}, getattr(e.response, "status_code", 0)
+            )
 
         finally:
             self.finished.emit()

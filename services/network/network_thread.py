@@ -7,7 +7,7 @@ from .network_worker import NetworkWorker
 
 class NetworkThread(QThreadBase):
     response_sig = Signal(str, object)
-    error_sig = Signal(str, str, str)
+    error_sig = Signal(str, str, int)
 
     def __init__(self, operation, url, data=None, json=None):
         super().__init__()

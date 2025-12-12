@@ -7,7 +7,7 @@ from services.network import NetworkWorker
 
 # TODO Thread clean up
 class AnkiGetNoteInfoWorker(QObject):
-    response_sig = Signal(str, object, str)
+    response_sig = Signal(str, object, int)
     finished = Signal()
     start_work = Signal()
 

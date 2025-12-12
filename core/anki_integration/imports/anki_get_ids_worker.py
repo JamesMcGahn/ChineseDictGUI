@@ -6,7 +6,7 @@ from services.network import NetworkWorker
 
 
 class AnkiGetNoteIDsWorker(QObject):
-    received_response = Signal(str, object, str)
+    received_response = Signal(str, object, int)
     finished = Signal()
     start_work = Signal()
 
