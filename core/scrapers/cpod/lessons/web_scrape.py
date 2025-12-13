@@ -252,8 +252,9 @@ class WebScrape:
                 cookies = self.driver.get_cookies()
                 print(cookies)
                 if cookies:
-                    self.session.set_cookies(self.session.convert_cookies(cookies))
-                    self.session.save_session()
+                    self.session.update_cookie_jar(
+                        self.session.convert_cookies(cookies)
+                    )
             except TimeoutException:
                 self.driver.get(f"{url}profile")
                 time.sleep(5)

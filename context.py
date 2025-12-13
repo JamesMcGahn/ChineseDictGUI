@@ -70,6 +70,7 @@ class AppContext(QObjectBase):
             self.lingcollect_thread.start()
 
     def lingq_courses_response(self, collections):
+        self.logging(f"Received {len(collections)} Courses from Lingq")
         print("recieved collections", collections)
 
     def lingq_courses_error(self, status_code):
@@ -87,7 +88,6 @@ class AppContext(QObjectBase):
                 print("cookie HERE")
         self.network_thread.quit()
         self.network_thread.deleteLater()
-        self.session_manager.save_session()
 
     def session_error(self, status, message):
         print(status, message)

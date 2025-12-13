@@ -39,7 +39,7 @@ class SessionManager(QObjectBase, metaclass=QSingleton):
         response = session.post(
             url, data=data, json=json, timeout=timeout, headers=headers
         )
-        self.update_cookie_jar(session)
+        self.update_cookie_jar(session.cookies)
         return response
 
     def get(self, url, data=None, json=None, timeout=10, headers=None):
@@ -47,7 +47,7 @@ class SessionManager(QObjectBase, metaclass=QSingleton):
         response = session.get(
             url, data=data, json=json, timeout=timeout, headers=headers
         )
-        self.update_cookie_jar(session)
+        self.update_cookie_jar(session.cookies)
         return response
 
     def _copy_cookie_jar(self, session):
@@ -63,10 +63,10 @@ class SessionManager(QObjectBase, metaclass=QSingleton):
                     rest=cookie._rest,
                 )
 
-    def update_cookie_jar(self, session):
+    def update_cookie_jar(self, cookies):
         with QMutexLocker(self.cookie_lock):
 
-            session_domains = {cookie.domain for cookie in session.cookies}
+            session_domains = {cookie.domain for cookie in cookies}
             cookies_to_remove = [
                 c for c in self._ctx.cookie_jar if c.domain in session_domains
             ]
@@ -77,7 +77,7 @@ class SessionManager(QObjectBase, metaclass=QSingleton):
                     name=cookie.name,
                 )
 
-            for cookie in session.cookies:
+            for cookie in cookies:
                 self._ctx.cookie_jar.set(
                     cookie.name,
                     cookie.value,
@@ -87,6 +87,7 @@ class SessionManager(QObjectBase, metaclass=QSingleton):
                     expires=cookie.expires,
                     rest=cookie._rest,
                 )
+            self.save_session()
 
     # TODO used in web_scrape - need to remove
     def get_session_url(self):
@@ -156,7 +157,7 @@ class SessionManager(QObjectBase, metaclass=QSingleton):
 
     def jar_to_selenium_list(self, allowed_domains=None):
         cookies_list = []
-        for c in self.cookie_jar:
+        for c in self._ctx.cookie_jar:
             if allowed_domains and c.domain not in allowed_domains:
                 continue
 
