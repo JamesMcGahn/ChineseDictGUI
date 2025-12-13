@@ -1,26 +1,20 @@
-import threading
-
 import requests
-from PySide6.QtCore import QObject, QThread, Signal, Slot
+from PySide6.QtCore import Signal, Slot
+
+from base import QObjectBase
 
 from .session_manager import SessionManager
 
 
-class NetworkWorker(QObject):
+class NetworkWorker(QObjectBase):
     finished = Signal()
+    response = Signal(object)
     response_sig = Signal(str, object)
     error_sig = Signal(str, object, int)
     start_work = Signal()
 
     def __init__(
-        self,
-        operation,
-        url,
-        data=None,
-        json=None,
-        timeout=10,
-        retry=0,
-        headers=None,
+        self, operation, url, data=None, json=None, timeout=10, retry=0, headers=None
     ):
         super().__init__()
         self.session_manager = SessionManager()
@@ -35,13 +29,11 @@ class NetworkWorker(QObject):
 
     @Slot()
     def do_work(self):
-        print(
-            f"Starting NetworkWorker in thread: {threading.get_ident()} - {self.thread()}"
-        )
+        self.log_thread()
 
         try:
             if self.operation == "POST":
-                response = self.session_manager.post(
+                res = self.session_manager.post(
                     self.url,
                     data=self.data,
                     json=self.json,
@@ -49,10 +41,36 @@ class NetworkWorker(QObject):
                     headers=self.headers,
                 )
 
-                if response.status_code in (200, 201, 202, 203):
-                    self.response_sig.emit("success", response)
+                if res.status_code in (200, 201, 202, 203):
+                    self.logging(
+                        f"Received {res.status_code} response for POST to {self.url}",
+                        "INFO",
+                    )
+                    self.response_sig.emit("success", res)
+                    self.response.emit(
+                        {
+                            "ok": True,
+                            "status": res.status_code,
+                            "data": self.extract_payload(res),
+                            "message": "success",
+                            "raw": res,
+                        }
+                    )
                 else:
-                    self.error_sig.emit("error", response, response.status_code)
+                    self.logging(
+                        f"Received {res.status_code} response for POST to {self.url}",
+                        "WARN",
+                    )
+                    self.error_sig.emit("error", res, res.status_code)
+                    self.response.emit(
+                        {
+                            "ok": False,
+                            "status": res.status_code,
+                            "data": self.extract_payload(res),
+                            "message": "error",
+                            "raw": res,
+                        }
+                    )
 
             elif self.operation == "SESSION":
                 response = self.session_manager.post(
@@ -65,31 +83,76 @@ class NetworkWorker(QObject):
                 print(f"getting {self.url}")
 
                 for attempt in range(self.retry + 1):
-                    response = self.operation_get()
-                    if response.status_code in (200, 201):
-                        self.response_sig.emit("success", response)
+                    res = self.operation_get()
+                    if res.status_code in (200, 201):
+                        self.logging(
+                            f"Received {res.status_code} response for GET to {self.url}",
+                            "INFO",
+                        )
+                        self.response_sig.emit("success", res)
+                        self.response.emit(
+                            {
+                                "ok": True,
+                                "status": res.status_code,
+                                "data": self.extract_payload(res),
+                                "message": "success",
+                                "raw": res,
+                            }
+                        )
                         break
                     else:
                         if attempt < self.retry:
                             print(f"Retrying... ({attempt + 1}/{self.retry})")
                             continue
                         else:
-                            print("status check - error", response)
+                            self.logging(
+                                f"Received {res.status_code} response for POST to {self.url}",
+                                "WARN",
+                            )
                             self.error_sig.emit("error", response, response.status_code)
-
+                            self.response.emit(
+                                {
+                                    "ok": False,
+                                    "status": res.status_code,
+                                    "data": self.extract_payload(res),
+                                    "message": "error",
+                                    "raw": res,
+                                }
+                            )
         except requests.exceptions.ConnectionError as e:
-            # TODO - handle error
-            print(e)
+            self.logging(
+                f"Received Connection Error for POST to {self.url}",
+                "ERROR",
+            )
             self.error_sig.emit(
                 "error", {"message": str(e)}, getattr(e.response, "status_code", 0)
             )
+            self.response.emit(
+                {
+                    "ok": False,
+                    "status": 0,
+                    "data": None,
+                    "message": f"error: {str(e)}",
+                    "raw": None,
+                }
+            )
 
         except requests.exceptions.RequestException as e:
-            print(e)
-            # TODO - handle error
-
+            self.logging(
+                f"Received Request Exception Error for POST to {self.url}",
+                "ERROR",
+            )
             self.error_sig.emit(
                 "error", {"message": str(e)}, getattr(e.response, "status_code", 0)
+            )
+            self.response.emit(
+                {
+                    "ok": False,
+                    "status": 0,
+                    "data": None,
+                    "message": f"error: {str(e)}",
+                    "raw": None,
+                }
             )
 
         finally:
@@ -103,3 +166,17 @@ class NetworkWorker(QObject):
             timeout=self.timeout,
             headers=self.headers,
         )
+
+    def extract_payload(self, response):
+        if not response:
+            return None, None
+
+        content_type = response.headers.get("Content-Type", "").lower()
+
+        if "json" in content_type:
+            try:
+                return response.json()
+            except ValueError:
+                pass
+
+        return response.text

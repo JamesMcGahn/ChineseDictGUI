@@ -24,23 +24,23 @@ Priorities:
 
 ## Network Refactor – Unified Response
 
-- [ ] Define unified network result shape:
+- [x] Define unified network result shape:
 
-  - [ ] `ok: bool`
-  - [ ] `status: int` (`0` = no HTTP response)
-  - [ ] `data: dict | None`
-  - [ ] `message: str | None`
-  - [ ] `raw: Response | None`
+  - [x] `ok: bool`
+  - [x] `status: int` (`0` = no HTTP response)
+  - [x] `data: dict | None`
+  - [x] `message: str | None`
+  - [x] `raw: Response | None`
 
-- [ ] Update Networker to emit **one object** (`Signal(object)`)
+- [x] Update Networker to emit **one object** (`Signal(object)`)
 
-  - [ ] Normalize success responses into unified shape
-  - [ ] Normalize error responses into unified shape
-  - [ ] Never emit `None` at the top level
+  - [x] Normalize success responses into unified shape
+  - [x] Normalize error responses into unified shape
+  - [x] Never emit `None` at the top level
 
-- [ ] Add safe helpers in Networker:
+- [x] Add safe helpers in Networker:
 
-  - [ ] `safe_extract_json(response)`
+  - [x] `safe_extract_json(response)`
 
 - [ ] Migrate consumers incrementally:
   - [ ] Replace `response.status_code` → `result["status"]`
