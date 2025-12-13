@@ -27,11 +27,6 @@ class SecureCredentials(QObjectBase, metaclass=QSingleton):
         stored credentials from the application settings and keyring if available.
         """
         super().__init__()
-        # TODO remove later connect signal for logging
-        from services.logger import Logger
-
-        self.logger = Logger()
-        self.send_logs.connect(self.logger.insert)
         self.set_keyring_backend()
 
     def set_keyring_backend(self) -> None:
