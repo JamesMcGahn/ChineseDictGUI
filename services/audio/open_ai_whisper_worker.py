@@ -6,7 +6,7 @@ from pathlib import Path
 from PySide6.QtCore import QProcess, Slot
 
 from base import QWorkerBase
-from services.logger import LOGLEVEL
+from base.enums import LOGLEVEL
 from utils.files import PathManager
 
 

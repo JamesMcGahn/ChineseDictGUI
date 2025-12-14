@@ -4,10 +4,10 @@ import time
 from PySide6.QtCore import QObject, Signal, Slot
 
 from base import QSingleton
+from base.enums import LOGLEVEL
 from models.settings import LogSettingsModel
 from utils.files import PathManager
 
-from .log_level import LOGLEVEL
 from .log_worker import LogWorker
 
 

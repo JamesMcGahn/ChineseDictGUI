@@ -4,12 +4,13 @@ from PySide6.QtCore import QSize, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QCloseEvent, QFont, QFontDatabase, QIcon
 from PySide6.QtWidgets import QLabel, QMainWindow, QMenu, QMessageBox, QSystemTrayIcon
 
+from base.enums import LOGLEVEL
 from context import AppContext
 from keys import keys
 
 # trunk-ignore(ruff/F401)
 from resources import resources_rc
-from services.logger import LOGLEVEL, Logger
+from services.logger import Logger
 
 from ..central_widget import CentralWidget
 

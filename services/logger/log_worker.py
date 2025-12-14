@@ -6,7 +6,7 @@ from logging.handlers import RotatingFileHandler
 
 from PySide6.QtCore import QMutex, QMutexLocker, QThread, Signal, Slot
 
-from .log_level import LOGLEVEL
+from base.enums import LOGLEVEL
 
 
 class LogWorker(QThread):
