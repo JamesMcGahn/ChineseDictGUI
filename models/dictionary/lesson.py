@@ -1,6 +1,8 @@
 import time
 from dataclasses import dataclass, field
 
+from .lesson_parts import LessonParts
+
 ALLOWED_PROVIDERS = {"cpod"}
 
 
@@ -25,6 +27,10 @@ class Lesson:
 
     created_at: int = field(default_factory=lambda: int(time.time()), kw_only=True)
     updated_at: int | None = field(default=None, kw_only=True)
+
+    check_dup_sents: bool = False
+    transcribe_lesson: bool = True
+    lesson_parts: LessonParts = field(default_factory=LessonParts)
 
     def __post_init__(self):
         if self.provider not in ALLOWED_PROVIDERS:
