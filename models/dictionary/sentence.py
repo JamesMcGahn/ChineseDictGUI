@@ -1,28 +1,17 @@
+from dataclasses import dataclass
+
+
+@dataclass
 class Sentence:
-    def __init__(
-        self,
-        chinese,
-        english,
-        pinyin,
-        audio,
-        level="",
-        id=0,
-        anki_audio=None,
-        anki_id=None,
-        anki_update=None,
-        local_update=None,
-        sent_type="",
-        lesson="",
-    ):
-        self.id = id
-        self.chinese = chinese
-        self.english = english
-        self.pinyin = pinyin
-        self.level = level
-        self.audio = audio
-        self.anki_audio = anki_audio
-        self.anki_id = anki_id
-        self.anki_update = anki_update
-        self.local_update = local_update
-        self.sent_type = sent_type
-        self.lesson = lesson
+    chinese: str
+    english: str
+    pinyin: str
+    audio: str
+    level: str | None = None
+    id: int = 0
+    anki_audio: str | None = None
+    anki_id: int | None = None
+    anki_update: int | None = None
+    local_update: int | None = None
+    sent_type: str | None = None
+    lesson: str | None = None
