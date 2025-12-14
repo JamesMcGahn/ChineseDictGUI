@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from PySide6.QtCore import QMutexLocker, QObject, QThread, QTimer, Signal, Slot
 
 from keys import keys
-from models.dictionary import Dialogue, Sentence, Word
+from models.dictionary import LessonAudio, Sentence, Word
 from services.network import NetworkWorker
 
 
@@ -182,7 +182,7 @@ class LessonScraperWorkerV2(QObject):
             self.lesson_id = lesson_info["id"]
             self.lesson_title = lesson_info["title"]
 
-            dialogue_audio = Dialogue(
+            dialogue_audio = LessonAudio(
                 title=f"{self.lesson_level} - {self.lesson_title} - Dialogue",
                 audio_type="dialogue",
                 audio=lesson_info["mp3_dialogue"],
@@ -191,7 +191,7 @@ class LessonScraperWorkerV2(QObject):
                 transcribe=False,
             )
 
-            lesson_audio = Dialogue(
+            lesson_audio = LessonAudio(
                 title=f"{self.lesson_level} - {self.lesson_title} - Lesson",
                 audio_type="lesson",
                 audio=lesson_info["mp3_private"],

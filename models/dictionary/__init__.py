@@ -1,5 +1,5 @@
-from .dialogue import Dialogue
+from .lesson_audio import LessonAudio
 from .sentence import Sentence
 from .word import Word
 
-__all__ = ["Word", "Sentence", "Dialogue"]
+__all__ = ["Word", "Sentence", "LessonAudio"]

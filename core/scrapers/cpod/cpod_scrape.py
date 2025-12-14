@@ -3,7 +3,7 @@ from urllib.parse import unquote
 import regex
 
 import utils
-from models.dictionary import Dialogue, Sentence, Word
+from models.dictionary import LessonAudio, Sentence, Word
 
 
 class ScrapeCpod:
@@ -248,13 +248,13 @@ class ScrapeCpod:
                 else:
                     return None
 
-            lesson = Dialogue(
+            lesson = LessonAudio(
                 f"{utils.strip_string(badge)} - {utils.strip_string(title)} - Lesson",
                 "lesson",
                 clean_link(lesson_audio),
                 utils.strip_string(badge),
             )
-            dialogue = Dialogue(
+            dialogue = LessonAudio(
                 f"{utils.strip_string(badge)} - {utils.strip_string(title)} - Dialogue",
                 "dialogue",
                 clean_link(dialogue_audio),

@@ -5,7 +5,7 @@ from random import randint
 from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QWorkerBase
-from models.dictionary import Dialogue, Sentence
+from models.dictionary import LessonAudio, Sentence
 from utils.files import PathManager
 
 from .google_audio_worker import GoogleAudioWorker
@@ -71,9 +71,9 @@ class AudioDownloadWorker(QWorkerBase):
             if isinstance(x, Sentence):
                 filename = f"10KS-{x.id}"
                 self.project_type = "Sentences"
-            elif isinstance(x, Dialogue):
+            elif isinstance(x, LessonAudio):
                 filename = x.title
-                self.project_type = "Dialogue"
+                self.project_type = "Lesson Audio"
             else:
                 filename = x.id
                 self.project_type = "Words"
@@ -93,7 +93,7 @@ class AudioDownloadWorker(QWorkerBase):
                 self.logging(success_msg, "INFO")
 
                 if (
-                    isinstance(x, Dialogue)
+                    isinstance(x, LessonAudio)
                     and x.audio_type == "lesson"
                     and x.transcribe
                 ):
@@ -107,7 +107,7 @@ class AudioDownloadWorker(QWorkerBase):
 
             else:
                 self.logging("There is not an audio link for the file", "WARN")
-                if isinstance(x, Dialogue):
+                if isinstance(x, LessonAudio):
                     self.logging(f"There is not an audio link for {x.audio_type}")
                     self.schedule_next_download()
                 else:
