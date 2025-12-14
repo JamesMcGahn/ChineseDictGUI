@@ -122,6 +122,63 @@ class DatabaseManager(QObject):
 
         self.execute_query(
             """
+        CREATE TABLE IF NOT EXISTS lessons (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT NOT NULL,
+        lesson_id TEXT,
+        title TEXT,
+        level TEXT,
+        url TEXT NOT NULL,
+        slug TEXT,
+        scraped INTEGER DEFAULT 0,
+        scraped_at INTEGER,
+        audio_saved INTEGER DEFAULT 0,
+        sentences_saved INTEGER DEFAULT 0,
+        transcript_saved INTEGER DEFAULT 0,
+        storage_path TEXT,
+        created_at INTEGER,
+        updated_at INTEGER
+        )
+        """
+        )
+
+        self.execute_query(
+            """
+            CREATE UNIQUE INDEX idx_lessons_provider_url
+            ON lessons(provider, url)
+            """
+        )
+        self.execute_query(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_lessons_provider_lesson_id
+            ON lessons(provider, lesson_id)
+            WHERE lesson_id IS NOT NULL
+            """
+        )
+
+        self.execute_query(
+            """
+        CREATE TABLE IF NOT EXISTS lesson_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lesson_id INTEGER NOT NULL,
+            status TEXT NOT NULL CHECK (
+                status IN ('pending', 'processing', 'done', 'error')
+            ),
+            priority INTEGER DEFAULT 0,
+            retries INTEGER DEFAULT 0,
+            last_error TEXT,
+
+            created_at INTEGER,
+            updated_at INTEGER,
+
+            UNIQUE(lesson_id),
+            FOREIGN KEY (lesson_id) REFERENCES lessons(id)
+        );
+        """
+        )
+
+        self.execute_query(
+            """
             CREATE TABLE IF NOT EXISTS anki_integration (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             anki_update INTEGER,
