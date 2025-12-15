@@ -13,3 +13,4 @@ class Word:
     anki_id: str | None = None
     anki_update: str | None = None
     local_update: str | None = None
+    lesson: str | None = None

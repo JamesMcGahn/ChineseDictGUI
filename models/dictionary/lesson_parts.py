@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from .grammar_point import GrammarPoint
 from .lesson_audio import LessonAudio
 from .sentence import Sentence
+from .word import Word
 
 
 @dataclass
@@ -11,4 +12,5 @@ class LessonParts:
     dialogue: list[Sentence] = field(default_factory=list)
     expansion: list[Sentence] = field(default_factory=list)
     grammar: list[GrammarPoint] = field(default_factory=list)
+    vocab: list[Word] = field(default_factory=list)
     all_sentences: list[Sentence] = field(default_factory=list)

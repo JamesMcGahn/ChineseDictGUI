@@ -1,6 +1,8 @@
 import time
 from dataclasses import dataclass, field
 
+from base.enums import LESSONLEVEL, LESSONSTATUS, LESSONTASK
+
 from .lesson_parts import LessonParts
 
 ALLOWED_PROVIDERS = {"cpod"}
@@ -11,23 +13,19 @@ class Lesson:
     provider: str
     url: str
     slug: str
-
+    status: LESSONSTATUS = field(default=LESSONSTATUS.CREATED, kw_only=True)
+    task: LESSONTASK | None = field(default=None, kw_only=True)
     lesson_id: str | None = field(default=None, kw_only=True)
     title: str | None = field(default=None, kw_only=True)
-    level: str | None = field(default=None, kw_only=True)
-
-    scraped: bool = field(default=False, kw_only=True)
-    scraped_at: int | None = field(default=None, kw_only=True)
-
-    audio_saved: bool = field(default=False, kw_only=True)
-    sentences_saved: bool = field(default=False, kw_only=True)
-    transcript_saved: bool = field(default=False, kw_only=True)
+    level: LESSONLEVEL | None = field(default=None, kw_only=True)
+    hash_code: str | None = field(default=None, kw_only=True)
 
     storage_path: str | None = field(default=None, kw_only=True)
 
     created_at: int = field(default_factory=lambda: int(time.time()), kw_only=True)
     updated_at: int | None = field(default=None, kw_only=True)
 
+    # NOT SAVED TO DB
     check_dup_sents: bool = False
     transcribe_lesson: bool = True
     lesson_parts: LessonParts = field(default_factory=LessonParts)
