@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class LESSONLEVEL(Enum):
+class LESSONLEVEL(StrEnum):
     NEWBIE = "Newbie"
     ELEMENTARY = "Elementary"
     PRE_INTERMEDIATE = "Pre-Intermediate"
