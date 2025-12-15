@@ -1,6 +1,8 @@
 from PySide6.QtCore import QFile, QIODevice, QTextStream, Signal
 from PySide6.QtWidgets import QFileDialog, QWidget
 
+from models.dictionary import Lesson
+
 from .add_lessons_dialog_ui import AddLessonsDialogView
 
 
@@ -64,14 +66,29 @@ class AddLessonsDialog(QWidget):
             self.transcribe_lesson = False
 
     def submit_btn_clicked(self):
-        self.check_for_dups = False
-        self.ui.check_for_dups_cb.setChecked(False)
+
+        urls = self.ui.textEdit.toPlainText().split("\n")
+        lesson_urls = [x.strip() for x in urls if x]
+        lessons = []
+        for url in lesson_urls:
+            if "chinesepod" in url:
+                less = Lesson(
+                    provider="cpod",
+                    url=url,
+                    slug="",
+                    check_dup_sents=self.check_for_dups,
+                    transcribe_lesson=self.transcribe_lesson,
+                )
+                lessons.append(less)
+
         self.add_lesson_submited_signal.emit(
-            self.ui.textEdit.toPlainText().split("\n"),
+            lessons,
             self.check_for_dups,
             self.transcribe_lesson,
         )
         self.ui.textEdit.clear()
+        self.check_for_dups = False
+        self.ui.check_for_dups_cb.setChecked(False)
         self.lesson_list = []
 
         self.ui.accept()

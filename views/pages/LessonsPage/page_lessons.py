@@ -13,7 +13,7 @@ from components.dialogs import (
 from core.scrapers.cpod.lessons import LessonScraperThread
 from core.scrapers.words.word_scrape_thread import WordScraperThread
 from db import DatabaseManager, DatabaseQueryThread
-from models.dictionary import Sentence, Word
+from models.dictionary import Lesson, Sentence, Word
 from models.table import SentenceTableModel, WordTableModel
 from services.audio import AudioThread, CombineAudioThread, WhisperThread
 from services.network import TokenManager
@@ -99,58 +99,62 @@ class PageLessons(QWidgetBase):
         self.save_selwords.result.connect(self.download_audio)
 
     @Slot(str, str)
-    def save_lesson(self, lesson, lesson_level):
-        sents = self.table_sentmodel.get_all_sentences().copy()
-        sents = [sent for sent in sents if sent.lesson == lesson]
-        dialogue = False
-        expansion = False
-        grammar = False
-        PathManager.path_exists(f"./test/{lesson}", True)
+    def save_lesson(self, lesson: Lesson):
+        all_sents = lesson.lesson_parts.all_sentences
+        words = lesson.lesson_parts.vocab
+        dialogue = lesson.lesson_parts.dialogue
+        path = f"./test/{lesson.level}/{lesson.title}/"
+        if not PathManager.path_exists(f"./test/{lesson.level}/{lesson.title}", True):
+            print("path doesnt exist")
+            return
 
-        with open(
-            f"./test/{lesson}/{lesson_level} - {lesson} - Dialogue.txt",
-            "w",
-            encoding="utf-8",
-        ) as f:
-            for sent in sents:
-                if sent.sent_type == "dialogue":
-                    f.write(f"{sent.chinese}\n")
-
-        with open(
-            f"./test/{lesson}/{lesson_level} - {lesson} - Sentences.txt",
-            "w",
-            encoding="utf-8",
-        ) as f:
-            for sent in sents:
-                if sent.sent_type == "dialogue" and not dialogue:
-                    f.write("对话:\n")
-                    dialogue = True
-                elif sent.sent_type == "expansion" and not expansion:
-                    f.write("例句:\n")
-                    expansion = True
-                elif sent.sent_type == "grammar" and not grammar:
-                    f.write("语法:\n")
-                    grammar = True
-
+        with open(f"{path}Dialogue.txt", "w", encoding="utf-8") as f:
+            for sent in dialogue:
                 f.write(f"{sent.chinese}\n")
 
-        sents_with_in_order = []
-        for i, sent_item in enumerate(sents):
+        with open(f"{path}Sentences.txt", "w", encoding="utf-8") as f:
+            if lesson.lesson_parts.dialogue:
+                f.write("对话:\n")
+                for sent in lesson.lesson_parts.dialogue:
+                    f.write(f"{sent.chinese}\n")
+
+            if lesson.lesson_parts.expansion:
+                f.write("例句:\n")
+                for sent in lesson.lesson_parts.expansion:
+                    f.write(f"{sent.chinese}\n")
+
+            if lesson.lesson_parts.grammar:
+                f.write("语法:\n")
+                for grammar_point in lesson.lesson_parts.grammar:
+                    f.write(f"{grammar_point.name}\n")
+                    f.write(f"{grammar_point.explanation}\n")
+                    for sent in grammar_point.examples:
+                        f.write(f"{sent.chinese}\n")
+
+            if lesson.lesson_parts.vocab:
+                f.write("词汇:\n")
+                for word in lesson.lesson_parts.vocab:
+                    f.write(f"{word.chinese}\n")
+
+        sents_words_with_in_order = []
+        for i, sent_item in enumerate(all_sents + words):
             sent_item.id = i + 1
-            sents_with_in_order.append(sent_item)
+            sents_words_with_in_order.append(sent_item)
         # return  # TODO REMOVE AFTER TESTING WHISPER
         # TODO add an option to disable downloading all sentences for lesson
-        if sents_with_in_order:
-            self.logging(f"Adding - {lesson} - Sentences Audio to Download Queue.")
+        if sents_words_with_in_order:
+            self.logging(
+                f"Adding - {lesson.title} - Sentences & Words Audio to Download Queue."
+            )
             self.download_audio(
-                sents_with_in_order,
-                folder=f"./test/{lesson}/sents",
+                sents_words_with_in_order,
+                folder=f"{path}audio",
                 update_db=False,
                 combine_audio=True,
-                combine_audio_export_folder=f"./test/{lesson}",
-                combine_audio_export_filename=f"{lesson_level} - {lesson} - Sentences.mp3",
+                combine_audio_export_folder=path,
+                combine_audio_export_filename="Sentences.mp3",
                 combine_audio_delay_between_audio=1500,
-                project_name=lesson,
+                project_name=lesson.title,
             )
 
     @Slot(list)
@@ -303,9 +307,9 @@ class PageLessons(QWidgetBase):
     @Slot(list, bool, bool)
     def get_dialog_submitted(self, form_data, check_for_dups, transcribe_lesson):
         self.set_button_disabled.emit(True)
-        lesson_urls = [x.strip() for x in form_data if x]
-        self.logging(f"Lessons urls: {", ".join(lesson_urls)}", "INFO")
-        self.lesson_scrape_thread = LessonScraperThread(lesson_urls, transcribe_lesson)
+        # lesson_urls = [x.strip() for x in form_data if x]
+        self.logging(f"Received {len(form_data)} Lessons", "INFO")
+        self.lesson_scrape_thread = LessonScraperThread(form_data, transcribe_lesson)
         # TODO add list to the screen
         self.check_for_dups = check_for_dups
         self.lesson_scrape_thread.start()
@@ -332,7 +336,9 @@ class PageLessons(QWidgetBase):
 
     def receive_dialogues(self, lesson, dialogue):
         self.download_audio(
-            [lesson, dialogue], f"./test/{lesson.lesson}", project_name=lesson.lesson
+            [lesson, dialogue],
+            f"./test/{lesson.level}/{lesson.lesson}",
+            project_name=lesson.lesson,
         )
 
     @Slot()
