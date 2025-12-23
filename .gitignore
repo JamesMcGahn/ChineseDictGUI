@@ -18,5 +18,6 @@ test.py
 .venv/*
 
 
-chineseDict.db
+*.db
+*.db-journal
 test/*

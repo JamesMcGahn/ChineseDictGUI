@@ -1,6 +1,6 @@
 from PySide6.QtCore import QThread, Signal, Slot
 
-from db.workers import SentsQueryWorker, WordsQueryWorker
+from db.workers import LessonsQueryWorker, SentsQueryWorker, WordsQueryWorker
 
 
 class DatabaseQueryThread(QThread):
@@ -16,7 +16,7 @@ class DatabaseQueryThread(QThread):
         self.operation = operation
         self.kwargs = kwargs
 
-        if dtype in ["words", "sents"]:
+        if dtype in ["words", "sents", "lessons"]:
             self.dtype = dtype
         else:
             raise ValueError("dtype must be one of 'words' or 'sents'")
@@ -26,6 +26,9 @@ class DatabaseQueryThread(QThread):
             self.worker = WordsQueryWorker(self.operation, **self.kwargs)
         elif self.dtype == "sents":
             self.worker = SentsQueryWorker(self.operation, **self.kwargs)
+        elif self.dtype == "lessons":
+            self.worker = LessonsQueryWorker(self.operation, **self.kwargs)
+
         self.worker.moveToThread(self)
         self.worker.finished.connect(self.quit)
         self.worker.finished.connect(self.worker_finished)

@@ -140,8 +140,15 @@ class PageLessons(QWidgetBase):
         for i, sent_item in enumerate(all_sents + words):
             sent_item.id = i + 1
             sents_words_with_in_order.append(sent_item)
-        # return  # TODO REMOVE AFTER TESTING WHISPER
-        # TODO add an option to disable downloading all sentences for lesson
+            # return  # TODO REMOVE AFTER TESTING WHISPER
+            # TODO add an option to disable downloading all sentences for lesson
+
+        self.insert_lesson = DatabaseQueryThread(
+            "lessons", "insert_lesson", lesson=lesson
+        )
+        self.insert_lesson.start()
+        self.insert_lesson.finished.connect(self.insert_lesson.deleteLater)
+
         if sents_words_with_in_order:
             self.logging(
                 f"Adding - {lesson.title} - Sentences & Words Audio to Download Queue."
