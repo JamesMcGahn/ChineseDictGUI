@@ -14,16 +14,15 @@ from .lesson_scrape_worker_v2 import LessonScraperWorkerV2
 class LessonScraperThread(QThread):
     done = Signal()
     send_words_sig = Signal(list)
-    send_sents_sig = Signal(object)
+    send_sents_sig = Signal(list)
     send_dialogue = Signal(object, object)
     lesson_done = Signal(object)
     request_token = Signal()
     send_token = Signal(str)
 
-    def __init__(self, lesson_list, transcribe_lesson=True):
+    def __init__(self, lesson_list):
         super().__init__()
         self.lesson_list = lesson_list
-        self.transcribe_lesson = transcribe_lesson
         self._mutex = QMutex()
         self._wait_condition = QWaitCondition()
         self._stop = False
@@ -39,7 +38,6 @@ class LessonScraperThread(QThread):
             self._mutex,
             self._wait_condition,
             self,
-            self.transcribe_lesson,
         )
         self.worker.moveToThread(self)
 

@@ -1,16 +1,17 @@
 import requests
 from PySide6.QtCore import QThread, QTimer, Signal, Slot
 
-from base import QObjectBase
-from core.lingq import LingqCollectionsWorker
+from base import QObjectBase, QSingleton
+from core.lingq import LingqCollectionsWorker, LingqLessonWorker
 from db import DatabaseManager
 from keys import keys
 from services.logger import Logger
+from services.managers import AudioAndWhisperManager, LessonWorkFlowManager
 from services.network import NetworkThread, SessionManager, TokenManager
 from services.settings import AppSettings
 
 
-class AppContext(QObjectBase):
+class AppContext(QObjectBase, metaclass=QSingleton):
     check_token = Signal()
 
     def __init__(self):
@@ -23,6 +24,10 @@ class AppContext(QObjectBase):
         self.setup_database()
 
         self.lingq_courses = []
+        self.audio_n_whisper_manager = AudioAndWhisperManager()
+        self.lesson_workflow_manager = LessonWorkFlowManager(
+            self.audio_n_whisper_manager
+        )
 
         self.token_manager = TokenManager()
         self.check_token.connect(self.token_manager.check_token)
@@ -57,17 +62,18 @@ class AppContext(QObjectBase):
             self.network_thread.error_sig.connect(self.session_error)
             self.network_thread.start()
         else:
-            self.lingcollect_thread = QThread()
-            self.lingcollect = LingqCollectionsWorker()
-            self.lingcollect.moveToThread(self.lingcollect_thread)
-            self.lingcollect_thread.started.connect(self.lingcollect.do_work)
-            self.lingcollect.lingq_categories.connect(self.lingq_courses_response)
-            self.lingcollect.error.connect(self.lingq_courses_error)
-            self.lingcollect.finished.connect(self.lingcollect_thread.quit)
-            self.lingcollect_thread.finished.connect(
-                self.lingcollect_thread.deleteLater
-            )
-            self.lingcollect_thread.start()
+            pass
+            # self.lingcollect_thread = QThread()
+            # self.lingcollect = LingqLessonWorker()
+            # self.lingcollect.moveToThread(self.lingcollect_thread)
+            # self.lingcollect_thread.started.connect(self.lingcollect.do_work)
+            # self.lingcollect.lingq_categories.connect(self.lingq_courses_response)
+            # self.lingcollect.error.connect(self.lingq_courses_error)
+            # self.lingcollect.finished.connect(self.lingcollect_thread.quit)
+            # self.lingcollect_thread.finished.connect(
+            #     self.lingcollect_thread.deleteLater
+            # )
+            # self.lingcollect_thread.start()
 
     def lingq_courses_response(self, collections):
         self.logging(f"Received {len(collections)} Courses from Lingq")

@@ -14,15 +14,13 @@ from services.network import NetworkWorker
 
 class LessonScraperWorkerV2(QWorkerBase):
     finished = Signal()
-    send_sents_sig = Signal(object)
+    send_sents_sig = Signal(list)
     send_words_sig = Signal(list)
     send_dialogue = Signal(object, object)
     lesson_done = Signal(object)
     request_token = Signal()
 
-    def __init__(
-        self, lesson_list, mutex, wait_condition, parent_thread, transcribe_lesson
-    ):
+    def __init__(self, lesson_list, mutex, wait_condition, parent_thread):
         super().__init__()
         self.lesson_list = deque(lesson_list)
         self._mutex = mutex
@@ -33,7 +31,6 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.audio_host_url = keys["audio_host"]
         self.token = None
         self.wait_time_between_reqs = (5, 15)
-        self.transcribe_lesson = transcribe_lesson
 
         self.current_lesson: Lesson | None = None
         self.completed_lessons = []
@@ -246,7 +243,7 @@ class LessonScraperWorkerV2(QWorkerBase):
                 audio=lesson_info["mp3_private"],
                 level=self.current_lesson.level,
                 lesson=self.current_lesson.title,
-                transcribe=self.transcribe_lesson,
+                transcribe=self.current_lesson.transcribe_lesson,
             )
 
             self.send_dialogue.emit(lesson_audio, dialogue_audio)

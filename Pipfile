@@ -29,6 +29,7 @@ webdriver-manager = "*"
 numpy = "==1.26.4"
 torch = "*"
 openai-whisper = "*"
+uuid = "*"
 
 [dev-packages]
 

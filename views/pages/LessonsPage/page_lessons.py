@@ -10,7 +10,7 @@ from components.dialogs import (
     IncreaseLvlsDialog,
     MultiWordDialog,
 )
-from core.scrapers.cpod.lessons import LessonScraperThread
+from context import AppContext
 from core.scrapers.words.word_scrape_thread import WordScraperThread
 from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Lesson, Sentence, Word
@@ -31,11 +31,21 @@ class PageLessons(QWidgetBase):
     def __init__(self):
         super().__init__()
         self.ui = PageLessonsView()
+        self.ctx = AppContext()
+
+        self.ctx.lesson_workflow_manager.scraping_active.connect(
+            self.set_button_disabled
+        )
+        self.ctx.lesson_workflow_manager.send_words_sig.connect(
+            self.get_words_from_sthread_loop
+        )
+        self.ctx.lesson_workflow_manager.send_sents_sig.connect(
+            self.get_sentences_from_thread_loop
+        )
+
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.addWidget(self.ui)
 
-        self.audio_threads = []
-        self.combine_audio_n_whisper_threads = []
         self.setObjectName("lessons_page")
         self.check_for_dups = False
 
@@ -45,7 +55,6 @@ class PageLessons(QWidgetBase):
         self.ui.table_view_w.setModel(self.table_wordmodel)
         self.dialog = AddLessonsDialog()
         self.dialog.add_lesson_submited_signal.connect(self.get_dialog_submitted)
-        self.dialog.add_lesson_closed.connect(self.add_word_dialog_closed)
 
         self.ui.stacked_widget.setCurrentIndex(1)
         self.ui.addwords_btn.clicked.connect(self.addwords_btn_clicked)
@@ -96,189 +105,9 @@ class PageLessons(QWidgetBase):
         self.save_selwords = DatabaseQueryThread("words", "insert_words", words=words)
         self.save_selwords.start()
         self.table_wordmodel.remove_selected(selected_rows)
-        self.save_selwords.result.connect(self.download_audio)
-
-    @Slot(str, str)
-    def save_lesson(self, lesson: Lesson):
-        all_sents = lesson.lesson_parts.all_sentences
-        words = lesson.lesson_parts.vocab
-        dialogue = lesson.lesson_parts.dialogue
-        path = f"./test/{lesson.level}/{lesson.title}/"
-        if not PathManager.path_exists(f"./test/{lesson.level}/{lesson.title}", True):
-            print("path doesnt exist")
-            return
-
-        with open(f"{path}Dialogue.txt", "w", encoding="utf-8") as f:
-            for sent in dialogue:
-                f.write(f"{sent.chinese}\n")
-
-        with open(f"{path}Sentences.txt", "w", encoding="utf-8") as f:
-            if lesson.lesson_parts.dialogue:
-                f.write("对话:\n")
-                for sent in lesson.lesson_parts.dialogue:
-                    f.write(f"{sent.chinese}\n")
-
-            if lesson.lesson_parts.expansion:
-                f.write("例句:\n")
-                for sent in lesson.lesson_parts.expansion:
-                    f.write(f"{sent.chinese}\n")
-
-            if lesson.lesson_parts.grammar:
-                f.write("语法:\n")
-                for grammar_point in lesson.lesson_parts.grammar:
-                    f.write(f"{grammar_point.name}\n")
-                    f.write(f"{grammar_point.explanation}\n")
-                    for sent in grammar_point.examples:
-                        f.write(f"{sent.chinese}\n")
-
-            if lesson.lesson_parts.vocab:
-                f.write("词汇:\n")
-                for word in lesson.lesson_parts.vocab:
-                    f.write(f"{word.chinese}\n")
-
-        sents_words_with_in_order = []
-        for i, sent_item in enumerate(all_sents + words):
-            sent_item.id = i + 1
-            sents_words_with_in_order.append(sent_item)
-            # return  # TODO REMOVE AFTER TESTING WHISPER
-            # TODO add an option to disable downloading all sentences for lesson
-
-        self.insert_lesson = DatabaseQueryThread(
-            "lessons", "insert_lesson", lesson=lesson
+        self.save_selwords.result.connect(
+            self.ctx.audio_n_whisper_manager.download_audio
         )
-        self.insert_lesson.start()
-        self.insert_lesson.finished.connect(self.insert_lesson.deleteLater)
-
-        if sents_words_with_in_order:
-            self.logging(
-                f"Adding - {lesson.title} - Sentences & Words Audio to Download Queue."
-            )
-            self.download_audio(
-                sents_words_with_in_order,
-                folder=f"{path}audio",
-                update_db=False,
-                combine_audio=True,
-                combine_audio_export_folder=path,
-                combine_audio_export_filename="Sentences.mp3",
-                combine_audio_delay_between_audio=1500,
-                project_name=lesson.title,
-            )
-
-    @Slot(list)
-    def download_audio(
-        self,
-        audlist,
-        folder=None,
-        update_db=True,
-        combine_audio=False,
-        combine_audio_export_folder="",
-        combine_audio_export_filename="",
-        combine_audio_delay_between_audio=1500,
-        project_name=None,
-    ):
-        # TODO get audio folder path from settings
-        if folder is None:
-            folder = "./test/"
-        audio_thread = AudioThread(
-            audlist,
-            folder_path=folder,
-            combine_audio=combine_audio,
-            combine_audio_export_folder=combine_audio_export_folder,
-            combine_audio_export_filename=combine_audio_export_filename,
-            combine_audio_delay_between_audio=combine_audio_delay_between_audio,
-            project_name=project_name,
-        )
-        if update_db:
-            audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
-        audio_thread.start_combine_audio.connect(self.combine_audio)
-        audio_thread.done.connect(lambda: self.remove_threads(audio_thread, "Audio"))
-        audio_thread.start_whisper.connect(self.whisper_audio)
-        self.audio_threads.append(audio_thread)
-        if len(self.audio_threads) == 1:
-            audio_thread.start()
-
-    @Slot(str, str, str, int, str)
-    def combine_audio(
-        self,
-        folder_path,
-        output_file_name,
-        output_file_folder,
-        delay_between_audio,
-        project_name,
-    ):
-
-        combine_audio_thread = CombineAudioThread(
-            folder_path,
-            output_file_name,
-            output_file_folder,
-            delay_between_audio,
-            project_name,
-        )
-
-        self.combine_audio_n_whisper_threads.append(combine_audio_thread)
-        combine_audio_thread.finished.connect(
-            lambda: self.remove_threads(combine_audio_thread, "Combine Audio")
-        )
-        combine_audio_thread.send_logs.connect(self.logging)
-        if len(self.combine_audio_n_whisper_threads) == 1:
-            combine_audio_thread.start()
-
-    def whisper_audio(self, folder, filename):
-        whisper_thread = WhisperThread(folder, filename)
-        self.appshutdown.connect(whisper_thread.stop)
-        self.combine_audio_n_whisper_threads.append(whisper_thread)
-        whisper_thread.done.connect(
-            lambda: self.remove_threads(whisper_thread, "Whisper")
-        )
-        whisper_thread.send_logs.connect(self.logging)
-        if len(self.combine_audio_n_whisper_threads) == 1:
-            whisper_thread.start()
-
-    def remove_threads(self, thread, thread_type):
-        combine_whisper = thread in self.combine_audio_n_whisper_threads
-        audio_thread = thread in self.audio_threads
-
-        self.logging(f"Removing {thread_type} thread {thread} from thread queue")
-        if combine_whisper:
-            self.combine_audio_n_whisper_threads.remove(thread)
-        elif audio_thread:
-            self.audio_threads.remove(thread)
-
-        try:
-            thread.quit()
-            thread.wait()
-        except Exception:
-            self.logging(f"Failed to quit {thread_type} thread {thread}")
-        thread.deleteLater()
-
-        if combine_whisper:
-            self.maybe_start_next_combo()
-        elif audio_thread and self.audio_threads:
-            self.audio_threads[0].start()
-
-    def maybe_start_next_combo(self):
-        if self.combine_audio_n_whisper_threads:
-            head = self.combine_audio_n_whisper_threads[0]
-            if not head.isRunning() and not head.isFinished():
-                head.start()
-
-    @Slot(object)
-    def update_anki_audio(self, obj):
-        obj.local_update = int(time.time())
-
-        if isinstance(obj, Sentence):
-            self.upwThread = DatabaseQueryThread(
-                "sents", "update_sentence", id=obj.id, updates=vars(obj)
-            )
-            self.upwThread.start()
-            self.upwThread.finished.connect(self.upwThread.deleteLater)
-
-        elif isinstance(obj, Word):
-            self.upsThread = DatabaseQueryThread(
-                "words", "update_word", id=obj.id, updates=vars(obj)
-            )
-            self.upsThread.start()
-            self.upsThread.finished.connect(self.upsThread.deleteLater)
 
     def save_selected_sents(self):
         selection_model = self.ui.table_view_s.selectionModel()
@@ -297,7 +126,9 @@ class PageLessons(QWidgetBase):
         )
         self.save_selsents.start()
         self.table_sentmodel.remove_selected(selected_rows)
-        self.save_selsents.result.connect(self.download_audio)
+        self.save_selsents.result.connect(
+            self.ctx.audio_n_whisper_manager.download_audio
+        )
         self.save_selsents.finished.connect(self.save_selsents.deleteLater)
 
     def change_table(self):
@@ -310,47 +141,6 @@ class PageLessons(QWidgetBase):
 
     def addwords_btn_clicked(self):
         self.dialog.exec()
-
-    @Slot(list, bool, bool)
-    def get_dialog_submitted(self, form_data, check_for_dups, transcribe_lesson):
-        self.set_button_disabled.emit(True)
-        # lesson_urls = [x.strip() for x in form_data if x]
-        self.logging(f"Received {len(form_data)} Lessons", "INFO")
-        self.lesson_scrape_thread = LessonScraperThread(form_data, transcribe_lesson)
-        # TODO add list to the screen
-        self.check_for_dups = check_for_dups
-        self.lesson_scrape_thread.start()
-        self.lesson_scrape_thread.send_words_sig.connect(
-            self.get_words_from_sthread_loop
-        )
-        self.lesson_scrape_thread.send_sents_sig.connect(
-            self.get_sentences_from_thread_loop
-        )
-
-        self.lesson_scrape_thread.request_token.connect(
-            self.token_manager.request_token
-        )
-        self.token_manager.send_token.connect(self.lesson_scrape_thread.receive_token)
-
-        self.lesson_scrape_thread.send_dialogue.connect(self.receive_dialogues)
-        self.lesson_scrape_thread.lesson_done.connect(self.save_lesson)
-        self.lesson_scrape_thread.done.connect(
-            lambda: self.remove_threads(self.lesson_scrape_thread, "Lesson")
-        )
-        self.lesson_scrape_thread.finished.connect(
-            lambda: self.set_button_disabled.emit(False)
-        )
-
-    def receive_dialogues(self, lesson, dialogue):
-        self.download_audio(
-            [lesson, dialogue],
-            f"./test/{lesson.level}/{lesson.lesson}",
-            project_name=lesson.lesson,
-        )
-
-    @Slot()
-    def add_word_dialog_closed(self):
-        self.lesson_scrape_thread.deleteLater()
 
     @Slot(list)
     def get_dialog_mdmulti(self, words):
@@ -413,7 +203,7 @@ class PageLessons(QWidgetBase):
             [self.table_wordmodel.add_word(x) for x in unique_words]
 
     @Slot(object)
-    def get_word_from_thread_loop(self, word):
+    def get_word_from_thread_loop(self, word, check_for_dups):
         print("page-word-received", word)
 
         self.table_wordmodel.add_word(word)
@@ -463,9 +253,9 @@ class PageLessons(QWidgetBase):
             self.updated_sents_levels_sig.emit(False, levels)
 
     @Slot(list)
-    def get_sentences_from_thread_loop(self, sentences):
+    def get_sentences_from_thread_loop(self, sentences, check_for_dups):
         print("received senteces", len(sentences))
-        if self.check_for_dups:
+        if check_for_dups:
             self.check_sentences_duplicates = DatabaseQueryThread(
                 "sents", "check_for_duplicate_sentences", sentences=sentences
             )
@@ -499,3 +289,9 @@ class PageLessons(QWidgetBase):
             # self.wdialog.exec()
 
             [self.table_sentmodel.add_sentence(x) for x in unique_sentences]
+
+    @Slot(list, bool, bool)
+    def get_dialog_submitted(self, form_data, check_for_dups, transcribe_lesson):
+        self.logging(f"Received {len(form_data)} Lessons", "INFO")
+        self.ctx.lesson_workflow_manager.create_lesson_scrape(form_data)
+        # lesson_urls = [x.strip() for x in form_data if x]

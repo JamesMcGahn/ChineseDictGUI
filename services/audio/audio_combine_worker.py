@@ -69,12 +69,12 @@ class AudioCombineWorker(QWorkerBase):
                 combined += spacer
 
         combined.export(
-            f"{self.output_file_folder}/{self.output_file_name}",
+            f"{self.output_file_folder}{self.output_file_name}",
             format="mp3",
             bitrate="192k",
         )
         self.logging(
-            f"(Lesson: {self.project_name}) Saved combined audio to {self.output_file_folder}/{self.output_file_name}",
+            f"(Lesson: {self.project_name}) Saved combined audio to {self.output_file_folder}{self.output_file_name}",
             "INFO",
         )
         self.finished.emit(self.output_file_name)
