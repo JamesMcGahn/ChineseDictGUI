@@ -29,6 +29,7 @@ class Lesson:
     check_dup_sents: bool = False
     transcribe_lesson: bool = True
     lesson_parts: LessonParts = field(default_factory=LessonParts)
+    queue_id: str | None = field(default=None, kw_only=True)
 
     def __post_init__(self):
         if self.provider not in ALLOWED_PROVIDERS:
