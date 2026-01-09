@@ -122,11 +122,11 @@ class LessonWorkFlowManager(QObjectBase):
             # return  # TODO REMOVE AFTER TESTING WHISPER
             # TODO add an option to disable downloading all sentences for lesson
 
-        # self.insert_lesson = DatabaseQueryThread(
-        #     "lessons", "insert_lesson", lesson=lesson
-        # )
-        # self.insert_lesson.start()
-        # self.insert_lesson.finished.connect(self.insert_lesson.deleteLater)
+        self.insert_lesson = DatabaseQueryThread(
+            "lessons", "insert_lesson", lesson=lesson
+        )
+        self.insert_lesson.start()
+        self.insert_lesson.finished.connect(self.insert_lesson.deleteLater)
 
         if sents_words_with_in_order:
             self.logging(
@@ -159,13 +159,13 @@ class LessonWorkFlowManager(QObjectBase):
         if lesson is None:
             return
 
-        if job.task == LESSONTASK.LESSON_AUDIO:
+        if job.task == LESSONTASK.LESSON_AUDIO and job.status == JOBSTATUS.COMPLETE:
             if lesson.transcribe_lesson:
                 self.audio_n_whisper_manager.whisper_audio(
                     lesson.storage_path, LESSONAUDIO.LESSON
                 )
 
-        if job.task == LESSONTASK.AUDIO:
+        if job.task == LESSONTASK.AUDIO and job.status == JOBSTATUS.COMPLETE:
             self.audio_n_whisper_manager.combine_audio(
                 f"{lesson.storage_path}audio",
                 "sentences.mp3",
@@ -179,6 +179,7 @@ class LessonWorkFlowManager(QObjectBase):
             lesson.level = payload["level"]
             lesson.lesson_id = payload["lesson_id"]
             lesson.title = payload["title"]
+            lesson.slug = payload["slug"]
 
             path = f"{self.base_path}{lesson.level}/{lesson.title}/"
             lesson.storage_path = path

@@ -287,6 +287,7 @@ class LessonScraperWorkerV2(QWorkerBase):
                         "level": self.current_lesson.level,
                         "lesson_id": self.current_lesson.lesson_id,
                         "title": self.current_lesson.title,
+                        "slug": lesson_info["slug"],
                         "lesson_audio": lesson_info["mp3_private"],
                         "dialogue_audio": lesson_info["mp3_dialogue"],
                     },
