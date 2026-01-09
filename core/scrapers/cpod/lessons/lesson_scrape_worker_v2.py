@@ -1,4 +1,5 @@
 import re
+import uuid
 from collections import deque
 from random import randint
 from urllib.parse import urlparse
@@ -6,9 +7,17 @@ from urllib.parse import urlparse
 from PySide6.QtCore import QMutexLocker, QThread, QTimer, Signal, Slot
 
 from base import QWorkerBase
-from base.enums import LESSONLEVEL, LESSONSTATUS, LESSONTASK, LOGLEVEL
+from base.enums import (
+    JOBSTATUS,
+    LESSONAUDIO,
+    LESSONLEVEL,
+    LESSONSTATUS,
+    LESSONTASK,
+    LOGLEVEL,
+)
 from keys import keys
 from models.dictionary import GrammarPoint, Lesson, LessonAudio, Sentence, Word
+from models.services import JobRef
 from services.network import NetworkWorker
 
 
@@ -19,6 +28,8 @@ class LessonScraperWorkerV2(QWorkerBase):
     send_dialogue = Signal(object, object)
     lesson_done = Signal(object)
     request_token = Signal()
+    lesson_status = Signal(object)
+    task_complete = Signal(object, object)
 
     def __init__(self, lesson_list, mutex, wait_condition, parent_thread):
         super().__init__()
@@ -35,6 +46,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.current_lesson: Lesson | None = None
         self.completed_lessons = []
         self.errored_lessons = []
+        self.running_tasks = {}
 
     @Slot()
     def do_work(self):
@@ -57,6 +69,15 @@ class LessonScraperWorkerV2(QWorkerBase):
 
         QTimer.singleShot(random * 1000, fn)
 
+    def send_status_update(self, status: LESSONSTATUS, task: LESSONTASK):
+        self.lesson_status.emit(
+            {
+                "queue_id": self.current_lesson.queue_id,
+                "status": status,
+                "task": task,
+            }
+        )
+
     def get_next_lesson(self):
         self.current_lesson = None
         self.logging(f"Total Lessons to Scrape: {len(self.lesson_list)} Lessons")
@@ -72,9 +93,17 @@ class LessonScraperWorkerV2(QWorkerBase):
                 while self.parent_thread._paused:
                     self._wait_condition.wait(self._mutex)
 
-            self.current_lesson = self.lesson_list.popleft()
-            self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
-            self.current_lesson.task = LESSONTASK.INFO
+            spec = self.lesson_list.popleft()
+            self.current_lesson = Lesson(
+                provider=spec["provider"],
+                url=spec["url"],
+                check_dup_sents=spec["check_dup_sents"],
+                transcribe_lesson=spec["transcribe_lesson"],
+                queue_id=spec["queue_id"],
+                slug="",
+            )
+
+            self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.INFO)
 
             self.logging(f"Trying to scrape {self.current_lesson.url}")
 
@@ -84,18 +113,21 @@ class LessonScraperWorkerV2(QWorkerBase):
 
             if not self.current_lesson.url:
                 self.logging("Lesson does not have a correct URL", LOGLEVEL.ERROR)
-                self.current_lesson.status = LESSONSTATUS.ERROR
+                self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.INFO)
                 self.lesson_completed(error=True)
 
             self.headers = {"Authorization": f"Bearer {self.token}"}
+
             slug = self.extract_slug(self.current_lesson.url)
+
             self.current_lesson.slug = slug
+
             if not self.current_lesson.slug:
                 self.logging(
                     "Cannot find Lesson Slug. Please that URL is correct.",
                     LOGLEVEL.ERROR,
                 )
-                self.current_lesson.status = LESSONSTATUS.ERROR
+                self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.INFO)
                 self.lesson_completed(error=True)
 
             self.wait_time(
@@ -155,28 +187,54 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.logging(
             f"Trying to check Complete for Lesson for {self.current_lesson.lesson_id}"
         )
-        self.check_lesson_thread = QThread()
-        self.check_lesson_net = NetworkWorker(
+        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.CHECK)
+        self.create_networker(
+            "toggle-studied",
             "POST",
-            f"{self.host_url}api/v1/dashboard/toggle-studied",
-            headers=self.headers,
+            url=f"{self.host_url}api/v1/dashboard/toggle-studied",
             json={"lessonId": f"{self.current_lesson.lesson_id}", "status": True},
+            cb=self.received_lesson_complete,
         )
-        self.check_lesson_net.moveToThread(self.check_lesson_thread)
-        self.check_lesson_thread.start()
 
-        self.check_lesson_net.response_sig.connect(self.received_lesson_complete)
-        self.check_lesson_net.error_sig.connect(self.received_lesson_complete)
-        self.check_lesson_net.do_work()
-        self.check_lesson_net.finished.connect(self.check_lesson_thread.deleteLater)
+    def create_networker(self, task_id, operation, url, cb, json=None):
+        net_thread = QThread()
+        networker = NetworkWorker(
+            operation=operation,
+            url=url,
+            headers=self.headers,
+            json=json,
+        )
+        task_id = f"{task_id}-{uuid.uuid4()}"
+        networker.moveToThread(net_thread)
+        networker.response.connect(cb)
+        net_thread.started.connect(networker.do_work)
+        networker.finished.connect(lambda: self.cleanup_task(task_id))
+        net_thread.finished.connect(lambda: self.cleanup_task(task_id, True))
+        net_thread.start()
+        self.running_tasks[task_id] = (net_thread, networker)
 
-    def received_lesson_complete(self, status, payload, status_code=None):
-        if status == "success":
+    def cleanup_task(self, task_id, thread_finished=False):
+        if task_id in self.running_tasks:
+            if thread_finished:
+                w_thread, worker = self.running_tasks.pop(task_id)
+                w_thread.deleteLater()
+                self.logging(f"LessonScrapeWorker: Task {task_id} - Thread deleting.")
+            else:
+                w_thread, worker = self.running_tasks[task_id]
+                if worker:
+                    worker.deleteLater()
+                w_thread.quit()
+                self.logging(
+                    f"LessonScrapeWorker: Task {task_id} - Worker cleaned up. Thread quitting."
+                )
+
+    def received_lesson_complete(self, res):
+        if res["ok"]:
             self.logging(
                 f"Lesson: {self.current_lesson.title} - Successfully Marked Lesson Complete."
             )
         else:
-            print(
+            self.logging(
                 f"Lesson: {self.current_lesson.title} - Failed to mark complete",
                 LOGLEVEL.WARN,
             )
@@ -184,17 +242,13 @@ class LessonScraperWorkerV2(QWorkerBase):
 
     def get_lesson_info(self, slug):
         self.logging(f"LessonWorker: Getting Lesson Info for - {slug}")
-        self.lesi_net_thread = QThread()
-        self.lesi_net = NetworkWorker(
+
+        self.create_networker(
+            "lesson-info",
             "GET",
-            f"{self.host_url}api/v2/lessons/get-lesson?slug={slug}",
-            headers=self.headers,
+            url=f"{self.host_url}api/v2/lessons/get-lesson?slug={slug}",
+            cb=self.lesson_info_received,
         )
-        self.lesi_net_thread.start()
-        self.lesi_net.moveToThread(self.lesi_net_thread)
-        self.lesi_net.response_sig.connect(self.lesson_info_received)
-        self.lesi_net.do_work()
-        self.lesi_net.finished.connect(self.lesi_net_thread.deleteLater)
 
     def parse_lesson_level(self, raw: str | None) -> LESSONLEVEL | None:
         LEVEL_MAP: dict[str, LESSONLEVEL] = {
@@ -210,288 +264,309 @@ class LessonScraperWorkerV2(QWorkerBase):
             return None
         return LEVEL_MAP.get(normalized)
 
-    def lesson_info_received(self, status, payload):
+    def lesson_info_received(self, res):
         self.logging("LessonWorker: Recieved Response for Lesson Info")
-        if status == "error":
-            self.logging(
-                "Did not receive the Lesson Information. Skipping Lesson",
-                LOGLEVEL.ERROR,
-            )
-            self.current_lesson.status = LESSONSTATUS.ERROR
-            self.lesson_completed()
-            return
-        lesson_info = payload.json()
+        if res["ok"]:
+            lesson_info = res["data"]
+            if "hash_code" in lesson_info and "id" in lesson_info:
+                self.current_lesson.hash_code = lesson_info["hash_code"]
+                self.current_lesson.level = self.parse_lesson_level(
+                    lesson_info["level"]
+                )
+                self.current_lesson.lesson_id = lesson_info["id"]
+                self.current_lesson.title = lesson_info["title"]
 
-        if "hash_code" in lesson_info and "id" in lesson_info:
-            self.current_lesson.hash_code = lesson_info["hash_code"]
-            self.current_lesson.level = self.parse_lesson_level(lesson_info["level"])
-            self.current_lesson.lesson_id = lesson_info["id"]
-            self.current_lesson.title = lesson_info["title"]
+                self.task_complete.emit(
+                    JobRef(
+                        id=self.current_lesson.queue_id,
+                        task=LESSONTASK.INFO,
+                        status=JOBSTATUS.COMPLETE,
+                    ),
+                    {
+                        "hash_code": self.current_lesson.hash_code,
+                        "level": self.current_lesson.level,
+                        "lesson_id": self.current_lesson.lesson_id,
+                        "title": self.current_lesson.title,
+                        "lesson_audio": lesson_info["mp3_private"],
+                        "dialogue_audio": lesson_info["mp3_dialogue"],
+                    },
+                )
 
-            dialogue_audio = LessonAudio(
-                title=f"{self.current_lesson.level} - {self.current_lesson.title} - Dialogue",
-                audio_type="dialogue",
-                audio=lesson_info["mp3_dialogue"],
-                level=self.current_lesson.level,
-                lesson=self.current_lesson.title,
-                transcribe=False,
-            )
+                self.wait_time(self.wait_time_between_reqs, self.get_dialogue)
+                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.INFO)
+                return
 
-            lesson_audio = LessonAudio(
-                title=f"{self.current_lesson.level} - {self.current_lesson.title} - Lesson",
-                audio_type="lesson",
-                audio=lesson_info["mp3_private"],
-                level=self.current_lesson.level,
-                lesson=self.current_lesson.title,
-                transcribe=self.current_lesson.transcribe_lesson,
-            )
+        self.logging(
+            "Did not receive the Lesson Information. Skipping Lesson",
+            LOGLEVEL.ERROR,
+        )
 
-            self.send_dialogue.emit(lesson_audio, dialogue_audio)
-            self.wait_time(self.wait_time_between_reqs, self.get_dialogue)
-            self.current_lesson.lesson_parts.lesson_audios.append(dialogue_audio)
-            self.current_lesson.lesson_parts.lesson_audios.append(lesson_audio)
-        else:
-            self.current_lesson.status = LESSONSTATUS.ERROR
-            self.logging("Error getting information for the lesson", LOGLEVEL.ERROR)
-            self.lesson_completed()
+        self.lesson_completed(error=True)
+        self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.INFO)
 
     def get_dialogue(self):
         self.logging(
             f"Lesson: {self.current_lesson.title} - Getting Dialogue for Lesson"
         )
-        self.current_lesson.task = LESSONTASK.DIALOGUE
-        self.d_net_thread = QThread()
-        self.dialogue_net = NetworkWorker(
+        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.DIALOGUE)
+        self.create_networker(
+            "dialogue",
             "GET",
-            f"{self.host_url}api/v1/lessons/get-dialogue?lessonId={self.current_lesson.lesson_id}",
-            headers=self.headers,
+            url=f"{self.host_url}api/v1/lessons/get-dialogue?lessonId={self.current_lesson.lesson_id}",
+            cb=self.dialogue_received,
         )
-        self.d_net_thread.start()
-        self.dialogue_net.moveToThread(self.d_net_thread)
-        self.dialogue_net.response_sig.connect(self.dialogue_received)
-        self.dialogue_net.error_sig.connect(self.dialogue_received)
-        self.dialogue_net.do_work()
-        self.dialogue_net.finished.connect(self.d_net_thread.deleteLater)
 
-    def dialogue_received(self, status, payload, status_code=None):
+    def dialogue_received(self, res):
         self.logging("LessonWorker: Received Response for Dialog")
-        if status == "error":
-            self.logging(f"Error recieving Dialog - {status_code}", LOGLEVEL.WARN)
-            self.current_lesson.status = LESSONSTATUS.ERROR
-            self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
-            return
-        dialogue_payload = payload.json()
+        if res["ok"]:
+            dialogue_payload = res["data"]
 
-        if "dialogue" in dialogue_payload:
-            for sentence in dialogue_payload["dialogue"]:
-                audio_path = sentence["audio"]
-                audio = self.build_audio_url(audio_path)
-                new_sent = Sentence(
-                    chinese=sentence["s"],
-                    english=sentence["en"],
-                    pinyin=sentence["p"],
-                    audio=audio,
-                    level=self.current_lesson.level,
-                    sent_type="dialogue",
-                    lesson=(
-                        self.current_lesson.title if self.current_lesson.title else ""
-                    ),
+            if "dialogue" in dialogue_payload:
+                for sentence in dialogue_payload["dialogue"]:
+                    audio_path = sentence["audio"]
+                    audio = self.build_audio_url(audio_path)
+                    new_sent = Sentence(
+                        chinese=sentence["s"],
+                        english=sentence["en"],
+                        pinyin=sentence["p"],
+                        audio=audio,
+                        level=self.current_lesson.level,
+                        sent_type="dialogue",
+                        lesson=(
+                            self.current_lesson.title
+                            if self.current_lesson.title
+                            else ""
+                        ),
+                    )
+                    self.current_lesson.lesson_parts.dialogue.append(new_sent)
+                    self.current_lesson.lesson_parts.all_sentences.append(new_sent)
+
+                self.logging(
+                    f"Lesson: {self.current_lesson.title} - Sending {len(self.current_lesson.lesson_parts.dialogue)} Dialogue Sentences"
                 )
-                self.current_lesson.lesson_parts.dialogue.append(new_sent)
-                self.current_lesson.lesson_parts.all_sentences.append(new_sent)
-            self.logging(
-                f"Lesson: {self.current_lesson.title} - Sending {len(self.current_lesson.lesson_parts.dialogue)} Dialogue Sentences"
-            )
+                self.task_complete.emit(
+                    JobRef(
+                        id=self.current_lesson.queue_id,
+                        task=LESSONTASK.DIALOGUE,
+                        status=JOBSTATUS.COMPLETE,
+                    ),
+                    {"sentences": self.current_lesson.lesson_parts.dialogue},
+                )
+                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.DIALOGUE)
+            else:
+                self.logging(
+                    f"Lesson - {self.current_lesson.title}  doesnt have a Dialogue Section",
+                    LOGLEVEL.WARN,
+                )
+                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.DIALOGUE)
+
+            self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
+
         else:
+
             self.logging(
-                f"Lesson - {self.current_lesson.title}  doesnt have a Dialogue Section",
+                f"Error receiving Dialogue - {res["status"]} -{res["message"]}",
                 LOGLEVEL.WARN,
             )
-            self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
-        self.send_sents_sig.emit(self.current_lesson.lesson_parts.dialogue)
-        self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
+            self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.DIALOGUE)
+            self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
 
     def get_lesson_vocab(self):
         self.logging("LessonWorker: Getting Vocabulary for Lesson")
-        self.current_lesson.task = LESSONTASK.VOCAB
-        self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
-        self.v_net_thread = QThread()
-        self.vocab_net = NetworkWorker(
+        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.VOCAB)
+        self.create_networker(
+            "vocab",
             "GET",
-            f"{self.host_url}api/v2/lessons/get-vocab?lessonId={self.current_lesson.lesson_id}",
-            headers=self.headers,
+            url=f"{self.host_url}api/v2/lessons/get-vocab?lessonId={self.current_lesson.lesson_id}",
+            cb=self.vocab_received,
         )
-        self.v_net_thread.start()
-        self.vocab_net.moveToThread(self.v_net_thread)
-        self.vocab_net.response_sig.connect(self.vocab_received)
-        self.vocab_net.error_sig.connect(self.vocab_received)
-        self.vocab_net.do_work()
-        self.vocab_net.finished.connect(self.v_net_thread.deleteLater)
 
-    def vocab_received(self, status, payload, status_code=None):
+    def vocab_received(self, res):
         self.logging("LessonWorker: Received Vocab Response for Lesson")
-        if status == "error":
-            self.logging(
-                f"LessonWorker: Error recieving Vocab - {status_code}", LOGLEVEL.WARN
-            )
-            self.wait_time(self.wait_time_between_reqs, self.get_expansion)
-            self.current_lesson.status = LESSONSTATUS.ERROR
-            return
+        if res["ok"]:
+            vocab = res["data"]
 
-        vocab = payload.json()
-
-        if isinstance(vocab, list) and vocab:
-            for word in vocab:
-                audio_path = word["audio"]
-                audio = self.build_audio_url(audio_path)
-                new_word = Word(
-                    chinese=word["s"],
-                    definition=word["en"],
-                    pinyin=word["p"],
-                    audio=audio,
-                    lesson=self.current_lesson.title,
+            if isinstance(vocab, list) and vocab:
+                for word in vocab:
+                    audio_path = word["audio"]
+                    audio = self.build_audio_url(audio_path)
+                    new_word = Word(
+                        chinese=word["s"],
+                        definition=word["en"],
+                        pinyin=word["p"],
+                        audio=audio,
+                        lesson=self.current_lesson.title,
+                    )
+                    self.current_lesson.lesson_parts.vocab.append(new_word)
+                self.logging(
+                    f"Lesson: {self.current_lesson.title} - Sending {len(self.current_lesson.lesson_parts.vocab)} Vocabulary Words"
                 )
-                self.current_lesson.lesson_parts.vocab.append(new_word)
-            self.logging(
-                f"Lesson: {self.current_lesson.title} - Sending {len(self.current_lesson.lesson_parts.vocab)} Vocabulary Words"
-            )
+                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.VOCAB)
+
+                self.task_complete.emit(
+                    JobRef(
+                        id=self.current_lesson.queue_id,
+                        task=LESSONTASK.VOCAB,
+                        status=JOBSTATUS.COMPLETE,
+                    ),
+                    {"words": self.current_lesson.lesson_parts.vocab},
+                )
+            else:
+                self.logging(
+                    f"Lesson {self.current_lesson.title} doesnt have Vocabulary Words",
+                    LOGLEVEL.WARN,
+                )
+                self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
+
+            self.wait_time(self.wait_time_between_reqs, self.get_expansion)
+            self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.VOCAB)
         else:
             self.logging(
-                f"Lesson {self.current_lesson.title} doesnt have Vocabulary Words",
+                f"LessonWorker: Error recieving Vocab - {res["status"]} - {res["message"]}",
                 LOGLEVEL.WARN,
             )
-            self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
-        self.send_words_sig.emit(self.current_lesson.lesson_parts.vocab)
-        self.wait_time(self.wait_time_between_reqs, self.get_expansion)
+            self.wait_time(self.wait_time_between_reqs, self.get_expansion)
+            self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.VOCAB)
 
     def get_expansion(self):
         self.logging("LessonWorker: Getting Expansion for Lesson")
-        self.current_lesson.task = LESSONTASK.EXPANSION
-        self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
-        self.e_net_thread = QThread()
-        self.expansion_net = NetworkWorker(
+        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.EXPANSION)
+        self.create_networker(
+            "expansion",
             "GET",
             f"{self.host_url}api/v1/lessons/get-expansion?lessonId={self.current_lesson.lesson_id}",
-            headers=self.headers,
+            cb=self.expansion_received,
         )
-        self.e_net_thread.start()
-        self.expansion_net.moveToThread(self.e_net_thread)
-        self.expansion_net.response_sig.connect(self.expansion_received)
-        self.expansion_net.error_sig.connect(self.expansion_received)
-        self.expansion_net.do_work()
-        self.expansion_net.finished.connect(self.e_net_thread.deleteLater)
 
-    def expansion_received(self, status, payload, status_code=None):
+    def expansion_received(self, res):
         self.logging("LessonWorker: Received Expansion Response")
-        if status == "error":
-            self.logging(f"Error recieving Expansion - {status_code} ", LOGLEVEL.ERROR)
-            self.wait_time(self.wait_time_between_reqs, self.get_grammar)
-            self.current_lesson.status = LESSONSTATUS.ERROR
-            return
+        if res["ok"]:
+            expansion_payload = res["data"]
+            if expansion_payload:
+                for section in expansion_payload:
+                    for sentence in section["examples"]:
+                        audio_path = sentence["audio"]
+                        audio = self.build_audio_url(audio_path)
+                        new_sent = Sentence(
+                            chinese=sentence["s"],
+                            english=sentence["en"],
+                            pinyin=sentence["p"],
+                            audio=audio,
+                            level=self.current_lesson.level,
+                            sent_type="expansion",
+                            lesson=(
+                                self.current_lesson.title
+                                if self.current_lesson.title
+                                else ""
+                            ),
+                        )
+                        self.current_lesson.lesson_parts.expansion.append(new_sent)
+                        self.current_lesson.lesson_parts.all_sentences.append(new_sent)
 
-        expansion_payload = payload.json()
+                self.logging(
+                    f"Lesson: {self.current_lesson.title} - Sending {len(self.current_lesson.lesson_parts.expansion)} Expansion Sentences"
+                )
 
-        if expansion_payload and not status == "error":
-            for section in expansion_payload:
-                for sentence in section["examples"]:
+                self.task_complete.emit(
+                    JobRef(
+                        id=self.current_lesson.queue_id,
+                        task=LESSONTASK.EXPANSION,
+                        status=JOBSTATUS.COMPLETE,
+                    ),
+                    {"sentences": self.current_lesson.lesson_parts.expansion},
+                )
+                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.EXPANSION)
+                self.wait_time(self.wait_time_between_reqs, self.get_grammar)
 
-                    audio_path = sentence["audio"]
-                    audio = self.build_audio_url(audio_path)
-                    new_sent = Sentence(
-                        chinese=sentence["s"],
-                        english=sentence["en"],
-                        pinyin=sentence["p"],
-                        audio=audio,
-                        level=self.current_lesson.level,
-                        sent_type="expansion",
-                        lesson=(
-                            self.current_lesson.title
-                            if self.current_lesson.title
-                            else ""
-                        ),
-                    )
-                    self.current_lesson.lesson_parts.expansion.append(new_sent)
-                    self.current_lesson.lesson_parts.all_sentences.append(new_sent)
-
-            self.logging(
-                f"Lesson: {self.current_lesson.title} - Sending {len(self.current_lesson.lesson_parts.expansion)} Expansion Sentences"
-            )
+            else:
+                self.logging(
+                    f"Lesson - {self.current_lesson.title} doesnt have a Expansion Section",
+                    LOGLEVEL.WARN,
+                )
+                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.EXPANSION)
         else:
             self.logging(
-                f"Lesson - {self.current_lesson.title} doesnt have a Expansion Section",
-                LOGLEVEL.WARN,
+                f"Error recieving Expansion - {res["status"]} - {res["message"]} ",
+                LOGLEVEL.ERROR,
             )
-            self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
-        self.send_sents_sig.emit(self.current_lesson.lesson_parts.expansion)
-        self.wait_time(self.wait_time_between_reqs, self.get_grammar)
+            self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.EXPANSION)
+            self.wait_time(self.wait_time_between_reqs, self.get_grammar)
 
     def get_grammar(self):
         self.logging("LessonWorker: Getting Grammar for Lesson")
-        self.current_lesson.task = LESSONTASK.GRAMMAR
-        self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
+        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.GRAMMAR)
         self.g_net_thread = QThread()
-        self.grammer_net = NetworkWorker(
+        self.create_networker(
+            "grammar",
             "GET",
             f"{self.host_url}api/v1/lessons/get-grammar?lessonId={self.current_lesson.lesson_id}",
-            headers=self.headers,
+            cb=self.grammar_received,
         )
-        self.g_net_thread.start()
-        self.grammer_net.moveToThread(self.g_net_thread)
-        self.grammer_net.response_sig.connect(self.grammar_received)
-        self.grammer_net.error_sig.connect(self.grammar_received)
-        self.grammer_net.do_work()
-        self.grammer_net.finished.connect(self.g_net_thread.deleteLater)
 
-    def grammar_received(self, status, payload, status_code=None):
+    def grammar_received(self, res):
         self.logging("LessonWorker: Received Grammar Response for Lesson")
-        if status == "error":
-            self.logging(
-                f"LessonWorker: Error recieving Grammar - {status_code}", LOGLEVEL.ERROR
-            )
-            self.lesson_completed()
-            return
-        grammar_payload = payload.json()
-        grammar = []
+        if res["ok"]:
+            grammar_payload = res["data"]
+            grammar = []
 
-        if grammar_payload and not status == "error":
-            for section in grammar_payload:
+            if grammar_payload:
+                for section in grammar_payload:
 
-                grammar_point = GrammarPoint(
-                    name=section["grammar"]["name"],
-                    explanation=section["grammar"]["introduction"],
-                )
-                for sentence in section["examples"]:
-
-                    audio_path = sentence["audio"]
-                    audio = self.build_audio_url(audio_path)
-                    new_sent = Sentence(
-                        chinese=sentence["s"],
-                        english=sentence["en"],
-                        pinyin=sentence["p"],
-                        audio=audio,
-                        level=self.current_lesson.level,
-                        sent_type="grammar",
-                        lesson=(
-                            self.current_lesson.title
-                            if self.current_lesson.title
-                            else ""
-                        ),
+                    grammar_point = GrammarPoint(
+                        name=section["grammar"]["name"],
+                        explanation=section["grammar"]["introduction"],
                     )
-                    grammar.append(new_sent)
-                    grammar_point.examples.append(new_sent)
-                    self.current_lesson.lesson_parts.all_sentences.append(new_sent)
-                self.current_lesson.lesson_parts.grammar.append(grammar_point)
-            self.logging(
-                f"Lesson: {self.current_lesson.title} - Sending {len(grammar)} Grammar Sentences"
-            )
+                    for sentence in section["examples"]:
+
+                        audio_path = sentence["audio"]
+                        audio = self.build_audio_url(audio_path)
+                        new_sent = Sentence(
+                            chinese=sentence["s"],
+                            english=sentence["en"],
+                            pinyin=sentence["p"],
+                            audio=audio,
+                            level=self.current_lesson.level,
+                            sent_type="grammar",
+                            lesson=(
+                                self.current_lesson.title
+                                if self.current_lesson.title
+                                else ""
+                            ),
+                        )
+                        grammar.append(new_sent)
+                        grammar_point.examples.append(new_sent)
+                        self.current_lesson.lesson_parts.all_sentences.append(new_sent)
+                    self.current_lesson.lesson_parts.grammar.append(grammar_point)
+                self.logging(
+                    f"Lesson: {self.current_lesson.title} - Sending {len(grammar)} Grammar Sentences"
+                )
+                self.task_complete.emit(
+                    JobRef(
+                        id=self.current_lesson.queue_id,
+                        task=LESSONTASK.GRAMMAR,
+                        status=JOBSTATUS.COMPLETE,
+                    ),
+                    {
+                        "sentences": grammar,
+                        "grammar": self.current_lesson.lesson_parts.grammar,
+                    },
+                )
+                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.GRAMMAR)
+                self.lesson_completed()
+            else:
+                self.logging(
+                    f"Lesson - {self.current_lesson.title} doesnt have a Grammar Section",
+                    LOGLEVEL.WARN,
+                )
+                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.GRAMMAR)
+                self.lesson_completed()
         else:
             self.logging(
-                f"Lesson - {self.current_lesson.title} doesnt have a Grammar Section",
-                LOGLEVEL.WARN,
+                f"LessonWorker: Error recieving Grammar - {res["status"]} - {res["message"]}",
+                LOGLEVEL.ERROR,
             )
-            self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
-        self.send_sents_sig.emit(grammar)
-        self.lesson_completed()
+            self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.GRAMMAR)
+            self.lesson_completed()
 
     def lesson_completed(self, error=False):
         if error:
@@ -499,12 +574,20 @@ class LessonScraperWorkerV2(QWorkerBase):
 
         else:
             parts = self.current_lesson.lesson_parts
-            if parts.lesson_audios and parts.dialogue and parts.all_sentences:
+            if parts.dialogue and parts.all_sentences:
                 if self.current_lesson.task != LESSONTASK.CHECK:
                     self.check_lesson_complete()
                     return
                 else:
-                    self.lesson_done.emit(self.current_lesson)
+                    self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.CHECK)
+                    self.task_complete.emit(
+                        JobRef(
+                            id=self.current_lesson.queue_id,
+                            task=LESSONTASK.CHECK,
+                            status=JOBSTATUS.COMPLETE,
+                        ),
+                        {},
+                    )
                     self.logging(f"Completed Lesson - {self.current_lesson.title}")
                     self.completed_lessons.append(self.current_lesson)
 

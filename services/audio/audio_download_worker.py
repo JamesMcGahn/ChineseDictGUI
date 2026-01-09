@@ -5,7 +5,9 @@ from random import randint
 from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QWorkerBase
+from base.enums import JOBSTATUS
 from models.dictionary import LessonAudio, Sentence
+from models.services import AudioDownloadPayload, JobRef
 from utils.files import PathManager
 
 from .google_audio_worker import GoogleAudioWorker
@@ -16,15 +18,19 @@ class AudioDownloadWorker(QWorkerBase):
     finished = Signal()
     progress = Signal(str)
     start_whisper = Signal(str, str)
+    task_complete = Signal(object, object)
 
     def __init__(
-        self, data, folder_path=None, project_name=None, google_audio_credential=""
+        self,
+        job_ref: JobRef,
+        payload: AudioDownloadPayload,
+        google_audio_credential="",
     ):
         super().__init__()
-        self.folder_path = folder_path
-        self.data = deque(data)
+        self.folder_path = payload.export_path
+        self.data = deque(payload.audio_urls)
         self._stopped = False
-        self.project_name = project_name
+        self.project_name = payload.project_name
         self.queue_downloading = False
         self.count = 1
         self.download_success = 0
@@ -32,6 +38,7 @@ class AudioDownloadWorker(QWorkerBase):
         self.data_length = len(self.data)
         self.project_type = ""
         self.google_audio_credential = google_audio_credential
+        self.job_ref = job_ref
 
     def do_work(self):
         self.log_thread()
@@ -59,6 +66,23 @@ class AudioDownloadWorker(QWorkerBase):
             self.logging(
                 f"{msg_text}Finished Downloading {self.project_type} Audio - Success: {self.download_success} Failure: {self.download_error}"
             )
+
+            self.task_complete.emit(
+                JobRef(
+                    id=self.job_ref.id,
+                    task=self.job_ref.task,
+                    status=(
+                        JOBSTATUS.COMPLETE
+                        if self.download_error == 0
+                        else JOBSTATUS.ERROR
+                    ),
+                ),
+                {
+                    "success": self.download_success,
+                    "failure": self.download_error,
+                    "total": self.count,
+                },
+            )
             self.finished.emit()
 
     def download_next_audio(self):
@@ -72,7 +96,7 @@ class AudioDownloadWorker(QWorkerBase):
                 filename = f"10KS-{x.id}"
                 self.project_type = "Sentences"
             elif isinstance(x, LessonAudio):
-                filename = x.title
+                filename = x.audio_type
                 self.project_type = "Lesson Audio"
             else:
                 filename = x.id
@@ -92,13 +116,6 @@ class AudioDownloadWorker(QWorkerBase):
                 urllib.request.urlretrieve(checkHttp, path)
                 self.logging(success_msg, "INFO")
 
-                if (
-                    isinstance(x, LessonAudio)
-                    and x.audio_type == "lesson"
-                    and x.transcribe
-                ):
-                    self.logging("Sending Lesson File to Whisper", "INFO")
-                    self.start_whisper.emit(self.folder_path, filename)
                 self.queue_downloading = False
                 self.updateAnkiAudio.emit(x)
                 self.count += 1

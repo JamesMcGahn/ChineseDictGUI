@@ -72,14 +72,15 @@ class AddLessonsDialog(QWidget):
         lessons = []
         for url in lesson_urls:
             if "chinesepod" in url:
-                less = Lesson(
-                    provider="cpod",
-                    url=url,
-                    slug="",
-                    check_dup_sents=self.check_for_dups,
-                    transcribe_lesson=self.transcribe_lesson,
+                lessons.append(
+                    {
+                        "provider": "cpod",
+                        "url": url,
+                        "slug": "",
+                        "check_dup_sents": self.check_for_dups,
+                        "transcribe_lesson": self.transcribe_lesson,
+                    }
                 )
-                lessons.append(less)
 
         self.add_lesson_submited_signal.emit(
             lessons,

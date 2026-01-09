@@ -5,6 +5,7 @@ from PySide6.QtCore import QThread, Signal, Slot
 from base import QObjectBase
 from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Lesson, Sentence, Word
+from models.services import AudioDownloadPayload, JobRef
 from services.audio import AudioThread, CombineAudioThread, WhisperThread
 
 
@@ -12,6 +13,7 @@ from services.audio import AudioThread, CombineAudioThread, WhisperThread
 # TODO untangle whisper and combine logic from workers -> move to lesson manager
 class AudioAndWhisperManager(QObjectBase):
     appshutdown = Signal()
+    task_complete = Signal(object, object)
 
     def __init__(self):
         super().__init__()
@@ -19,34 +21,16 @@ class AudioAndWhisperManager(QObjectBase):
         self.combine_audio_n_whisper_threads = []  # ffmpeg threads
 
     @Slot(list)
-    def download_audio(
-        self,
-        audlist,
-        folder=None,
-        update_db=True,
-        combine_audio=False,
-        combine_audio_export_folder="",
-        combine_audio_export_filename="",
-        combine_audio_delay_between_audio=1500,
-        project_name=None,
-    ):
+    def download_audio(self, jobref: JobRef, payload: AudioDownloadPayload):
         # TODO get audio folder path from settings
-        if folder is None:
-            folder = "./test/"
-        audio_thread = AudioThread(
-            audlist,
-            folder_path=folder,
-            combine_audio=combine_audio,
-            combine_audio_export_folder=combine_audio_export_folder,
-            combine_audio_export_filename=combine_audio_export_filename,
-            combine_audio_delay_between_audio=combine_audio_delay_between_audio,
-            project_name=project_name,
-        )
-        if update_db:
+
+        audio_thread = AudioThread(job_ref=jobref, payload=payload)
+        if payload.update_db:
             audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
 
         audio_thread.start_combine_audio.connect(self.combine_audio)
         audio_thread.done.connect(lambda: self.remove_threads(audio_thread, "Audio"))
+        audio_thread.task_complete.connect(self.task_complete)
         audio_thread.start_whisper.connect(self.whisper_audio)
         self.audio_threads.append(audio_thread)
         if len(self.audio_threads) == 1:
