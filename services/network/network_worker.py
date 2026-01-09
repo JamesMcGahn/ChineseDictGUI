@@ -14,7 +14,15 @@ class NetworkWorker(QObjectBase):
     start_work = Signal()
 
     def __init__(
-        self, operation, url, data=None, json=None, timeout=10, retry=0, headers=None
+        self,
+        operation,
+        url,
+        data=None,
+        json=None,
+        timeout=10,
+        retry=0,
+        headers=None,
+        files=None,
     ):
         super().__init__()
         self.session_manager = SessionManager()
@@ -26,6 +34,7 @@ class NetworkWorker(QObjectBase):
         self.start_work.connect(self.do_work)
         self.retry = retry
         self.headers = headers
+        self.files = files
 
     @Slot()
     def do_work(self):
@@ -39,6 +48,7 @@ class NetworkWorker(QObjectBase):
                     json=self.json,
                     timeout=self.timeout,
                     headers=self.headers,
+                    files=self.files,
                 )
 
                 if res.status_code in (200, 201, 202, 203):

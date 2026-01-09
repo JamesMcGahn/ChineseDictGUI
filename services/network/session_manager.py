@@ -34,10 +34,10 @@ class SessionManager(QObjectBase, metaclass=QSingleton):
         self._copy_cookie_jar(session)
         return session
 
-    def post(self, url, data=None, json=None, timeout=10, headers=None):
+    def post(self, url, data=None, json=None, timeout=10, headers=None, files=None):
         session = self.build_session()
         response = session.post(
-            url, data=data, json=json, timeout=timeout, headers=headers
+            url, data=data, json=json, timeout=timeout, headers=headers, files=files
         )
         self.update_cookie_jar(session.cookies)
         return response
