@@ -42,7 +42,7 @@ Priorities:
 
   - [x] `safe_extract_json(response)`
 
-- [ ] Migrate consumers incrementally:
+- [/] Migrate consumers incrementally:
   - [ ] Replace `response.status_code` → `result["status"]`
   - [ ] Replace `response.json()` → `result["data"]`
   - [ ] Replace exception handling → `result["message"]`
@@ -98,14 +98,35 @@ Priorities:
 
 ## Audio Thread Consolidation 🔥
 
-- [ ] Combine Whisper + audio processing under a single **AudioManager**
-- [ ] Remove thread logic from UI pages
+- [x] Combine Whisper + audio processing under a single **AudioManager**
+- [/] Remove thread logic from UI pages
 - [ ] Add granular progress/error signals for:
   - [ ] Dialogue extraction
   - [ ] Vocabulary extraction
   - [ ] Grammar extraction
   - [ ] Expansion extraction
   - [ ] Whisper transcription
+
+## Lesson Workflow Pipeline
+
+- [x] Remove Lesson thread logic from lesson page
+- [/] Workflow for lesson using jobs
+  - [x] spec generation / job generation controller
+  - [/] clean up controller
+- [ ] Add lingqq Lesson jobs to controller (waiting to be built)
+- [ ] Add db job to controller (waiting to be built)
+- [ ] update project status
+  - [ ] add progress fn / signal for lesson overall status
+
+## Lingqq Lesson Auto Submission
+
+- [x] Create login worker
+  - [x] extract cookies / auth token
+- [x] Create worker to obtain collection ids
+- [ ] Lesson Submission Worker
+- [ ] create fn to obtain crsf token
+- [ ] create fn to submit lesson
+- [ ] design and implement new job service structure
 
 # Lesson Search & Scraping
 
@@ -170,7 +191,7 @@ Create a **generic progress pipeline** for all slow operations:
 
 ## Architecture Cleanup ⭐
 
-- [ ] Move service initialization from `MainWindow` → `AppInitializer`
+- [x] Move service initialization from `MainWindow` → `Context`
 - [ ] Improve folder structure (e.g., `core/`, `services/`, `workers/`, `ui/components/`)
 - [ ] Remove unused imports
 - [ ] Add error dialogs for network/login failures
