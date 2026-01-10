@@ -1,22 +1,26 @@
-from PySide6.QtCore import QMetaObject, QObject
+from PySide6.QtCore import QMetaObject, QObject, Qt, Slot
 
 
 class CleanUpManager(QObject):
 
     def __init__(self):
-        super().__init__(self)
-
+        super().__init__()
         self.running_tasks = {}
 
+    @Slot(str, bool)
     def cleanup_task(self, task_id, thread_finished=False):
         if task_id in self.running_tasks:
             if thread_finished:
                 w_thread, worker = self.running_tasks.pop(task_id)
-                w_thread.deleteLater()
+                QMetaObject.invokeMethod(w_thread, "deleteLater", Qt.QueuedConnection)
                 print(f"Task {task_id} - Thread deleting.")
             else:
                 w_thread, worker = self.running_tasks[task_id]
                 if worker:
-                    worker.deleteLater()
+                    QMetaObject.invokeMethod(worker, "deleteLater", Qt.QueuedConnection)
                 w_thread.quit()
                 print(f"Task {task_id} - Worker cleaned up. Thread quitting.")
+
+    def add_task(self, task_id, thread, worker):
+        self.running_tasks[task_id] = (thread, worker)
+        print(self.running_tasks)

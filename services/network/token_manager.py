@@ -1,17 +1,19 @@
 import time
 
 import jwt
-from PySide6.QtCore import QObject, QTimer, Signal, Slot
+from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
 from base import QSingleton
+from base.cleanup_manager import CleanUpManager
+from core.cpod import TokenWorker
 
 from ..logger import Logger
 from ..settings import AppSettings
-from .get_token_thread import GetTokenThread
 
 
 class TokenManager(QObject, metaclass=QSingleton):
     send_token = Signal(str)
+    send_cookies = Signal(list)
 
     def __init__(self):
         super().__init__()
@@ -19,6 +21,9 @@ class TokenManager(QObject, metaclass=QSingleton):
         self.logger = Logger()
         self._token = None
         self.token_fetch_in_progress = False
+        self.token_tries = 0
+        self.token_threads = {}
+        self.cleanup_manager = CleanUpManager()
 
     @Slot()
     def request_token(self):
@@ -52,6 +57,7 @@ class TokenManager(QObject, metaclass=QSingleton):
     def check_token(self):
         self.logger.insert("Checking For a Stored Cpod token.")
         self.token = self.settings.get_value("cpod_token")
+
         if self.token:
             try:
                 self.token = self.remove_bearer(self.token)
@@ -87,12 +93,30 @@ class TokenManager(QObject, metaclass=QSingleton):
 
         if self.token_fetch_in_progress:
             return
+
+        if self.token_tries == 2:
+            self.logger.insert(
+                "Tried two times to get a cpod token. Failed to get token.", "ERROR"
+            )
+            return
         self.token_fetch_in_progress = True
-        self.token_thread = GetTokenThread()
-        self.token_thread.send_token.connect(self.receive_token)
-        self.token_thread.finished.connect(self.token_thread.quit)
-        self.token_thread.finished.connect(self.token_thread.deleteLater)
-        self.token_thread.start()
+
+        task_id = f"token_fetch_{self.token_tries}"
+        token_thread = QThread()
+        token_worker = TokenWorker()
+        token_worker.moveToThread(token_thread)
+        token_worker.send_token.connect(self.receive_token)
+        token_worker.send_cookies.connect(self.send_cookies)
+        token_worker.finished.connect(
+            lambda: self.cleanup_manager.cleanup_task(task_id, False)
+        )
+        token_thread.finished.connect(
+            lambda: self.cleanup_manager.cleanup_task(task_id, True)
+        )
+        token_thread.started.connect(token_worker.run)
+        token_thread.start()
+        self.cleanup_manager.add_task(task_id, token_thread, token_worker)
+        self.token_tries += 1
 
     @Slot(str, bool)
     def receive_token(self, token, wasReceived):
