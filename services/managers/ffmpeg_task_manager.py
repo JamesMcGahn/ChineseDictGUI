@@ -1,11 +1,10 @@
 from PySide6.QtCore import Signal, Slot
 
 from base import QObjectBase, ThreadQueueManager
-from models.services import CombineAudioPayload, JobRef
+from models.services import CombineAudioPayload, JobRef, WhisperPayload
 from services.audio import CombineAudioThread, WhisperThread
 
 
-# TODO update whisper to job structure
 class FFmpegTaskManager(QObjectBase):
     appshutdown = Signal()
     task_complete = Signal(object, object)
@@ -15,7 +14,7 @@ class FFmpegTaskManager(QObjectBase):
 
         self.queue_manager = ThreadQueueManager("Combine-Whisper")
 
-    @Slot(str, str, str, int, str)
+    @Slot(object, object)
     def combine_audio(self, job_ref: JobRef, payload: CombineAudioPayload):
 
         combine_audio_thread = CombineAudioThread(job_ref, payload)
@@ -24,8 +23,10 @@ class FFmpegTaskManager(QObjectBase):
         combine_audio_thread.task_complete.connect(self.task_complete)
         self.queue_manager.add_thread(combine_audio_thread)
 
-    def whisper_audio(self, folder, filename):
-        whisper_thread = WhisperThread(folder, filename)
+    @Slot(object, object)
+    def whisper_audio(self, job_ref: JobRef, payload: WhisperPayload):
+        whisper_thread = WhisperThread(job_ref, payload)
         self.appshutdown.connect(whisper_thread.stop)
         whisper_thread.send_logs.connect(self.logging)
+        whisper_thread.task_complete.connect(self.task_complete)
         self.queue_manager.add_thread(whisper_thread)

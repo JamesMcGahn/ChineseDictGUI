@@ -3,32 +3,34 @@ import subprocess
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QProcess, Slot
+from PySide6.QtCore import QProcess, Signal, Slot
 
 from base import QWorkerBase
-from base.enums import LOGLEVEL
+from base.enums import JOBSTATUS, LOGLEVEL
+from models.services import JobRef, WhisperPayload
 from utils.files import PathManager
 
 
 class OpenAIWhisperWorker(QWorkerBase):
+    task_complete = Signal(object, object)
 
-    def __init__(self, folder: str, file_name: str, model_name: str = "medium"):
+    def __init__(self, job_ref: JobRef, payload: WhisperPayload):
         super().__init__()
-        self.folder = Path(folder)
-        self.filename = file_name
-        self.model_name = "large"
+        self.job_ref = job_ref
+        self.folder = Path(payload.file_folder_path)
+        self.filename = payload.file_filename
+        self.language = payload.language
+        self.model_name = payload.model_name
+
         self.path = None
-        self.language = "Mandarin"
         self.audio_length_sec = 0
 
     def check_path(self, path):
         audio_exists = PathManager.path_exists(path, False)
-        print("in whisper worker", audio_exists)
-
         return audio_exists
 
     def do_work(self):
-        self.path = Path(self.folder, f"{self.filename}.mp3")
+        self.path = Path(self.folder, self.filename)
         audio_exists = self.check_path(self.path)
         if not audio_exists:
             self.logging(
@@ -89,6 +91,28 @@ class OpenAIWhisperWorker(QWorkerBase):
     def on_finished(self, code, status):
         if code == 0 and status == QProcess.ExitStatus.NormalExit:
             self.logging(f"100% Percent done - Transcribing {self.filename}")
+
+            self.task_complete.emit(
+                JobRef(
+                    id=self.job_ref.id,
+                    task=self.job_ref.task,
+                    status=JOBSTATUS.COMPLETE,
+                ),
+                {
+                    "path": self.path.with_suffix(".txt"),
+                },
+            )
+        if code == 1:
+            self.task_complete.emit(
+                JobRef(
+                    id=self.job_ref.id,
+                    task=self.job_ref.task,
+                    status=JOBSTATUS.ERROR,
+                ),
+                {
+                    "path": None,
+                },
+            )
         self.logging(f"OpenAI has finished with code: {code} - status: {status}")
         self.finished.emit()
 

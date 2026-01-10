@@ -1,45 +1,45 @@
 import re
 from pathlib import Path
 
-from PySide6.QtCore import Slot
+from PySide6.QtCore import Signal, Slot
 
 from base import QWorkerBase
+from base.enums import JOBSTATUS
+from models.services import FasterWhisperOptions, JobRef, WhisperPayload
 from utils.files import PathManager
 
 
-class WhisperWorker(QWorkerBase):
+class FasterWhisperWorker(QWorkerBase):
+    task_complete = Signal(object, object)
 
-    def __init__(self, folder: str, file_name: str, model_name: str = "medium"):
+    def __init__(self, job_ref: JobRef, payload: WhisperPayload):
         super().__init__()
-        self.folder = Path(folder)
-        self.filename = file_name
-        self.language = "zh"
-        self.model_name = model_name
+        self.job_ref = job_ref
+        self.folder = Path(payload.file_folder_path)
+        self.filename = payload.file_filename
+        self.language = payload.language
+        self.model_name = payload.model_name
         self._stopped = False
-        self.model_name = "large"
-        self.compute_type = "auto"
-        self.beam_size = 8
-        self.min_silence_ms = 2500
-        self.chunk_length = 120
 
-        if any(
-            level in file_name
-            for level in ["Newbie", "Elementary", "Pre-Intermediate", "Intermediate"]
-        ):
-            self.initial_prompt = """
-                "Transcribe Mandarin in Simplified Chinese. Transcribe English in Standard English"
-            """
-        else:
-            self.initial_prompt = (
-                "Transcribe Mandarin using Simplified Chinese characters. "
-            )
+        options = payload.options
+        if options is None:
+            options = FasterWhisperOptions()
+
+        self.compute_type = options.compute_type
+        self.beam_size = options.beam_size
+        self.min_silence_ms = options.min_silence_ms
+        self.chunk_length = options.chunk_length
+        self.initial_prompt = payload.initial_prompt
+        self.on_previous_text = options.on_previous_text
+        self.vad_filter = options.vad_filter
+        self.multilingual = options.multilingual
 
     @Slot()
     def do_work(self):
         try:
             print("in whisper worker")
             audio_exists = PathManager.path_exists(
-                f"{self.folder}/{self.filename}.mp3", False
+                f"{self.folder}/{self.filename}", False
             )
 
             print("in whisper worker", audio_exists)
@@ -47,10 +47,20 @@ class WhisperWorker(QWorkerBase):
                 self.logging(
                     f"No audio found in {self.folder}/{self.filename}", "ERROR"
                 )
+                self.task_complete.emit(
+                    JobRef(
+                        id=self.job_ref.id,
+                        task=self.job_ref.task,
+                        status=JOBSTATUS.ERROR,
+                    ),
+                    {
+                        "path": None,
+                    },
+                )
                 self.finished.emit()
                 return
             else:
-                audio = Path(f"{self.folder}/{self.filename}.mp3")
+                audio = Path(f"{self.folder}/{self.filename}")
 
             # # Optionally ensure ffmpeg exists (bundled by imageio-ffmpeg if system ffmpeg missing)
             # try:
@@ -74,12 +84,13 @@ class WhisperWorker(QWorkerBase):
                 task="transcribe",
                 chunk_length=self.chunk_length,
                 language=self.language,
-                vad_filter=False,
+                vad_filter=self.vad_filter,
                 vad_parameters={"min_silence_duration_ms": self.min_silence_ms},
-                condition_on_previous_text=True,
+                condition_on_previous_text=self.vad_filter,
                 beam_size=self.beam_size,
                 word_timestamps=False,
                 initial_prompt=self.initial_prompt,
+                multilingual=self.multilingual,
             )
 
             total = float(info.duration or 0.0)
@@ -116,8 +127,18 @@ class WhisperWorker(QWorkerBase):
 
             out_path = audio.with_suffix(".txt")
             out_path.write_text(text, encoding="utf-8")
-            self.logging(f"100% Percent Done - Transcribing {self.filename}")
+            self.logging(f"100% Percent Done - Transcribing {out_path}")
             self.logging(f"Wrote: {out_path.name}")
+            self.task_complete.emit(
+                JobRef(
+                    id=self.job_ref.id,
+                    task=self.job_ref.task,
+                    status=JOBSTATUS.COMPLETE,
+                ),
+                {
+                    "path": out_path,
+                },
+            )
             self.finished.emit()
 
         except Exception as e:

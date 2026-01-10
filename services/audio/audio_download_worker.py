@@ -15,7 +15,6 @@ from .google_audio_worker import GoogleAudioWorker
 
 class AudioDownloadWorker(QWorkerBase):
     updateAnkiAudio = Signal(object)
-    finished = Signal()
     progress = Signal(str)
     start_whisper = Signal(str, str)
     task_complete = Signal(object, object)
