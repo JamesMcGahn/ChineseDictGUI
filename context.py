@@ -125,7 +125,7 @@ class AppContext(QObjectBase, metaclass=QSingleton):
             print(cookie.domain)
             if cookie.name == "csrftoken" and cookie.domain == "www.lingq.com":
                 lingq_logged = True
-
+                # TODO
         self.network_thread.quit()
         self.network_thread.deleteLater()
 

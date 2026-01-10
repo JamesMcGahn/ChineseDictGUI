@@ -2,12 +2,17 @@ import uuid
 
 from PySide6.QtCore import QThread, Signal, Slot
 
-from base import QObjectBase
-from base.enums import JOBSTATUS, LESSONAUDIO, LESSONTASK
+from base import QObjectBase, ThreadQueueManager
+from base.enums import JOBSTATUS, LESSONAUDIO, LESSONSTATUS, LESSONTASK, WHISPERPROVIDER
 from core.scrapers.cpod.lessons import LessonScraperThread
 from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Lesson, LessonAudio, Sentence, Word
-from models.services import AudioDownloadPayload, CombineAudioPayload, JobRef
+from models.services import (
+    AudioDownloadPayload,
+    CombineAudioPayload,
+    JobRef,
+    WhisperPayload,
+)
 from services.network import TokenManager
 from utils.files import PathManager
 
@@ -30,20 +35,15 @@ class LessonWorkFlowManager(QObjectBase):
         self.audio_download_manager = audio_download_manager
         self.lesson_threads = []
         self.token_manager = TokenManager()
-        self.lessons_queue = {}
-
+        self.lessons_queue: dict[str, Lesson] = {}
+        self.thread_queue_manager = ThreadQueueManager("Lesson")
         self.base_path = "./test/"
-
-        self.ffmeg_task_manager.combine_audio(
-            job_ref=JobRef("test", LESSONTASK.COMBINE_AUDIO, JOBSTATUS.CREATED),
-            payload=CombineAudioPayload(
-                combine_folder_path=f"./test/Newbie/Do You Like Shanghai?/audio",
-                export_file_name="sentences.mp3",
-                export_path="./test/Newbie/Do You Like Shanghai?/",
-                delay_between_audio=1500,
-                project_name="test",
-            ),
-        )
+        # self.thread_queue_manager.thread_running.connect(self.scraping_active)
+        # combine_folder_path=f"./test/Newbie/Do You Like Shanghai?/audio",
+        # export_file_name="sentences.mp3",
+        # export_path="./test/Newbie/Do You Like Shanghai?/",
+        # delay_between_audio=1500,
+        # project_name="test",
 
     def create_lesson_scrape(self, lesson_specs):
         jobs = []
@@ -75,30 +75,10 @@ class LessonWorkFlowManager(QObjectBase):
         lesson_thread.request_token.connect(self.token_manager.request_token)
         lesson_thread.task_complete.connect(self.on_task_completed)
         self.token_manager.send_token.connect(lesson_thread.receive_token)
-        lesson_thread.done.connect(lambda: self.remove_lesson_thread(lesson_thread))
         lesson_thread.lesson_done.connect(self.save_lesson)
         self.lesson_threads.append(lesson_thread)
 
-        if len(self.lesson_threads) == 1:
-            self.scraping_active.emit(True)
-            lesson_thread.start()
-
-    def remove_lesson_thread(self, thread):
-        self.lesson_threads.remove(thread)
-        try:
-            thread.quit()
-            thread.wait()
-        except Exception:
-            self.logging(f"Failed to quit Lesson Thread {thread}")
-        thread.deleteLater()
-        self.scraping_active.emit(False)
-
-    def maybe_start_next_lesson(self):
-        if self.lesson_threads:
-            head = self.lesson_threads[0]
-            if not head.isRunning() and not head.isFinished():
-                self.scraping_active.emit(True)
-                head.start()
+        self.thread_queue_manager.add_thread(lesson_thread)
 
     @Slot(str, str)
     def save_lesson(self, lesson: Lesson):
@@ -168,12 +148,25 @@ class LessonWorkFlowManager(QObjectBase):
             # combine_audio_export_filename="Sentences.mp3",
             # combine_audio_delay_between_audio=1500,
 
+    def job_to_lesson_status(self, job_status: JOBSTATUS):
+        try:
+            return LESSONSTATUS[job_status.name]
+        except KeyError as e:
+            if job_status == JOBSTATUS.PARTIAL_ERROR:
+                return LESSONSTATUS.ERROR
+            else:
+                raise ValueError(f"Unsupported Job Status: {job_status}") from e
+
     def on_task_completed(self, job: JobRef, payload):
         print("here", job)
         if job.id not in self.lessons_queue:
             return
 
         lesson: Lesson = self.lessons_queue[job.id]
+
+        self.update_lesson_status(
+            job.id, job.task, self.job_to_lesson_status(job.status)
+        )
 
         if lesson is None:
             return
@@ -183,15 +176,6 @@ class LessonWorkFlowManager(QObjectBase):
                 self.ffmeg_task_manager.whisper_audio(
                     lesson.storage_path, LESSONAUDIO.LESSON
                 )
-
-        if job.task == LESSONTASK.COMBINE_AUDIO and job.status == JOBSTATUS.COMPLETE:
-
-            file_exists = PathManager.path_exists(
-                f"{payload["path"]}{payload["filename"]}", False
-            )
-            if file_exists:
-                # TODO ling job
-                print("send to lingq")
 
         if job.task == LESSONTASK.AUDIO and job.status == JOBSTATUS.COMPLETE:
             self.ffmeg_task_manager.combine_audio(
@@ -249,8 +233,19 @@ class LessonWorkFlowManager(QObjectBase):
             )
 
         if job.task == LESSONTASK.LESSON_AUDIO and job.status == JOBSTATUS.COMPLETE:
-            print("Todo for whisper")
-            # TODO WHISPER
+            # TODO WHISPER SETTINGS From Settings
+            if lesson.transcribe_lesson:
+                self.ffmeg_task_manager.whisper_audio(
+                    job_ref=JobRef(
+                        lesson.queue_id, LESSONTASK.TRANSCRIBE, JOBSTATUS.CREATED
+                    ),
+                    payload=WhisperPayload(
+                        provider=WHISPERPROVIDER.WHISPER,
+                        file_filename="lesson.mp3",
+                        file_folder_path=lesson.storage_path,
+                        model_name="tiny",
+                    ),
+                )
 
         if job.task == LESSONTASK.DIALOGUE and job.status == JOBSTATUS.COMPLETE:
             dialogue = payload["sentences"]
@@ -286,3 +281,32 @@ class LessonWorkFlowManager(QObjectBase):
 
         if job.task == LESSONTASK.CHECK and job.status == JOBSTATUS.COMPLETE:
             self.save_lesson(lesson)
+
+        if (
+            job.task == LESSONTASK.COMBINE_AUDIO or job.task == LESSONTASK.TRANSCRIBE
+        ) and job.status == JOBSTATUS.COMPLETE:
+            if lesson.transcribe_lesson:
+                lesson_transcribed = PathManager.path_exists(
+                    path=f"{lesson.storage_path}lesson.txt",
+                    makepath=False,
+                )
+                if not lesson_transcribed:
+                    return
+
+            audio_combined = PathManager.path_exists(
+                path=f"{lesson.storage_path}sentences.mp3",
+                makepath=False,
+            )
+            if not audio_combined:
+                return
+            # TODO ready for lingq
+            print("Ready for Lingq")
+
+    def update_lesson_status(
+        self, queue_id, lesson_task: LESSONTASK, lesson_status: LESSONSTATUS
+    ):
+        if queue_id not in self.lessons_queue:
+            return
+        lesson = self.lessons_queue[queue_id]
+        lesson.task = lesson_task
+        lesson.status = lesson_status

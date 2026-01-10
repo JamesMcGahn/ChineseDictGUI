@@ -1,3 +1,4 @@
+import os
 import sys
 
 from PySide6.QtCore import QCoreApplication, Qt
@@ -8,7 +9,8 @@ from views import MainWindow
 
 
 def main():
-
+    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+    os.environ["OMP_NUM_THREADS"] = "1"
     QCoreApplication.setOrganizationName("ChineseDictGUI")
     QCoreApplication.setApplicationName("ChineseDictGUI")
     QCoreApplication.setApplicationVersion("0.1.0")
