@@ -1,3 +1,4 @@
+from .play_wright import PlaywrightBase
 from .qobject_base import QObjectBase
 from .qsingleton import QSingleton
 from .qthread_base import QThreadBase
@@ -13,4 +14,5 @@ __all__ = [
     "QWorkerBase",
     "ErrorWrappers",
     "QThreadBase",
+    "PlaywrightBase",
 ]
