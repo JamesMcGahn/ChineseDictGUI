@@ -1,14 +1,24 @@
+import os
+import subprocess
+import sys
+
 import requests
 from PySide6.QtCore import QThread, QTimer, Signal, Slot
 
 from base import QObjectBase, QSingleton
+from core.cpod.token_worker import TokenWorker
 from core.lingq import LingqCollectionsWorker, LingqLessonWorker
 from db import DatabaseManager
 from keys import keys
 from services.logger import Logger
-from services.managers import AudioAndWhisperManager, LessonWorkFlowManager
+from services.managers import (
+    AudioDownloadManager,
+    FFmpegTaskManager,
+    LessonWorkFlowManager,
+)
 from services.network import NetworkThread, SessionManager, TokenManager
 from services.settings import AppSettings
+from utils.files import PathManager
 
 
 class AppContext(QObjectBase, metaclass=QSingleton):
@@ -24,15 +34,38 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.setup_database()
 
         self.lingq_courses = []
-        self.audio_n_whisper_manager = AudioAndWhisperManager()
+        self.ffmpeg_task_manager = FFmpegTaskManager()
+        self.audio_download_manager = AudioDownloadManager()
         self.lesson_workflow_manager = LessonWorkFlowManager(
-            self.audio_n_whisper_manager
+            self.audio_download_manager, self.ffmpeg_task_manager
+        )
+        self.ffmpeg_task_manager.task_complete.connect(
+            self.lesson_workflow_manager.on_task_completed
+        )
+        self.audio_download_manager.task_complete.connect(
+            self.lesson_workflow_manager.on_task_completed
         )
 
+        folder = PathManager.create_folder_in_app_data("playwright")
+        self.ensure_playwright_browsers(folder)
+
         self.token_manager = TokenManager()
+        self.token_manager.send_cookies.connect(
+            self.session_manager.receive_playwright_cookies
+        )
         self.check_token.connect(self.token_manager.check_token)
         self.setup_session()
         self.check_token.emit()
+
+    def ensure_playwright_browsers(self, app_data_path):
+        env = os.environ.copy()
+        env["PLAYWRIGHT_BROWSERS_PATH"] = app_data_path
+
+        subprocess.run(
+            [sys.executable, "-m", "playwright", "install", "chromium"],
+            env=env,
+            check=True,
+        )
 
     def setup_database(self):
         db = DatabaseManager("chineseDict.db")
@@ -87,11 +120,12 @@ class AppContext(QObjectBase, metaclass=QSingleton):
     def session_response(self, status, response):
         # print(response.text)
         print(response.cookies)
+        lingq_logged = False
         for cookie in response.cookies:
             print(cookie.domain)
             if cookie.name == "csrftoken" and cookie.domain == "www.lingq.com":
+                lingq_logged = True
 
-                print("cookie HERE")
         self.network_thread.quit()
         self.network_thread.deleteLater()
 

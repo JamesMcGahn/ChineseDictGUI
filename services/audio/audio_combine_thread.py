@@ -1,6 +1,7 @@
 from PySide6.QtCore import Signal, Slot
 
 from base import QThreadBase
+from models.services import CombineAudioPayload, JobRef
 
 from .audio_combine_worker import AudioCombineWorker
 
@@ -9,33 +10,19 @@ class CombineAudioThread(QThreadBase):
     updateAnkiAudio = Signal(object)
     start_combine_audio = Signal(str)
     stop_worker = Signal()
+    task_complete = Signal(object, object)
 
-    def __init__(
-        self,
-        folder_path: str,
-        output_file_name: str,
-        output_file_folder: str,
-        silence_ms: int = 500,
-        project_name: str = None,
-    ):
+    def __init__(self, job_ref: JobRef, payload: CombineAudioPayload):
         super().__init__()
-        self.folder_path = folder_path
-        self.output_file_name = output_file_name
-        self.output_file_folder = output_file_folder
-        self.silence_ms = silence_ms
-        self.project_name = project_name
+        self.job_ref = job_ref
+        self.payload = payload
 
     def run(self):
-        self.worker = AudioCombineWorker(
-            self.folder_path,
-            self.output_file_name,
-            self.output_file_folder,
-            self.silence_ms,
-            self.project_name,
-        )
+        self.worker = AudioCombineWorker(self.job_ref, self.payload)
 
         self.worker.moveToThread(self)
         self.worker.finished.connect(self.worker_finished)
+        self.worker.task_complete.connect(self.task_complete)
         self.stop_worker.connect(self.worker.stop)
         self.worker.do_work()
 

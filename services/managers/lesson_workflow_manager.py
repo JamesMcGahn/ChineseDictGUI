@@ -7,9 +7,12 @@ from base.enums import JOBSTATUS, LESSONAUDIO, LESSONTASK
 from core.scrapers.cpod.lessons import LessonScraperThread
 from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Lesson, LessonAudio, Sentence, Word
-from models.services import AudioDownloadPayload, JobRef
+from models.services import AudioDownloadPayload, CombineAudioPayload, JobRef
 from services.network import TokenManager
 from utils.files import PathManager
+
+from .audio_download_manager import AudioDownloadManager
+from .ffmpeg_task_manager import FFmpegTaskManager
 
 
 class LessonWorkFlowManager(QObjectBase):
@@ -17,14 +20,30 @@ class LessonWorkFlowManager(QObjectBase):
     send_sents_sig = Signal(list, bool)
     send_words_sig = Signal(list, bool)
 
-    def __init__(self, audio_n_whisper_manager):
+    def __init__(
+        self,
+        audio_download_manager: AudioDownloadManager,
+        ffmeg_task_manager: FFmpegTaskManager,
+    ):
         super().__init__()
-        self.audio_n_whisper_manager = audio_n_whisper_manager
+        self.ffmeg_task_manager = ffmeg_task_manager
+        self.audio_download_manager = audio_download_manager
         self.lesson_threads = []
         self.token_manager = TokenManager()
         self.lessons_queue = {}
 
         self.base_path = "./test/"
+
+        self.ffmeg_task_manager.combine_audio(
+            job_ref=JobRef("test", LESSONTASK.COMBINE_AUDIO, JOBSTATUS.CREATED),
+            payload=CombineAudioPayload(
+                combine_folder_path=f"./test/Newbie/Do You Like Shanghai?/audio",
+                export_file_name="sentences.mp3",
+                export_path="./test/Newbie/Do You Like Shanghai?/",
+                delay_between_audio=1500,
+                project_name="test",
+            ),
+        )
 
     def create_lesson_scrape(self, lesson_specs):
         jobs = []
@@ -133,11 +152,11 @@ class LessonWorkFlowManager(QObjectBase):
                 f"Adding - {lesson.title} - Sentences & Words Audio to Download Queue."
             )
             # TODO move parmeters to payload
-            self.audio_n_whisper_manager.download_audio(
-                JobRef(
+            self.audio_download_manager.download_audio(
+                job_ref=JobRef(
                     id=lesson.queue_id, task=LESSONTASK.AUDIO, status=JOBSTATUS.CREATED
                 ),
-                AudioDownloadPayload(
+                payload=AudioDownloadPayload(
                     audio_urls=sents_words_with_in_order,
                     export_path=f"{lesson.storage_path}audio",
                     project_name=lesson.title,
@@ -161,17 +180,31 @@ class LessonWorkFlowManager(QObjectBase):
 
         if job.task == LESSONTASK.LESSON_AUDIO and job.status == JOBSTATUS.COMPLETE:
             if lesson.transcribe_lesson:
-                self.audio_n_whisper_manager.whisper_audio(
+                self.ffmeg_task_manager.whisper_audio(
                     lesson.storage_path, LESSONAUDIO.LESSON
                 )
 
+        if job.task == LESSONTASK.COMBINE_AUDIO and job.status == JOBSTATUS.COMPLETE:
+
+            file_exists = PathManager.path_exists(
+                f"{payload["path"]}{payload["filename"]}", False
+            )
+            if file_exists:
+                # TODO ling job
+                print("send to lingq")
+
         if job.task == LESSONTASK.AUDIO and job.status == JOBSTATUS.COMPLETE:
-            self.audio_n_whisper_manager.combine_audio(
-                f"{lesson.storage_path}audio",
-                "sentences.mp3",
-                lesson.storage_path,
-                1500,
-                lesson.title,
+            self.ffmeg_task_manager.combine_audio(
+                job_ref=JobRef(
+                    lesson.queue_id, LESSONTASK.COMBINE_AUDIO, JOBSTATUS.CREATED
+                ),
+                payload=CombineAudioPayload(
+                    combine_folder_path=f"{lesson.storage_path}audio",
+                    export_file_name="sentences.mp3",
+                    export_path=lesson.storage_path,
+                    delay_between_audio=1500,
+                    project_name=lesson.title,
+                ),
             )
 
         if job.task == LESSONTASK.INFO and job.status == JOBSTATUS.COMPLETE:
@@ -204,8 +237,8 @@ class LessonWorkFlowManager(QObjectBase):
             lesson.lesson_parts.lesson_audios.append(dialogue_audio)
             lesson.lesson_parts.lesson_audios.append(lesson_audio)
 
-            self.audio_n_whisper_manager.download_audio(
-                jobref=JobRef(
+            self.audio_download_manager.download_audio(
+                job_ref=JobRef(
                     lesson.queue_id, LESSONTASK.LESSON_AUDIO, JOBSTATUS.CREATED
                 ),
                 payload=AudioDownloadPayload(
