@@ -1,10 +1,11 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 
 from .qobject_base import QObjectBase
 from .qthread_base import QThreadBase
 
 
 class ThreadQueueManager(QObjectBase):
+    thread_running = Signal(bool)
 
     def __init__(self, thread_type):
         super().__init__()
@@ -22,6 +23,7 @@ class ThreadQueueManager(QObjectBase):
         if thread not in self.threads_queue:
             return
         self.running = False
+        self.thread_running.emit(self.running)
         self.threads_queue.remove(thread)
 
         self.logging(f"Removing {self.thread_type} thread {thread} from thread queue")
@@ -35,6 +37,7 @@ class ThreadQueueManager(QObjectBase):
         if self.running:
             return
         self.running = True
+        self.thread_running.emit(self.running)
         head = self.threads_queue[0]
         head.start()
         self.logging(f"Starting {self.thread_type} thread {head}")
