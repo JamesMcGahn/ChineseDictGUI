@@ -171,8 +171,6 @@ class NetworkWorker(QObjectBase):
     def operation_get(self):
         return self.session_manager.get(
             self.url,
-            data=self.data,
-            json=self.json,
             timeout=self.timeout,
             headers=self.headers,
         )

@@ -3,8 +3,7 @@ import time
 import jwt
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 
-from base import QSingleton
-from base.cleanup_manager import CleanUpManager
+from base import QSingleton, ThreadCleanUpManager
 from core.cpod import TokenWorker
 
 from ..logger import Logger
@@ -23,7 +22,7 @@ class TokenManager(QObject, metaclass=QSingleton):
         self.token_fetch_in_progress = False
         self.token_tries = 0
         self.token_threads = {}
-        self.cleanup_manager = CleanUpManager()
+        self.cleanup_manager = ThreadCleanUpManager()
 
     @Slot()
     def request_token(self):
