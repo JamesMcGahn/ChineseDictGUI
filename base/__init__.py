@@ -5,6 +5,8 @@ from .qthread_base import QThreadBase
 from .qwidget_base import QWidgetBase
 from .qworker_base import QWorkerBase
 from .singleton import Singleton
+from .thread_cleanup_manager import ThreadCleanUpManager
+from .thread_queue_manager import ThreadQueueManager
 
 __all__ = [
     "Singleton",
@@ -15,4 +17,6 @@ __all__ = [
     "ErrorWrappers",
     "QThreadBase",
     "PlaywrightBase",
+    "ThreadCleanUpManager",
+    "ThreadQueueManager",
 ]

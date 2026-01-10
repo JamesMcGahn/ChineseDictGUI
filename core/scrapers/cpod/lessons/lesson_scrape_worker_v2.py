@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from PySide6.QtCore import QMutexLocker, QThread, QTimer, Signal, Slot
 
-from base import QWorkerBase
+from base import QWorkerBase, ThreadCleanUpManager
 from base.enums import (
     JOBSTATUS,
     LESSONAUDIO,
@@ -47,6 +47,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.completed_lessons = []
         self.errored_lessons = []
         self.running_tasks = {}
+        self.clean_up_manager = ThreadCleanUpManager()
 
     @Slot()
     def do_work(self):
@@ -208,10 +209,14 @@ class LessonScraperWorkerV2(QWorkerBase):
         networker.moveToThread(net_thread)
         networker.response.connect(cb)
         net_thread.started.connect(networker.do_work)
-        networker.finished.connect(lambda: self.cleanup_task(task_id))
-        net_thread.finished.connect(lambda: self.cleanup_task(task_id, True))
+        networker.finished.connect(lambda: self.clean_up_manager.cleanup_task(task_id))
+        net_thread.finished.connect(
+            lambda: self.clean_up_manager.cleanup_task(task_id, True)
+        )
         net_thread.start()
-        self.running_tasks[task_id] = (net_thread, networker)
+        self.clean_up_manager.add_task(
+            task_id=task_id, thread=net_thread, worker=networker
+        )
 
     def cleanup_task(self, task_id, thread_finished=False):
         if task_id in self.running_tasks:
