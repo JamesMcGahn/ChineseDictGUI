@@ -24,7 +24,6 @@ class OpenFile:
                     return list(csv_reader)
                 elif split:
                     data = file.read().split(split)
-                    log.insert(f"List: {data}", "INFO")
                     return data
                 else:
-                    return file
+                    return file.read()
