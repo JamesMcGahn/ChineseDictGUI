@@ -2,6 +2,7 @@ import requests
 from PySide6.QtCore import Signal, Slot
 
 from base import QObjectBase
+from models.services import NetworkResponse
 
 from .session_manager import SessionManager
 
@@ -58,13 +59,13 @@ class NetworkWorker(QObjectBase):
                     )
                     self.response_sig.emit("success", res)
                     self.response.emit(
-                        {
-                            "ok": True,
-                            "status": res.status_code,
-                            "data": self.extract_payload(res),
-                            "message": "success",
-                            "raw": res,
-                        }
+                        NetworkResponse(
+                            ok=True,
+                            status=res.status_code,
+                            data=self.extract_payload(res),
+                            message="success",
+                            raw=res,
+                        )
                     )
                 else:
                     self.logging(
@@ -73,21 +74,14 @@ class NetworkWorker(QObjectBase):
                     )
                     self.error_sig.emit("error", res, res.status_code)
                     self.response.emit(
-                        {
-                            "ok": False,
-                            "status": res.status_code,
-                            "data": self.extract_payload(res),
-                            "message": "error",
-                            "raw": res,
-                        }
+                        NetworkResponse(
+                            ok=False,
+                            status=res.status_code,
+                            data=self.extract_payload(res),
+                            message="error",
+                            raw=res,
+                        )
                     )
-
-            elif self.operation == "SESSION":
-                response = self.session_manager.post(
-                    self.url, data=self.data, json=self.json, timeout=self.timeout
-                )
-                if not any(c.name == "lang" for c in response.cookies):
-                    raise requests.exceptions.RequestException
 
             elif self.operation == "GET":
                 print(f"getting {self.url}")
@@ -101,13 +95,13 @@ class NetworkWorker(QObjectBase):
                         )
                         self.response_sig.emit("success", res)
                         self.response.emit(
-                            {
-                                "ok": True,
-                                "status": res.status_code,
-                                "data": self.extract_payload(res),
-                                "message": "success",
-                                "raw": res,
-                            }
+                            NetworkResponse(
+                                ok=True,
+                                status=res.status_code,
+                                data=self.extract_payload(res),
+                                message="success",
+                                raw=res,
+                            )
                         )
                         break
                     else:
@@ -119,15 +113,15 @@ class NetworkWorker(QObjectBase):
                                 f"Received {res.status_code} response for POST to {self.url}",
                                 "WARN",
                             )
-                            self.error_sig.emit("error", response, response.status_code)
+                            self.error_sig.emit("error", res, res.status_code)
                             self.response.emit(
-                                {
-                                    "ok": False,
-                                    "status": res.status_code,
-                                    "data": self.extract_payload(res),
-                                    "message": "error",
-                                    "raw": res,
-                                }
+                                NetworkResponse(
+                                    ok=False,
+                                    status=res.status_code,
+                                    data=self.extract_payload(res),
+                                    message="error",
+                                    raw=res,
+                                )
                             )
         except requests.exceptions.ConnectionError as e:
             self.logging(
@@ -138,13 +132,13 @@ class NetworkWorker(QObjectBase):
                 "error", {"message": str(e)}, getattr(e.response, "status_code", 0)
             )
             self.response.emit(
-                {
-                    "ok": False,
-                    "status": 0,
-                    "data": None,
-                    "message": f"error: {str(e)}",
-                    "raw": None,
-                }
+                NetworkResponse(
+                    ok=False,
+                    status=0,
+                    data=None,
+                    message=f"error: {str(e)}",
+                    raw=None,
+                )
             )
 
         except requests.exceptions.RequestException as e:
@@ -156,13 +150,13 @@ class NetworkWorker(QObjectBase):
                 "error", {"message": str(e)}, getattr(e.response, "status_code", 0)
             )
             self.response.emit(
-                {
-                    "ok": False,
-                    "status": 0,
-                    "data": None,
-                    "message": f"error: {str(e)}",
-                    "raw": None,
-                }
+                NetworkResponse(
+                    ok=False,
+                    status=0,
+                    data=None,
+                    message=f"error: {str(e)}",
+                    raw=None,
+                )
             )
 
         finally:
@@ -177,7 +171,7 @@ class NetworkWorker(QObjectBase):
 
     def extract_payload(self, response):
         if not response:
-            return None, None
+            return None
 
         content_type = response.headers.get("Content-Type", "").lower()
 

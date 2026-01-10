@@ -17,7 +17,7 @@ from base.enums import (
 )
 from keys import keys
 from models.dictionary import GrammarPoint, Lesson, LessonAudio, Sentence, Word
-from models.services import JobRef
+from models.services import JobRef, NetworkResponse
 from services.network import NetworkWorker
 
 
@@ -67,7 +67,6 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.logging(
             f"LessonWorker: Waiting {random} secs before sending out next request."
         )
-
         QTimer.singleShot(random * 1000, fn)
 
     def send_status_update(self, status: LESSONSTATUS, task: LESSONTASK):
@@ -233,8 +232,8 @@ class LessonScraperWorkerV2(QWorkerBase):
                     f"LessonScrapeWorker: Task {task_id} - Worker cleaned up. Thread quitting."
                 )
 
-    def received_lesson_complete(self, res):
-        if res["ok"]:
+    def received_lesson_complete(self, res: NetworkResponse):
+        if res.ok:
             self.logging(
                 f"Lesson: {self.current_lesson.title} - Successfully Marked Lesson Complete."
             )
@@ -269,10 +268,10 @@ class LessonScraperWorkerV2(QWorkerBase):
             return None
         return LEVEL_MAP.get(normalized)
 
-    def lesson_info_received(self, res):
+    def lesson_info_received(self, res: NetworkResponse):
         self.logging("LessonWorker: Recieved Response for Lesson Info")
-        if res["ok"]:
-            lesson_info = res["data"]
+        if res.ok:
+            lesson_info = res.data
             if "hash_code" in lesson_info and "id" in lesson_info:
                 self.current_lesson.hash_code = lesson_info["hash_code"]
                 self.current_lesson.level = self.parse_lesson_level(
@@ -322,10 +321,10 @@ class LessonScraperWorkerV2(QWorkerBase):
             cb=self.dialogue_received,
         )
 
-    def dialogue_received(self, res):
+    def dialogue_received(self, res: NetworkResponse):
         self.logging("LessonWorker: Received Response for Dialog")
-        if res["ok"]:
-            dialogue_payload = res["data"]
+        if res.ok:
+            dialogue_payload = res.data
 
             if "dialogue" in dialogue_payload:
                 for sentence in dialogue_payload["dialogue"]:
@@ -371,7 +370,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         else:
 
             self.logging(
-                f"Error receiving Dialogue - {res["status"]} -{res["message"]}",
+                f"Error receiving Dialogue - {res.status} -{res.message}",
                 LOGLEVEL.WARN,
             )
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.DIALOGUE)
@@ -387,10 +386,10 @@ class LessonScraperWorkerV2(QWorkerBase):
             cb=self.vocab_received,
         )
 
-    def vocab_received(self, res):
+    def vocab_received(self, res: NetworkResponse):
         self.logging("LessonWorker: Received Vocab Response for Lesson")
-        if res["ok"]:
-            vocab = res["data"]
+        if res.ok:
+            vocab = res.data
 
             if isinstance(vocab, list) and vocab:
                 for word in vocab:
@@ -428,7 +427,7 @@ class LessonScraperWorkerV2(QWorkerBase):
             self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.VOCAB)
         else:
             self.logging(
-                f"LessonWorker: Error recieving Vocab - {res["status"]} - {res["message"]}",
+                f"LessonWorker: Error recieving Vocab - {res.status} - {res.message}",
                 LOGLEVEL.WARN,
             )
             self.wait_time(self.wait_time_between_reqs, self.get_expansion)
@@ -444,10 +443,10 @@ class LessonScraperWorkerV2(QWorkerBase):
             cb=self.expansion_received,
         )
 
-    def expansion_received(self, res):
+    def expansion_received(self, res: NetworkResponse):
         self.logging("LessonWorker: Received Expansion Response")
-        if res["ok"]:
-            expansion_payload = res["data"]
+        if res.ok:
+            expansion_payload = res.data
             if expansion_payload:
                 for section in expansion_payload:
                     for sentence in section["examples"]:
@@ -492,7 +491,7 @@ class LessonScraperWorkerV2(QWorkerBase):
                 self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.EXPANSION)
         else:
             self.logging(
-                f"Error recieving Expansion - {res["status"]} - {res["message"]} ",
+                f"Error recieving Expansion - {res.status} - {res.message} ",
                 LOGLEVEL.ERROR,
             )
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.EXPANSION)
@@ -509,10 +508,10 @@ class LessonScraperWorkerV2(QWorkerBase):
             cb=self.grammar_received,
         )
 
-    def grammar_received(self, res):
+    def grammar_received(self, res: NetworkResponse):
         self.logging("LessonWorker: Received Grammar Response for Lesson")
-        if res["ok"]:
-            grammar_payload = res["data"]
+        if res.ok:
+            grammar_payload = res.data
             grammar = []
 
             if grammar_payload:
@@ -568,7 +567,7 @@ class LessonScraperWorkerV2(QWorkerBase):
                 self.lesson_completed()
         else:
             self.logging(
-                f"LessonWorker: Error recieving Grammar - {res["status"]} - {res["message"]}",
+                f"LessonWorker: Error recieving Grammar - {res.status} - {res.message}",
                 LOGLEVEL.ERROR,
             )
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.GRAMMAR)
