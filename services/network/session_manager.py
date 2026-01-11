@@ -22,6 +22,7 @@ class SessionManager(QObjectBase, metaclass=QSingleton):
 
     def __init__(self):
         super().__init__()
+        self.loaded_session = False
         self.cookie_lock = QMutex()
 
     def bind_context(self, ctx: AppContext):
@@ -85,37 +86,38 @@ class SessionManager(QObjectBase, metaclass=QSingleton):
             self.save_session()
 
     def load_session(self):
-        try:
-            self.logging("Try to Load Session From File", "INFO")
-            path = PathManager.create_folder_in_app_data("session")
-            cookies = json.loads(OpenFile.open_file(f"{path}/session.json"))
-            print("** loaded cookies", cookies)
-            expired = False
-            cookie_domains = {}
-            for cookie in cookies:
-                cookie_domain = cookie["domain"]
-                cookie_domain = cookie_domain.removeprefix(".")
-                cookie_domain = cookie_domain.removeprefix("www.")
+        if self.loaded_session:
+            self.logging("Session Already Loaded", "INFO")
+            return
+        self.logging("Try to Load Session From File", "INFO")
+        path = PathManager.create_folder_in_app_data("session")
+        cookies = json.loads(OpenFile.open_file(f"{path}/session.json"))
+        jar = self.convert_cookies_to_jar(cookies)
+        self.update_cookie_jar(jar)
 
-                if cookie_domain not in cookie_domains:
-                    cookie_domains[cookie_domain] = False
+        self.loaded_session = True
+        self.logging("Session Loaded Successfully...", "INFO")
 
-                if cookie["expires"] and cookie["expires"] < time():
-                    cookie_domains[cookie_domain] = True
-                    expired = True
-                    self.logging(f"Found an expired cookie for {cookie_domain}", "WARN")
+    def check_cookies(self):
+        expired = False
+        cookie_domains = {}
+        for cookie in self._ctx.cookie_jar:
+            cookie_domain = cookie.domain
+            cookie_domain = cookie_domain.removeprefix(".")
+            cookie_domain = cookie_domain.removeprefix("www.")
 
-            if expired or len(cookies) == 0:
+            if cookie_domain not in cookie_domains:
+                cookie_domains[cookie_domain] = False
 
-                return (False, cookie_domains)
-            else:
-                self._ctx.cookie_jar = self.convert_cookies_to_jar(cookies)
-                self.logging("Session Loaded Successfully...", "INFO")
+            if cookie.expires and cookie.expires < time():
+                cookie_domains[cookie_domain] = True
+                expired = True
+                self.logging(f"Found an expired cookie for {cookie_domain}", "WARN")
 
-                return (True, cookie_domains)
-        except ValueError:
-            self.logging("Error loading session - Filepath doesn't exist", "ERROR")
-            return (False, {})
+        if expired or len(self._ctx.cookie_jar) == 0:
+            return (False, cookie_domains)
+        else:
+            return (True, cookie_domains)
 
     def save_session(self):
         self.logging("Saving Session...", "INFO")
