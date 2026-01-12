@@ -11,6 +11,7 @@ from models.services import (
     AudioDownloadPayload,
     CombineAudioPayload,
     JobRef,
+    LingqLessonPayload,
     WhisperPayload,
 )
 from services.network import TokenManager
@@ -18,6 +19,7 @@ from utils.files import PathManager
 
 from .audio_download_manager import AudioDownloadManager
 from .ffmpeg_task_manager import FFmpegTaskManager
+from .lingq_workflow_manager import LingqWorkFlowManager
 
 
 class LessonWorkFlowManager(QObjectBase):
@@ -29,10 +31,12 @@ class LessonWorkFlowManager(QObjectBase):
         self,
         audio_download_manager: AudioDownloadManager,
         ffmeg_task_manager: FFmpegTaskManager,
+        lingq_workflow_manager: LingqWorkFlowManager,
     ):
         super().__init__()
         self.ffmeg_task_manager = ffmeg_task_manager
         self.audio_download_manager = audio_download_manager
+        self.lingq_workflow_manager = lingq_workflow_manager
         self.lesson_threads = []
         self.token_manager = TokenManager()
         self.lessons_queue: dict[str, Lesson] = {}
@@ -285,21 +289,130 @@ class LessonWorkFlowManager(QObjectBase):
         if (
             job.task == LESSONTASK.COMBINE_AUDIO or job.task == LESSONTASK.TRANSCRIBE
         ) and job.status == JOBSTATUS.COMPLETE:
+            lesson_txt = f"{lesson.storage_path}lesson.txt"
+            lesson_audio = f"{lesson.storage_path}lesson.mp3"
+            sents_text = f"{lesson.storage_path}sentences.txt"
+            sents_audio = f"{lesson.storage_path}sentences.mp3"
+            dialogue_text = f"{lesson.storage_path}dialogue.txt"
+            dialogue_audio = f"{lesson.storage_path}dialogue.mp3"
+            # TODO get from settings
+            collections = {
+                "Newbie": {
+                    "lesson": "2310680",
+                    "sents": "2547067",
+                    "dialogue": "2547067",
+                },
+                "Elementary": {
+                    "lesson": "2310680",
+                    "sents": "2310680",
+                    "dialogue": "2310680",
+                },
+                "Pre-Intermediate": {
+                    "lesson": "2310680",
+                    "sents": "2310680",
+                    "dialogue": "2310680",
+                },
+                "Intermediate": {
+                    "lesson": "2491860",
+                    "sents": "2402549",
+                    "dialogue": "2402549",
+                },
+                "Advanced": {
+                    "lesson": "2310680",
+                    "sents": "2310680",
+                    "dialogue": "2310680",
+                },
+                "Media": {
+                    "lesson": "2310680",
+                    "sents": "2310680",
+                    "dialogue": "2310680",
+                },
+            }
+
             if lesson.transcribe_lesson:
-                lesson_transcribed = PathManager.path_exists(
-                    path=f"{lesson.storage_path}lesson.txt",
+                lesson_txt_exists = PathManager.path_exists(
+                    path=lesson_txt,
                     makepath=False,
                 )
-                if not lesson_transcribed:
+                lesson_audio_exists = PathManager.path_exists(
+                    path=lesson_audio,
+                    makepath=False,
+                )
+                if not lesson_txt_exists and lesson_audio_exists:
                     return
 
-            audio_combined = PathManager.path_exists(
-                path=f"{lesson.storage_path}sentences.mp3",
+            sents_audio_exists = PathManager.path_exists(
+                path=sents_audio,
                 makepath=False,
             )
-            if not audio_combined:
-                return
-            # TODO ready for lingq
+
+            sents_txt_exists = PathManager.path_exists(
+                path=sents_text,
+                makepath=False,
+            )
+
+            dialogue_audio_exists = PathManager.path_exists(
+                path=dialogue_audio,
+                makepath=False,
+            )
+            dialogue_txt_exists = PathManager.path_exists(
+                path=dialogue_text,
+                makepath=False,
+            )
+
+            collection = collections.get(
+                lesson.level,
+                {"lesson": "2310680", "sents": "2310680", "dialogue": "2310680"},
+            )
+            job_list = []
+            if sents_audio_exists and sents_txt_exists:
+                sents = (
+                    JobRef(lesson.queue_id, LESSONTASK.LINGQ_SENTS, JOBSTATUS.CREATED),
+                    LingqLessonPayload(
+                        title=f"{lesson.title} - Sents",
+                        collection=collection["sents"],
+                        audio_file_name="sentences.mp3",
+                        audio_file_path=sents_audio,
+                        text_file_name="sentences.txt",
+                        text_file_path=sents_text,
+                        project_name=lesson.title,
+                    ),
+                )
+                job_list.append(sents)
+
+            if dialogue_audio_exists and dialogue_txt_exists:
+                dialogue = (
+                    JobRef(
+                        lesson.queue_id, LESSONTASK.LINGQ_DIALOGUE, JOBSTATUS.CREATED
+                    ),
+                    LingqLessonPayload(
+                        title=f"{lesson.title} - Dialogue",
+                        collection=collection["dialogue"],
+                        audio_file_name="dialogue.mp3",
+                        audio_file_path=dialogue_audio,
+                        text_file_name="dialogue.txt",
+                        text_file_path=dialogue_text,
+                        project_name=lesson.title,
+                    ),
+                )
+                job_list.append(dialogue)
+
+            if lesson.transcribe_lesson and lesson_audio_exists and lesson_txt_exists:
+                lesson = (
+                    JobRef(lesson.queue_id, LESSONTASK.LINGQ_LESSON, JOBSTATUS.CREATED),
+                    LingqLessonPayload(
+                        title=f"{lesson.title} - Lesson",
+                        collection=collection["lesson"],
+                        audio_file_name="lesson.mp3",
+                        audio_file_path=lesson_audio,
+                        text_file_name="lesson.txt",
+                        text_file_path=lesson_txt,
+                        project_name=lesson.title,
+                    ),
+                )
+                job_list.append(lesson)
+
+            self.lingq_workflow_manager.create_lingq_lesson(jobs=job_list)
             print("Ready for Lingq")
 
     def update_lesson_status(

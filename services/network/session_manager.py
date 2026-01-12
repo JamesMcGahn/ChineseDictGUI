@@ -115,21 +115,14 @@ class SessionManager(QObjectBase, metaclass=QSingleton):
                 self.logging(f"Found an expired cookie for {cookie_domain}", "WARN")
 
         if expired or len(self._ctx.cookie_jar) == 0:
-            return (False, cookie_domains)
+            return cookie_domains
         else:
-            return (True, cookie_domains)
+            return cookie_domains
 
     def save_session(self):
         self.logging("Saving Session...", "INFO")
         path = PathManager.create_folder_in_app_data("session")
 
-        print(
-            "*** FROM SAVE",
-            json.dumps(
-                self.jar_to_cookie_list(self._ctx.cookie_jar),
-                indent=2,
-            ),
-        )
         WriteFile.write_file(
             f"{path}/session.json",
             json.dumps(
