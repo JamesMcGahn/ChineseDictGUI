@@ -48,6 +48,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.errored_lessons = []
         self.running_tasks = {}
         self.clean_up_manager = ThreadCleanUpManager()
+        self.current_lesson_checked = False
 
     @Slot()
     def do_work(self):
@@ -80,6 +81,7 @@ class LessonScraperWorkerV2(QWorkerBase):
 
     def get_next_lesson(self):
         self.current_lesson = None
+        self.current_lesson_checked = False
         self.logging(f"Total Lessons to Scrape: {len(self.lesson_list)} Lessons")
         if not self.token:
             self.request_token.emit()
@@ -180,22 +182,6 @@ class LessonScraperWorkerV2(QWorkerBase):
         else:
             return f"{self.audio_host_url}{self.current_lesson.lesson_id}/{self.current_lesson.hash_code}/{path}"
 
-    def check_lesson_complete(self):
-        self.current_lesson.task = LESSONTASK.CHECK
-        if not self.current_lesson.lesson_id:
-            return
-        self.logging(
-            f"Trying to check Complete for Lesson for {self.current_lesson.lesson_id}"
-        )
-        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.CHECK)
-        self.create_networker(
-            "toggle-studied",
-            "POST",
-            url=f"{self.host_url}api/v1/dashboard/toggle-studied",
-            json={"lessonId": f"{self.current_lesson.lesson_id}", "status": True},
-            cb=self.received_lesson_complete,
-        )
-
     def create_networker(self, task_id, operation, url, cb, json=None):
         net_thread = QThread()
         networker = NetworkWorker(
@@ -216,33 +202,6 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.clean_up_manager.add_task(
             task_id=task_id, thread=net_thread, worker=networker
         )
-
-    def cleanup_task(self, task_id, thread_finished=False):
-        if task_id in self.running_tasks:
-            if thread_finished:
-                w_thread, worker = self.running_tasks.pop(task_id)
-                w_thread.deleteLater()
-                self.logging(f"LessonScrapeWorker: Task {task_id} - Thread deleting.")
-            else:
-                w_thread, worker = self.running_tasks[task_id]
-                if worker:
-                    worker.deleteLater()
-                w_thread.quit()
-                self.logging(
-                    f"LessonScrapeWorker: Task {task_id} - Worker cleaned up. Thread quitting."
-                )
-
-    def received_lesson_complete(self, res: NetworkResponse):
-        if res.ok:
-            self.logging(
-                f"Lesson: {self.current_lesson.title} - Successfully Marked Lesson Complete."
-            )
-        else:
-            self.logging(
-                f"Lesson: {self.current_lesson.title} - Failed to mark complete",
-                LOGLEVEL.WARN,
-            )
-        self.lesson_completed()
 
     def get_lesson_info(self, slug):
         self.logging(f"LessonWorker: Getting Lesson Info for - {slug}")
@@ -272,6 +231,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.logging("LessonWorker: Recieved Response for Lesson Info")
         if res.ok:
             lesson_info = res.data
+            print(lesson_info)
             if "hash_code" in lesson_info and "id" in lesson_info:
                 self.current_lesson.hash_code = lesson_info["hash_code"]
                 self.current_lesson.level = self.parse_lesson_level(
@@ -300,14 +260,14 @@ class LessonScraperWorkerV2(QWorkerBase):
                 self.wait_time(self.wait_time_between_reqs, self.get_dialogue)
                 self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.INFO)
                 return
+        else:
+            self.logging(
+                "Did not receive the Lesson Information. Skipping Lesson",
+                LOGLEVEL.ERROR,
+            )
 
-        self.logging(
-            "Did not receive the Lesson Information. Skipping Lesson",
-            LOGLEVEL.ERROR,
-        )
-
-        self.lesson_completed(error=True)
-        self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.INFO)
+            self.lesson_completed(error=True)
+            self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.INFO)
 
     def get_dialogue(self):
         self.logging(
@@ -357,15 +317,13 @@ class LessonScraperWorkerV2(QWorkerBase):
                     ),
                     {"sentences": self.current_lesson.lesson_parts.dialogue},
                 )
-                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.DIALOGUE)
+
             else:
                 self.logging(
                     f"Lesson - {self.current_lesson.title}  doesnt have a Dialogue Section",
                     LOGLEVEL.WARN,
                 )
-                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.DIALOGUE)
-
-            self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
+            self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.DIALOGUE)
 
         else:
 
@@ -374,7 +332,7 @@ class LessonScraperWorkerV2(QWorkerBase):
                 LOGLEVEL.WARN,
             )
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.DIALOGUE)
-            self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
+        self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
 
     def get_lesson_vocab(self):
         self.logging("LessonWorker: Getting Vocabulary for Lesson")
@@ -406,7 +364,6 @@ class LessonScraperWorkerV2(QWorkerBase):
                 self.logging(
                     f"Lesson: {self.current_lesson.title} - Sending {len(self.current_lesson.lesson_parts.vocab)} Vocabulary Words"
                 )
-                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.VOCAB)
 
                 self.task_complete.emit(
                     JobRef(
@@ -423,15 +380,16 @@ class LessonScraperWorkerV2(QWorkerBase):
                 )
                 self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
 
-            self.wait_time(self.wait_time_between_reqs, self.get_expansion)
             self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.VOCAB)
         else:
             self.logging(
                 f"LessonWorker: Error recieving Vocab - {res.status} - {res.message}",
                 LOGLEVEL.WARN,
             )
-            self.wait_time(self.wait_time_between_reqs, self.get_expansion)
+
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.VOCAB)
+
+        self.wait_time(self.wait_time_between_reqs, self.get_expansion)
 
     def get_expansion(self):
         self.logging("LessonWorker: Getting Expansion for Lesson")
@@ -480,22 +438,21 @@ class LessonScraperWorkerV2(QWorkerBase):
                     ),
                     {"sentences": self.current_lesson.lesson_parts.expansion},
                 )
-                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.EXPANSION)
-                self.wait_time(self.wait_time_between_reqs, self.get_grammar)
 
             else:
                 self.logging(
                     f"Lesson - {self.current_lesson.title} doesnt have a Expansion Section",
                     LOGLEVEL.WARN,
                 )
-                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.EXPANSION)
+            self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.EXPANSION)
         else:
             self.logging(
                 f"Error recieving Expansion - {res.status} - {res.message} ",
                 LOGLEVEL.ERROR,
             )
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.EXPANSION)
-            self.wait_time(self.wait_time_between_reqs, self.get_grammar)
+
+        self.wait_time(self.wait_time_between_reqs, self.get_grammar)
 
     def get_grammar(self):
         self.logging("LessonWorker: Getting Grammar for Lesson")
@@ -556,22 +513,50 @@ class LessonScraperWorkerV2(QWorkerBase):
                         "grammar": self.current_lesson.lesson_parts.grammar,
                     },
                 )
-                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.GRAMMAR)
-                self.lesson_completed()
+
             else:
                 self.logging(
                     f"Lesson - {self.current_lesson.title} doesnt have a Grammar Section",
                     LOGLEVEL.WARN,
                 )
-                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.GRAMMAR)
-                self.lesson_completed()
+            self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.GRAMMAR)
         else:
             self.logging(
                 f"LessonWorker: Error recieving Grammar - {res.status} - {res.message}",
                 LOGLEVEL.ERROR,
             )
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.GRAMMAR)
-            self.lesson_completed()
+
+        self.wait_time(self.wait_time_between_reqs, self.check_lesson_complete)
+
+    def check_lesson_complete(self):
+        if self.current_lesson_checked or not self.current_lesson.lesson_id:
+            return
+        self.current_lesson_checked = True
+        self.logging(
+            f"Trying to check Complete for Lesson for {self.current_lesson.lesson_id}"
+        )
+        self.current_lesson.task = LESSONTASK.CHECK
+        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.CHECK)
+        self.create_networker(
+            "toggle-studied",
+            "POST",
+            url=f"{self.host_url}api/v1/dashboard/toggle-studied",
+            json={"lessonId": f"{self.current_lesson.lesson_id}", "status": True},
+            cb=self.received_lesson_complete,
+        )
+
+    def received_lesson_complete(self, res: NetworkResponse):
+        if res.ok:
+            self.logging(
+                f"Lesson: {self.current_lesson.title} - Successfully Marked Lesson Complete."
+            )
+        else:
+            self.logging(
+                f"Lesson: {self.current_lesson.title} - Failed to mark complete",
+                LOGLEVEL.WARN,
+            )
+        QTimer.singleShot(1000, self.lesson_completed)
 
     def lesson_completed(self, error=False):
         if error:
@@ -580,7 +565,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         else:
             parts = self.current_lesson.lesson_parts
             if parts.dialogue and parts.all_sentences:
-                if self.current_lesson.task != LESSONTASK.CHECK:
+                if not self.current_lesson_checked:
                     self.check_lesson_complete()
                     return
                 else:
