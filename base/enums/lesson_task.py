@@ -14,4 +14,6 @@ class LESSONTASK(StrEnum):
     AUDIO = "audio"
     TRANSCRIBE = "transcribe"
     COMBINE_AUDIO = "combine_audio"
-    LINGQ = "lingq"
+    LINGQ_LESSON = "lingq_lesson"
+    LINGQ_SENTS = "lingq_sents"
+    LINGQ_DIALOGUE = "ling_dialogue"

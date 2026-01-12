@@ -7,6 +7,7 @@ from .network_worker import NetworkWorker
 
 class NetworkThread(QThreadBase):
     response_sig = Signal(str, object)
+    response = Signal(object)
     error_sig = Signal(str, str, int)
 
     def __init__(self, operation, url, data=None, json=None):
@@ -23,6 +24,7 @@ class NetworkThread(QThreadBase):
         self.worker.finished.connect(self.worker_finished)
 
         self.worker.response_sig.connect(self.received_response)
+        self.worker.response.connect(self.response)
         self.worker.error_sig.connect(self.received_error)
         self.worker.do_work()
 
@@ -30,6 +32,7 @@ class NetworkThread(QThreadBase):
         self.worker.deleteLater()
         self.done.emit()
 
+    # TODO remove after moving over to response
     def received_response(self, status, response):
         self.response_sig.emit(status, response)
 
