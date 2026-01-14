@@ -13,13 +13,13 @@ class ThreadCleanUpManager(QObject):
             if thread_finished:
                 w_thread, worker = self.running_tasks.pop(task_id)
                 w_thread.deleteLater()
-                print(f"Task {task_id} - Thread deleting.")
-            else:
-                w_thread, worker = self.running_tasks[task_id]
                 if worker:
                     worker.deleteLater()
+                print(f"Task {task_id} - Thread & Worker Deleting.")
+            else:
+                w_thread, worker = self.running_tasks[task_id]
                 w_thread.quit()
-                print(f"Task {task_id} - Worker cleaned up. Thread quitting.")
+                print(f"Task {task_id} - Thread Quitting.")
 
     def add_task(self, task_id, thread, worker):
         self.running_tasks[task_id] = (thread, worker)
