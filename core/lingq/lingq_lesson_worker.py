@@ -266,4 +266,4 @@ class LingqLessonWorker(QWorkerBase):
         if self.lingq_courses:
             self.wait_time((15, 30), self.get_next_lingq)
         else:
-            self.wait_time((0), self.get_next_lingq)
+            self.wait_time((0, 1), self.get_next_lingq)
