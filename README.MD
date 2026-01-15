@@ -69,12 +69,12 @@ Priorities:
   - [ ] `finished` signal
   - [ ] `error` signal
   - [ ] DB cleanup in thread teardown
-- [ ] Create a **WorkerManager** to handle:
-  - [ ] Audio workers
-  - [ ] Whisper/Faster-Whisper workers
-  - [ ] Scraper workers
+- [/] Create a **WorkerManager** to handle:
+  - [x] Audio workers
+  - [x] Whisper/Faster-Whisper workers
+  - [/] Scraper workers
   - [ ] Database workers
-- [ ] Remove direct worker ownership from UI pages
+- [/] Remove direct worker ownership from UI pages
 - [ ] UI should only receive signals from WorkerManager
 
 # Settings & Configuration
@@ -82,9 +82,9 @@ Priorities:
 ## Settings Page ⭐
 
 - [ ] Login settings (ChinesePod, LingQ, etc.)
-- [ ] Logging settings
-- [ ] Whisper/Faster-Whisper settings
-- [ ] Persist everything via **QSettings**
+- [x] Logging settings
+- [/] Whisper/Faster-Whisper settings
+- [x] Persist everything via **QSettings**
 - [ ] Apply settings through a global **AppContext** helper
 
 ## Logging System Improvements ⭐
@@ -100,12 +100,6 @@ Priorities:
 
 - [x] Combine Whisper + audio processing under a single **AudioManager**
 - [/] Remove thread logic from UI pages
-- [ ] Add granular progress/error signals for:
-  - [ ] Dialogue extraction
-  - [ ] Vocabulary extraction
-  - [ ] Grammar extraction
-  - [ ] Expansion extraction
-  - [ ] Whisper transcription
 
 ## Lesson Workflow Pipeline
 
@@ -113,7 +107,7 @@ Priorities:
 - [/] Workflow for lesson using jobs
   - [x] spec generation / job generation controller
   - [/] clean up controller
-- [ ] Add lingqq Lesson jobs to controller (waiting to be built)
+- [x] Add lingqq Lesson jobs to controller (waiting to be built)
 - [ ] Add db job to controller (waiting to be built)
 - [ ] update project status
   - [ ] add progress fn / signal for lesson overall status
@@ -123,10 +117,10 @@ Priorities:
 - [x] Create login worker
   - [x] extract cookies / auth token
 - [x] Create worker to obtain collection ids
-- [ ] Lesson Submission Worker
-- [ ] create fn to obtain crsf token
-- [ ] create fn to submit lesson
-- [ ] design and implement new job service structure
+- [x] Lesson Submission Worker
+- [x] create fn to obtain crsf token
+- [x] create fn to submit lesson
+- [x] design and implement new job service structure
 
 # Lesson Search & Scraping
 
@@ -207,3 +201,11 @@ Create a **generic progress pipeline** for all slow operations:
 - [ ] YouTube → Whisper → Anki pipeline
 - [ ] Grammar pattern detection engine
 - [ ] Improved packaging (Nuitka, PyInstaller, fbs)
+- [ ] Log Detail Level
+
+## Progress Bar / Signals
+
+- [ ] Add granular progress signals for:
+  - [ ] Lesson Workflow
+  - [ ] Whisper transcription
+  - [ ]

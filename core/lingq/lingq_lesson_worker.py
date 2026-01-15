@@ -30,7 +30,7 @@ class LingqLessonWorker(QWorkerBase):
         self.lingq_courses = deque(jobs)
         self.running_tasks = {}
         self.clean_up_manager = ThreadCleanUpManager()
-        # self.next_page.connect(self.schedule_next)
+
         self.current_lingq = None
         self.current_lingq_payload = None
         self.current_job_ref = None
@@ -60,6 +60,7 @@ class LingqLessonWorker(QWorkerBase):
         self.current_job_ref: JobRef | None = None
         self.current_api_csrf: str | None = None
 
+        self.logging(f"Total Lessons to Submit: {len(self.lingq_courses)} Lessons")
         if self.lingq_courses:
             with QMutexLocker(self._mutex):
                 if self.parent_thread._stop:
@@ -79,6 +80,9 @@ class LingqLessonWorker(QWorkerBase):
             self.logging("Completed Submitted Lingq Lessons", "INFO")
 
     def get_lingq_token(self):
+        self.logging(
+            f"LingqWorker: Getting Lesson Token for - {self.current_lingq_payload.title}"
+        )
         net_thread = QThread()
         networker = NetworkWorker(
             "GET",
@@ -98,6 +102,9 @@ class LingqLessonWorker(QWorkerBase):
         net_thread.start()
 
     def lingq_token_response(self, res: NetworkResponse):
+        self.logging(
+            f"LingqWorker: Received Lesson Token for - {self.current_lingq_payload.title}"
+        )
         if res.ok:
             data = res.data
             match = re.search(r"csrfToken:\s*'([^']+)'", data)
@@ -109,17 +116,30 @@ class LingqLessonWorker(QWorkerBase):
             if api_csrf:
                 self.current_api_csrf = api_csrf
                 self.wait_time((5, 25), self.lingq_post_lesson)
+                self.logging(
+                    f"LingqWorker: Found Lesson Token for - {self.current_lingq_payload.title}"
+                )
             else:
                 if self.current_lingq:
+                    self.logging(
+                        f"LingqWorker: Failed to Get Lesson Token for - {self.current_lingq_payload.title}"
+                    )
                     self.lingq_courses.appendleft(self.current_lingq)
                 self.wait_time((5, 25), self.login_again)
         else:
             if self.current_lingq:
                 self.lingq_courses.appendleft(self.current_lingq)
+                self.logging(
+                    f"LingqWorker: Failed to Get Lesson Token for - {self.current_lingq_payload.title}"
+                )
             self.wait_time((5, 25), self.login_again)
 
     def login_again(self):
+        self.logging("LingqWorker: Attempting to Login Again", "WARN")
         if self.login_attempted:
+            self.logging(
+                "LingqWorker: Login already attempted. Not trying again", "WARN"
+            )
             self.login_failure()
             return
         task_id = f"{self.current_job_ref.id}-login"
@@ -144,12 +164,18 @@ class LingqLessonWorker(QWorkerBase):
     def receive_login(self, logged_in: bool):
         if logged_in:
             self.login_attempted = False
+            self.logging(
+                "LingqWorker: Log in Succeed. Reattempting Ling Submission", "WARN"
+            )
+
             self.wait_time((5, 25), self.get_next_lingq)
         else:
+            self.logging("LingqWorker: Login Failed. Reattempting Log in", "WARN")
             self.login_failure()
 
     def login_failure(self):
         self._busy = False
+        self.logging("LingqWorker: Failed to log in to Lingq", "ERROR")
         if self.current_lingq and self.current_lingq not in self.lingq_courses:
             self.lingq_courses.appendleft(self.current_lingq)
 
@@ -166,9 +192,17 @@ class LingqLessonWorker(QWorkerBase):
         self.finished.emit()
 
     def lingq_post_lesson(self):
+        self.logging(
+            f"LingqWorker: Attempting to Submit Lesson - {self.current_lingq_payload.title}",
+            "INFO",
+        )
         if self.current_api_csrf is None:
             if self.current_lingq:
                 self.lingq_courses.appendleft(self.current_lingq)
+                self.logging(
+                    "LingqWorker: No Token for Submission. Trying log in Again",
+                    "INFO",
+                )
             self.wait_time((5, 25), self.login_again)
             return
 
@@ -243,6 +277,10 @@ class LingqLessonWorker(QWorkerBase):
         net_thread.start()
 
     def lesson_post_response(self, res: NetworkResponse):
+        self.logging(
+            "LingqWorker: Received Response for Lingq Lesson Submission",
+            "INFO",
+        )
         self._busy = False
         if res.ok:
             self.task_complete.emit(
@@ -253,8 +291,15 @@ class LingqLessonWorker(QWorkerBase):
                 ),
                 {},
             )
-
+            self.logging(
+                f"LingqWorker: Submission Succeeded for - {self.current_lingq_payload.title}",
+                "INFO",
+            )
         else:
+            self.logging(
+                f"LingqWorker: Submission Failed for - {self.current_lingq_payload.title}",
+                "ERROR",
+            )
             self.task_complete.emit(
                 JobRef(
                     id=self.current_job_ref.id,
@@ -263,6 +308,10 @@ class LingqLessonWorker(QWorkerBase):
                 ),
                 {},
             )
+        self.logging(
+            "LingqWorker: Attempting to Get Next Lesson for Submission",
+            "INFO",
+        )
         if self.lingq_courses:
             self.wait_time((15, 30), self.get_next_lingq)
         else:
