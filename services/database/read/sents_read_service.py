@@ -1,10 +1,11 @@
 import math
 
-from dals import SentsDAL
 from PySide6.QtCore import Signal
 
 from base import QObjectBase
 from models.dictionary import Sentence
+
+from ..dals import SentsDAL
 
 
 class SentsReadService(QObjectBase):

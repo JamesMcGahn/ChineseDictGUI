@@ -1,10 +1,11 @@
 import math
 
-from dals import LessonsDAL
 from PySide6.QtCore import Signal
 
 from base import QObjectBase
 from models.dictionary import Lesson
+
+from ..dals import LessonsDAL
 
 
 class LessonReadService(QObjectBase):

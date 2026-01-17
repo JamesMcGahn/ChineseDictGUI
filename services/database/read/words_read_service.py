@@ -1,10 +1,11 @@
 import math
 
-from dals import WordsDAL
 from PySide6.QtCore import Signal
 
 from base import QObjectBase
 from models.dictionary import Word
+
+from ..dals import WordsDAL
 
 
 class WordsReadService(QObjectBase):
