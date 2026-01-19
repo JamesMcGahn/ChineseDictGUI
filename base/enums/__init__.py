@@ -1,3 +1,5 @@
+from .db_jobtype import DBJOBTYPE
+from .db_operation import DBOPERATION
 from .job_status import JOBSTATUS
 from .lesson_audio_type import LESSONAUDIO
 from .lesson_level import LESSONLEVEL
@@ -14,4 +16,6 @@ __all__ = [
     "LESSONAUDIO",
     "JOBSTATUS",
     "WHISPERPROVIDER",
+    "DBJOBTYPE",
+    "DBOPERATION",
 ]
