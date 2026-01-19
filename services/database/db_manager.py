@@ -12,7 +12,15 @@ class DatabaseManager(QObject):
         self.mutex = global_db_mutex
 
     def connect(self):
-        self.connection = sqlite3.connect(self.db_name, timeout=15)
+        if self.connection is None:
+            self.connection = sqlite3.connect(self.db_name, timeout=15)
+
+    def disconnect(self):
+        """
+        Close the connection to the SQLite database.
+        """
+        if self.connection is not None:
+            self.connection.close()
 
     def execute_query(self, query, params=None):
         try:
@@ -56,13 +64,6 @@ class DatabaseManager(QObject):
         """Rollback the current transaction."""
         self.connection.rollback()
 
-    def disconnect(self):
-        """
-        Close the connection to the SQLite database.
-        """
-        if self.connection is not None:
-            self.connection.close()
-
     def fetch_all(self, query, params=None):
         """
         Execute a query and return all results.
@@ -72,8 +73,8 @@ class DatabaseManager(QObject):
         :return: A list of rows from the result set.
         """
         # print("fetch_all", query, params)
-        cursor = self.execute_query(query, params)
-        return cursor.fetchall() if cursor else []
+        with sqlite3.connect(self.db_name) as conn:
+            return conn.execute(query, params).fetchall()
 
     def fetch_one(self, query, params=None):
         """
@@ -83,8 +84,8 @@ class DatabaseManager(QObject):
         :param params: Optional tuple of parameters to use in the query.
         :return: A single row from the result set.
         """
-        cursor = self.execute_query(query, params)
-        return cursor.fetchone() if cursor else None
+        with sqlite3.connect(self.db_name) as conn:
+            return conn.execute(query, params).fetchone()
 
     def create_tables_if_not_exist(self):
         self.execute_query("BEGIN;")
