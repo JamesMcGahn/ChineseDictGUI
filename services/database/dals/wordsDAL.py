@@ -1,37 +1,42 @@
-class WordsDAL:
-    def __init__(self, db_manager):
-        self.db_manager = db_manager
+from models.dictionary import Word
 
-    def insert_word(self, word):
+from .base_DAL import BaseDAL
+
+
+class WordsDAL(BaseDAL[Word]):
+    def __init__(self, db_manager):
+        super().__init__(db_manager=db_manager)
+
+    def count(self):
+        query = "SELECT COUNT(*) FROM words;"
+        return self.db_manager.fetch_one(query)
+
+    def exists(self, items):
+        placeholders = ",".join(["?"] * len(items))
+        # print(placeholders, placeholders)
+        # trunk-ignore(bandit/B608)
+        query = f"SELECT * FROM words WHERE chinese IN ({placeholders})"
+        rows = self.db_manager.fetch_all(query, tuple(items))
+        return rows
+
+    def insert_one(self, item):
         query = "INSERT INTO words (chinese, pinyin, definition, audio, level, anki_audio, anki_id, anki_update,local_update) VALUES (?,?,?,?,?,?,?,?,?)"
         return self.db_manager.execute_write_query(
             query,
             (
-                word.chinese,
-                word.pinyin,
-                word.definition,
-                word.audio,
-                word.level,
-                word.anki_audio,
-                word.anki_id,
-                word.anki_update,
-                word.local_update,
+                item.chinese,
+                item.pinyin,
+                item.definition,
+                item.audio,
+                item.level,
+                item.anki_audio,
+                item.anki_id,
+                item.anki_update,
+                item.local_update,
             ),
         )
 
-    def check_for_duplicate(self, words):
-        placeholders = ",".join(["?"] * len(words))
-        # print(placeholders, placeholders)
-        # trunk-ignore(bandit/B608)
-        query = f"SELECT chinese FROM words WHERE chinese IN ({placeholders})"
-        rows = self.db_manager.fetch_all(query, tuple(words))
-        return rows
-
-    def delete_word(self, id):
-        query = "DELETE FROM words WHERE id = ?"
-        return self.db_manager.execute_write_query(query, (id,))
-
-    def update_word(self, id: int, updates: dict):
+    def update_one(self, id, updates):
         """
         Dynamically update fields in the 'words' table.
 
@@ -45,10 +50,20 @@ class WordsDAL:
         query = f"UPDATE words SET {set_clause} WHERE id = ?"
         return self.db_manager.execute_write_query(query, parameters)
 
-    def get_words_paginate(self, page, limit=25):
+    def delete_one_by_id(self, id):
+        query = "DELETE FROM words WHERE id = ?"
+        return self.db_manager.execute_write_query(query, (id,))
+
+    def delete_many_by_id(self, ids):
+        placeholders = ",".join(["?"] * len(ids))
+        # trunk-ignore(bandit/B608)
+        query = f"DELETE FROM words WHERE anki_id IN ({placeholders})"
+        return self.db_manager.execute_write_query(query, tuple(ids))
+
+    def paginate(self, page, limit=25):
         offset = (page - 1) * limit
         query = "SELECT * FROM words LIMIT ? OFFSET ?"
-        return self.db_manager.execute_query(
+        return self.db_manager.fetch_all(
             query,
             (
                 limit,
@@ -56,28 +71,16 @@ class WordsDAL:
             ),
         )
 
-    def get_words_table_count(self):
-        query = "SELECT COUNT(*) FROM words;"
-        return self.db_manager.execute_query(query)
-
-    def get_word_by_ankiid(self, anki_id):
-        query = "SELECT * FROM words WHERE anki_id = ?"
-        return self.db_manager.execute_query(query, (anki_id,))
-
-    def get_words_all_anki_ids(self):
-        query = "SELECT anki_id FROM words where anki_id not null"
-        return self.db_manager.execute_query(query)
-
-    def delete_words(self, ids):
-        if not ids:
-            return
-        placeholders = ",".join(["?"] * len(ids))
-        # trunk-ignore(bandit/B608)
-        query = f"DELETE FROM words WHERE anki_id IN ({placeholders})"
-        return self.db_manager.execute_write_query(query, tuple(ids))
-
-    def get_anki_export_words(self):
+    def get_anki_export(self):
         query = (
             "SELECT * FROM words WHERE anki_id IS NULL OR local_update > anki_update"
         )
-        return self.db_manager.execute_query(query)
+        return self.db_manager.fetch_all(query)
+
+    def get_by_anki_id(self, anki_id):
+        query = "SELECT * FROM words WHERE anki_id = ?"
+        return self.db_manager.fetch_one(query, (anki_id,))
+
+    def get_anki_ids(self):
+        query = "SELECT anki_id FROM words where anki_id not null"
+        return self.db_manager.fetch_all(query)
