@@ -5,10 +5,10 @@ T = TypeVar("T")
 
 
 @dataclass(frozen=True)
-class PaginationResponse(Generic[T]):
-    table_count: int | None
-    total_pages: int | None
-    page: int | None
-    has_prev_page: bool
-    has_next_page: bool
+class InsertManyPayload(Generic[T]):
+    data: list[T] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class InsertManyResponse(Generic[T]):
     data: list[T] = field(default_factory=list)
