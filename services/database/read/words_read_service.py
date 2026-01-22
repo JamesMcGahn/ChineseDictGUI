@@ -7,10 +7,10 @@ from models.services.database import DBResponse
 from models.services.database.read import AnkiExport, Exists, PaginationResponse
 
 from ..dals import WordsDAL
-from .base_service import BaseService
+from .base_read_service import BaseReadService
 
 
-class WordsReadService(BaseService[Word]):
+class WordsReadService(BaseReadService[Word]):
     pagination = Signal(object, int, int, int, bool, bool)
     result = Signal(list)
 
@@ -58,8 +58,8 @@ class WordsReadService(BaseService[Word]):
         return DBResponse(ok=True, data=AnkiExport(data=words))
 
     def paginate(self, page, limit=25):
-        table_count_result = self.dal.count()
-        if table_count_result is None:
+        table_count = self.dal.count()
+        if table_count is None:
             self.logging(
                 "Words Table has not been created. Cant Get Pagination.", "ERROR"
             )
@@ -68,8 +68,6 @@ class WordsReadService(BaseService[Word]):
                 data=None,
                 error="Words Table has not been created. Cant Get Pagination.",
             )
-
-        table_count = table_count_result[0]
         total_pages = math.ceil(table_count / limit)
         has_next_page = total_pages > page
         has_prev_page = page > 1
