@@ -7,10 +7,10 @@ from models.services.database import DBResponse
 from models.services.database.read import AnkiExport, Exists, PaginationResponse
 
 from ..dals import SentsDAL
-from .base_service import BaseService
+from .base_read_service import BaseReadService
 
 
-class SentsReadService(BaseService[Sentence]):
+class SentsReadService(BaseReadService[Sentence]):
     pagination = Signal(object, int, int, int, bool, bool)
     result = Signal(list)
 
@@ -59,19 +59,18 @@ class SentsReadService(BaseService[Sentence]):
         return DBResponse(ok=True, data=AnkiExport(data=sentences))
 
     def paginate(self, page, limit=25):
-        table_count_result = self.dal.count()
-        if table_count_result is None:
+        table_count = self.dal.count()
+        if table_count is None:
             self.logging(
                 "Sentences Table has not been created. Cant Get Pagination.", "ERROR"
             )
             self.db_manager.disconnect()
             return
 
-        table_count = table_count_result.fetchone()[0]
-        total_pages = math.ceil(table_count_result / limit)
+        total_pages = math.ceil(table_count / limit)
         has_next_page = total_pages > page
         has_prev_page = page > 1
-        rows = self.dal.get_sentences_paginate(page, limit)
+        rows = self.dal.paginate(page, limit)
         sentences = [
             Sentence(
                 chinese=sent[1],

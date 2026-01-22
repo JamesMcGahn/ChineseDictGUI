@@ -32,7 +32,7 @@ class WordsWriteService(BaseWriteService[Word]):
     def insert_many(self, payload):
         words = payload.data.data
 
-        id_words = []
+        id_words: list[Word] = []
         for word in words:
             id = self.dal.insert_one(word)
             word_with_id = replace(word, id=id)
@@ -69,7 +69,7 @@ class WordsWriteService(BaseWriteService[Word]):
     def update_many(self, payload):
         updates = payload.data.data
         total_count = 0
-        words = []
+        words: list[Word] = []
         self.db_manager.begin_transaction()
         for item in updates:
             count, word = self.dal.update_one(item.id, item.data)
