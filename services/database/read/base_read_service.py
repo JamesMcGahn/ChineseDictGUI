@@ -14,7 +14,7 @@ from ..db_manager import DatabaseManager
 T = TypeVar("T")
 
 
-class BaseService(Generic[T], QObjectBase):
+class BaseReadService(Generic[T], QObjectBase):
 
     def __init__(self, db_manager: DatabaseManager):
         super().__init__()
