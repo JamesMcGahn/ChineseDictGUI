@@ -6,9 +6,7 @@ import requests
 from PySide6.QtCore import QThread, QTimer, Signal, Slot
 
 from base import QObjectBase, QSingleton
-from core.cpod.token_worker import TokenWorker
-from core.lingq import LingqCollectionsWorker, LingqLessonWorker, LingqLoginWorker
-from db import DatabaseManager
+from core.lingq import LingqLoginWorker
 from keys import keys
 from services.logger import Logger
 from services.managers import (
@@ -35,11 +33,9 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.session_manager = SessionManager()
         self.session_manager.bind_context(self)
         self.settings = AppSettings()
-        # self.setup_database()
         self.session_manager.load_session()
-
-        self.lingq_courses = []
         self.db = DatabaseServiceManager()
+
         self.ffmpeg_task_manager = FFmpegTaskManager()
         self.audio_download_manager = AudioDownloadManager()
         self.lingq_workflow_manager = LingqWorkFlowManager()
@@ -78,13 +74,7 @@ class AppContext(QObjectBase, metaclass=QSingleton):
             check=True,
         )
 
-    def setup_database(self):
-        db = DatabaseManager("chineseDict.db")
-        db.connect()
-        db.create_tables_if_not_exist()
-        db.create_anki_integration_record()
-        db.disconnect()
-
+    # TODO Move to own Manager or Token Manager
     def setup_session(self):
         domains = self.session_manager.check_cookies()
         if "lingq.com" not in domains or domains["lingq.com"]:

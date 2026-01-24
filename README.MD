@@ -50,28 +50,28 @@ Priorities:
 
 ## Database System Refactor 🔥
 
-- [/] Create two services Read & Write
+- [x] Create two services Read & Write
 - [x] Clean Up DALS
   - [x] Standardize DALs with Base Class
-  - [/] Remove passing cursor back to services
+  - [x] Remove passing cursor back to services
     - [x] Read Services
-    - [ ] Write Services
-- [/] DBResponse Model
-  - [ ] Responses for all Write Methods
+    - [x] Write Services
+- [x] DBResponse Model
+  - [x] Responses for all Write Methods
   - [x] Responses for all Read Methods
-- [/] DBJob Model
-  - [ ] Payloads for all Write Methods
+- [x] DBJob Model
+  - [x] Payloads for all Write Methods
 - [x] Read Services
   - [x] - rewrite methods to handle DAL rewrites
   - [x] - short lived new connection managed by DBManager
   - [x] - base class
   - [x] - implement base class for each table's read service
-- [ ] Write Services
-  - [ ] - rewrite methods to handle DAL rewrites
-  - [ ] - short lived new connection managed by DBManager
-  - [ ] - base class
-  - [ ] - implement base class for each table's read service
-  - [ ] Write Services - queue based long lived thread -> connection managed by Thread
+- [x] Write Services
+  - [x] - rewrite methods to handle DAL rewrites
+  - [x] - long lived connection managed by write thread
+  - [x] - base class
+  - [x] - implement base class for each table's read service
+  - [x] Write Services - queue based long lived thread -> connection managed by Thread
 - [ ] Migrate consumers incrementally -> Service Model
 
 # Threading & Worker Cleanup

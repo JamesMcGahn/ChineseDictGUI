@@ -32,8 +32,14 @@ class DatabaseManager(QObject):
                 cursor.execute(query)
 
             return cursor
-        except sqlite3.Error as e:
-            print("SQL error ", e)
+        except (
+            sqlite3.Error,
+            sqlite3.IntegrityError,
+            sqlite3.OperationalError,
+            sqlite3.DatabaseError,
+        ) as _:
+            if self.connection.in_transaction:
+                self.rollback_transaction()
             raise
 
     def execute_write_query(self, query, params=None):
@@ -153,7 +159,7 @@ class DatabaseManager(QObject):
 
         self.execute_query(
             """
-            CREATE UNIQUE INDEX idx_lessons_provider_url
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_lessons_provider_url
             ON lessons(provider, url)
             """
         )

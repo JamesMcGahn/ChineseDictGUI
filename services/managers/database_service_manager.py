@@ -6,6 +6,7 @@ from base import QObjectBase
 from models.services import JobRef
 from models.services.database import DBJobPayload
 
+from ..database import DatabaseManager
 from ..database.read import DBReadService
 from ..database.write.db_write_service import DBWriteService
 
@@ -17,6 +18,7 @@ class DatabaseServiceManager(QObjectBase):
 
     def __init__(self):
         super().__init__()
+        self._setup_database()
         self.read_service = DBReadService()
         self.write_service = DBWriteService()
         self.write_service.task_complete.connect(self.task_complete)
@@ -37,3 +39,14 @@ class DatabaseServiceManager(QObjectBase):
         if self.write_service:
             self.logging("Shutting down DB Write Service.")
             self.write_service.quit()
+
+    def _setup_database(self):
+        try:
+            db = DatabaseManager("chineseDict.db")
+            db.connect()
+            db.create_tables_if_not_exist()
+            db.create_anki_integration_record()
+            db.disconnect()
+            self.logging("Database Tables and Indexes Set Up Successfully.")
+        except Exception as e:
+            self.logging(f"ERROR: Creating Tables in Database: {e}", "ERROR")
