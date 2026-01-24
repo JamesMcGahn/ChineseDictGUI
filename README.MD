@@ -42,22 +42,37 @@ Priorities:
 
   - [x] `safe_extract_json(response)`
 
-- [/] Migrate consumers incrementally:
-  - [ ] Replace `response.status_code` → `result["status"]`
-  - [ ] Replace `response.json()` → `result["data"]`
-  - [ ] Replace exception handling → `result["message"]`
+- [/] Migrate consumers incrementally -> NetworkResponse Model:
+  - [ ] Replace `response.status_code` → `result.status`
+  - [ ] Replace `response.json()` → `result.data`
+  - [ ] Replace exception handling → `result.message`
   - [ ] Remove `if response is None` checks
 
 ## Database System Refactor 🔥
 
-- [ ] Convert `DatabaseManager` into a **stateless utility**.
-- [ ] Make `connect()` return **a fresh SQLite connection per worker**.
-- [ ] Update workers to:
-  - [ ] Create their own DB connection via `db_manager.connect()`
-  - [ ] Pass `(db_manager, connection)` into all DAL operations
-- [ ] Update all DAL classes to accept `(db_manager, connection)`
-- [ ] Remove `self.connection` from `DatabaseManager`
-- [ ] Evaluate whether the **global DB mutex** is still needed or can be simplified
+- [x] Create two services Read & Write
+- [x] Clean Up DALS
+  - [x] Standardize DALs with Base Class
+  - [x] Remove passing cursor back to services
+    - [x] Read Services
+    - [x] Write Services
+- [x] DBResponse Model
+  - [x] Responses for all Write Methods
+  - [x] Responses for all Read Methods
+- [x] DBJob Model
+  - [x] Payloads for all Write Methods
+- [x] Read Services
+  - [x] - rewrite methods to handle DAL rewrites
+  - [x] - short lived new connection managed by DBManager
+  - [x] - base class
+  - [x] - implement base class for each table's read service
+- [x] Write Services
+  - [x] - rewrite methods to handle DAL rewrites
+  - [x] - long lived connection managed by write thread
+  - [x] - base class
+  - [x] - implement base class for each table's read service
+  - [x] Write Services - queue based long lived thread -> connection managed by Thread
+- [ ] Migrate consumers incrementally -> Service Model
 
 # Threading & Worker Cleanup
 
