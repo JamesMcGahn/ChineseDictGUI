@@ -1,29 +1,39 @@
-import time
+from typing import Any
 
 from PySide6.QtCore import Signal, Slot
 
-from base import QObjectBase, ThreadQueueManager
+from base import QObjectBase
+from models.services import JobRef
+from models.services.database import DBJobPayload
 
 from ..database.read import DBReadService
-
-# TODO update db code when context db thread is built out
+from ..database.write.db_write_service import DBWriteService
 
 
 class DatabaseServiceManager(QObjectBase):
     appshutdown = Signal()
     task_complete = Signal(object, object)
-    pagination = Signal(object, int, int, int, bool, bool)
-    result = Signal(list)
+    add_to_write_queue = Signal(object, object)
 
     def __init__(self):
         super().__init__()
         self.read_service = DBReadService()
-        self.read_service.result.connect(self.result)
-        self.read_service.pagination.connect(self.pagination)
+        self.write_service = DBWriteService()
+        self.write_service.task_complete.connect(self.task_complete)
+        self.add_to_write_queue.connect(self.write_service.add_to_queue)
+        self.write_service.finished.connect(self.write_service.deleteLater)
+        self.write_service.start()
+        self.appshutdown.connect(self.shut_down_write_service)
 
     @property
     def read(self) -> DBReadService:
         return self.read_service
 
-    def write(self, jobref, payload):
-        pass
+    @Slot(object, object)
+    def write(self, job_ref: JobRef, payload: DBJobPayload[Any]):
+        self.add_to_write_queue.emit(job_ref, payload)
+
+    def shut_down_write_service(self):
+        if self.write_service:
+            self.logging("Shutting down DB Write Service.")
+            self.write_service.quit()

@@ -13,6 +13,7 @@ from keys import keys
 from services.logger import Logger
 from services.managers import (
     AudioDownloadManager,
+    DatabaseServiceManager,
     FFmpegTaskManager,
     LessonWorkFlowManager,
     LingqWorkFlowManager,
@@ -25,6 +26,7 @@ from utils.files import PathManager
 class AppContext(QObjectBase, metaclass=QSingleton):
     check_token = Signal()
     lingq_logged_in = Signal(bool)
+    appshutdown = Signal()
 
     def __init__(self):
         super().__init__()
@@ -33,10 +35,11 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.session_manager = SessionManager()
         self.session_manager.bind_context(self)
         self.settings = AppSettings()
-        self.setup_database()
+        # self.setup_database()
         self.session_manager.load_session()
 
         self.lingq_courses = []
+        self.db = DatabaseServiceManager()
         self.ffmpeg_task_manager = FFmpegTaskManager()
         self.audio_download_manager = AudioDownloadManager()
         self.lingq_workflow_manager = LingqWorkFlowManager()
@@ -62,6 +65,8 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.check_token.connect(self.token_manager.check_token)
         self.setup_session()
         self.check_token.emit()
+
+        self.appshutdown.connect(self.db.appshutdown)
 
     def ensure_playwright_browsers(self, app_data_path):
         env = os.environ.copy()

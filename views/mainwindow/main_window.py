@@ -48,6 +48,7 @@ class MainWindow(QMainWindow):
 
         self.appshutdown.connect(self.logger.close)
         self.appshutdown.connect(self.centralwidget.notified_app_shutting)
+        self.appshutdown.connect(self.ctx.appshutdown)
 
     @Slot()
     def close_main_window(self) -> None:

@@ -2,6 +2,7 @@ import sqlite3
 
 from PySide6.QtCore import QMutexLocker, QObject
 
+# TODO change lock when other db is removed
 from db.db_lock import global_db_mutex
 
 

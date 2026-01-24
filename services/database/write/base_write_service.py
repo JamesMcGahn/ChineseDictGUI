@@ -23,6 +23,7 @@ from models.services.database.write import (
     UpdateOneResponse,
 )
 
+from ..dals.base_DAL import BaseDAL
 from ..db_manager import DatabaseManager
 
 T = TypeVar("T")
@@ -31,40 +32,38 @@ P = ParamSpec("P")
 
 class BaseWriteService(Generic[T], QObjectBase):
     finished = Signal()
-    pagination = Signal(object, int, int, int, bool, bool)
-    error_occurred = Signal(str)
-    result = Signal(list)
     task_complete = Signal(object, object)
 
-    def __init__(self, job_ref: JobRef, payload: DBJobPayload):
+    def __init__(self, job_ref: JobRef, payload: DBJobPayload, dal: BaseDAL):
         super().__init__()
         self.db_manager: DatabaseManager | None = None
         self.job_ref = job_ref
         self.payload = payload
-
+        self._dal_class = dal
+        self.dal: BaseDAL | None = None
         self.operation_mapping = {
             DBOPERATION.INSERT_ONE: (
-                DBJobPayload[InsertOnePayload[T]],
+                InsertOnePayload,
                 self.insert_one,
             ),
             DBOPERATION.INSERT_MANY: (
-                DBJobPayload[InsertManyPayload[T]],
+                InsertManyPayload,
                 self.insert_many,
             ),
             DBOPERATION.UPDATE_ONE: (
-                DBJobPayload[UpdateOnePayload[T]],
+                UpdateOnePayload,
                 self.update_one,
             ),
             DBOPERATION.UPDATE_MANY: (
-                DBJobPayload[UpdateManyPayload[T]],
+                UpdateManyPayload,
                 self.update_many,
             ),
             DBOPERATION.DELETE_ONE: (
-                DBJobPayload[DeleteOnePayload[T]],
+                DeleteOnePayload,
                 self.delete_one,
             ),
             DBOPERATION.DELETE_MANY: (
-                DBJobPayload[DeleteManyPayload[T]],
+                DeleteManyPayload,
                 self.delete_many,
             ),
         }
@@ -79,11 +78,13 @@ class BaseWriteService(Generic[T], QObjectBase):
                 response = fn(self, *args, **kwargs)
                 self.task_complete.emit(self.job_ref, response)
             except (
+                sqlite3.Error,
                 sqlite3.IntegrityError,
                 sqlite3.OperationalError,
                 sqlite3.DatabaseError,
+                Exception,
             ) as e:
-                msg = f"{self.__class__.__name__}: {fn.__name__} - {e}"
+                msg = f"{self.__class__.__name__}: {fn.__name__} - {type(e).__name__} - {e}"
                 response = DBResponse(
                     ok=False,
                     data=None,
@@ -91,25 +92,36 @@ class BaseWriteService(Generic[T], QObjectBase):
                 )
                 self.logging(msg, "ERROR")
                 self.task_complete.emit(self.job_ref, response)
+            self.finished.emit()
             return response
 
         return wrapper
 
     @Slot()
     def do_work(self):
+        self.log_thread()
+        if self.db_manager is None:
+            raise RuntimeError("DB Manager is not set")
+        self.setup_dal(self._dal_class)
         entry = self.operation_mapping.get(self.payload.operation)
 
         if not entry:
+            self.logging(
+                f"{self.__class__.__name__} does not support operation {self.payload.operation}",
+                "ERROR",
+            )
             raise ValueError(
-                f"{self.__class__.__name__} does not support "
-                f"operation {self.payload.operation}"
+                f"{self.__class__.__name__} does not support operation {self.payload.operation}"
             )
 
         payload_type, handler = entry
-        if not isinstance(self.payload, payload_type):
+        if not isinstance(self.payload.data, payload_type):
+            self.logging(
+                f"{handler.__name__} expected {payload_type.__name__} got {type(self.payload).__name__}",
+                "ERROR",
+            )
             raise TypeError(
-                f"{handler.__name__} expected {payload_type.__name__}, "
-                f"got {type(self.payload).__name__}"
+                f"{handler.__name__} expected {payload_type.__name__} got {type(self.payload).__name__}"
             )
 
         handler(self.payload)
