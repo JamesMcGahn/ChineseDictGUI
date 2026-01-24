@@ -76,9 +76,11 @@ class DatabaseManager(QObject):
         :param params: Optional tuple of parameters to use in the query.
         :return: A list of rows from the result set.
         """
-        # print("fetch_all", query, params)
         with sqlite3.connect(self.db_name) as conn:
-            return conn.execute(query, params).fetchall()
+            if params is not None:
+                return conn.execute(query, params).fetchall()
+            else:
+                return conn.execute(query).fetchall()
 
     def fetch_one(self, query, params=None):
         """
@@ -89,7 +91,10 @@ class DatabaseManager(QObject):
         :return: A single row from the result set.
         """
         with sqlite3.connect(self.db_name) as conn:
-            return conn.execute(query, params).fetchone()
+            if params is not None:
+                return conn.execute(query, params).fetchone()
+            else:
+                return conn.execute(query).fetchone()
 
     def create_tables_if_not_exist(self):
         self.execute_query("BEGIN;")

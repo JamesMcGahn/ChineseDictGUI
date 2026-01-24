@@ -5,10 +5,10 @@ from models.services.database import DBResponse
 from models.services.database.read import GetByID
 
 from ..dals import AnkiIntegrationDAL
-from .base_service import BaseService
+from .base_read_service import BaseReadService
 
 
-class AnkiIntegrationReadService(BaseService[AnkiIntegration]):
+class AnkiIntegrationReadService(BaseReadService[AnkiIntegration]):
     pagination = Signal(object, int, int, int, bool, bool)
     result = Signal(list)
 
@@ -16,6 +16,7 @@ class AnkiIntegrationReadService(BaseService[AnkiIntegration]):
         super().__init__(db_manager=db_manager)
         self.dal = AnkiIntegrationDAL(self.db_manager)
 
+    @BaseReadService.catch_sql_error
     def get_by_id(self, id):
         row = self.dal.get_by_id(id)
         item = None

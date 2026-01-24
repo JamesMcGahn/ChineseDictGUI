@@ -1,23 +1,20 @@
 import math
 
-from PySide6.QtCore import Signal
-
 from models.dictionary import Lesson
 from models.services.database import DBResponse
 from models.services.database.read import Exists, PaginationResponse
 
 from ..dals import LessonsDAL
-from .base_service import BaseService
+from .base_read_service import BaseReadService
 
 
-class LessonReadService(BaseService[Lesson]):
-    pagination = Signal(object, int, int, int, bool, bool)
-    result = Signal(list)
+class LessonReadService(BaseReadService[Lesson]):
 
     def __init__(self, db_manager):
         super().__init__(db_manager=db_manager)
         self.dal = LessonsDAL(self.db_manager)
 
+    @BaseReadService.catch_sql_error
     def exists(self, items):
         lesson_ids = [lesson.lesson_id for lesson in items]
         rows = self.dal.exists(lesson_ids)
@@ -41,9 +38,10 @@ class LessonReadService(BaseService[Lesson]):
         ]
         return DBResponse(ok=True, data=Exists(data=lessons))
 
+    @BaseReadService.catch_sql_error
     def paginate(self, page, limit=25):
-        table_count_result = self.dal.count()
-        if table_count_result is None:
+        table_count = self.dal.count()
+        if table_count is None:
             self.logging(
                 "Lesson Table has not been created. Cant Get Pagination.", "ERROR"
             )
@@ -53,7 +51,6 @@ class LessonReadService(BaseService[Lesson]):
                 error="Lesson Table has not been created. Cant Get Pagination.",
             )
 
-        table_count = table_count_result[0]
         total_pages = math.ceil(table_count / limit)
         has_next_page = total_pages > page
         has_prev_page = page > 1

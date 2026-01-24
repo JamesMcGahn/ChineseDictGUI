@@ -1,7 +1,5 @@
 import math
 
-from PySide6.QtCore import Signal
-
 from models.dictionary import Sentence
 from models.services.database import DBResponse
 from models.services.database.read import AnkiExport, Exists, PaginationResponse
@@ -11,13 +9,12 @@ from .base_read_service import BaseReadService
 
 
 class SentsReadService(BaseReadService[Sentence]):
-    pagination = Signal(object, int, int, int, bool, bool)
-    result = Signal(list)
 
     def __init__(self, db_manager):
         super().__init__(db_manager=db_manager)
         self.dal = SentsDAL(self.db_manager)
 
+    @BaseReadService.catch_sql_error
     def exists(self, items):
         sentences_strings = [sentence.chinese for sentence in items]
         rows = self.dal.exists(sentences_strings)
@@ -38,6 +35,7 @@ class SentsReadService(BaseReadService[Sentence]):
         ]
         return DBResponse(ok=True, data=Exists(data=sentences))
 
+    @BaseReadService.catch_sql_error
     def anki_export(self):
         self.db_manager.connect()
         rows = self.dal.get_anki_export()
@@ -58,6 +56,7 @@ class SentsReadService(BaseReadService[Sentence]):
         ]
         return DBResponse(ok=True, data=AnkiExport(data=sentences))
 
+    @BaseReadService.catch_sql_error
     def paginate(self, page, limit=25):
         table_count = self.dal.count()
         if table_count is None:
