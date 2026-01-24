@@ -1,7 +1,8 @@
 from dataclasses import replace
 
 from models.dictionary import Sentence
-from models.services.database import DBResponse
+from models.services import JobRef
+from models.services.database import DBJobPayload, DBResponse
 from models.services.database.write import (
     DeleteManyResponse,
     DeleteOneResponse,
@@ -15,11 +16,10 @@ from ..dals import SentsDAL
 from .base_write_service import BaseWriteService
 
 
-class WordsWriteService(BaseWriteService[Sentence]):
+class SentsWriteService(BaseWriteService[Sentence]):
 
-    def __init__(self):
-        super().__init__()
-        self.dal = SentsDAL()
+    def __init__(self, job_ref: JobRef, payload: DBJobPayload):
+        super().__init__(job_ref, payload, dal=SentsDAL)
 
     @BaseWriteService.emit_db_response
     def insert_one(self, payload):
@@ -70,9 +70,10 @@ class WordsWriteService(BaseWriteService[Sentence]):
         updates = payload.data.data
         total_count = 0
         sentences: list[Sentence] = []
-        self.db_manager.begin_transaction()
-        for item in updates:
-            count, sent = self.dal.update_one(item.id, item.data)
+
+        for i, item in enumerate(updates):
+            commit = True if i == len(updates) - 1 else False
+            count, sent = self.dal.update_one(item.id, item.data, commit=commit)
             total_count += count
             if sent:
                 sentences.append(
@@ -89,7 +90,7 @@ class WordsWriteService(BaseWriteService[Sentence]):
                         sent[9],
                     )
                 )
-        self.db_manager.commit_transaction()
+
         return DBResponse(
             ok=True, data=UpdateManyResponse(data=sentences, count=total_count)
         )

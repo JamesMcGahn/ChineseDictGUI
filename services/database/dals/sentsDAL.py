@@ -24,8 +24,8 @@ class SentsDAL(BaseDAL[Sentence]):
         return rows
 
     def insert_one(self, item) -> int:
-        query = "INSERT INTO sentences (chinese, english, pinyin, audio, level,anki_audio, anki_id, anki_update,local_update,sent_type, lesson) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
-        result = self.db_manager.execute_write_query(
+        query = "INSERT INTO sentences (chinese, english, pinyin, audio, level,anki_audio, anki_id, anki_update,local_update) VALUES (?,?,?,?,?,?,?,?,?)"
+        cursor = self.db_manager.execute_write_query(
             query,
             (
                 item.chinese,
@@ -37,14 +37,15 @@ class SentsDAL(BaseDAL[Sentence]):
                 item.anki_id,
                 item.anki_update,
                 item.local_update,
-                item.sent_type,
-                item.lesson,
             ),
         )
-        return result.lastrowid
+        row_id = cursor.lastrowid
+        self.db_manager.commit_transaction()
+        cursor.close()
+        return row_id
 
     def update_one(
-        self, id, updates
+        self, id, updates, commit=True
     ) -> tuple[int, tuple[int, str, str, str, str, str, str, int, int, int] | None]:
         """
         Dynamically update fields in the 'sentences' table.
@@ -59,6 +60,9 @@ class SentsDAL(BaseDAL[Sentence]):
         query = f"UPDATE sentences SET {set_clause} WHERE id = ? RETURNING *"
         cursor = self.db_manager.execute_write_query(query, parameters)
         row = cursor.fetchone()
+        if commit:
+            self.db_manager.commit_transaction()
+        cursor.close()
         count = 1 if row is not None else 0
         return (count, row)
 
@@ -68,6 +72,8 @@ class SentsDAL(BaseDAL[Sentence]):
         query = "DELETE FROM sentences WHERE id = ?"
         cursor = self.db_manager.execute_write_query(query, (id,))
         row = cursor.fetchone()
+        self.db_manager.commit_transaction()
+        cursor.close()
         count = 1 if row is not None else 0
         return (count, row)
 
@@ -76,9 +82,11 @@ class SentsDAL(BaseDAL[Sentence]):
     ) -> tuple[int, tuple[int, str, str, str, str, str, str, int, int, int]]:
         placeholders = ",".join(["?"] * len(ids))
         # trunk-ignore(bandit/B608)
-        query = f"DELETE FROM sentences WHERE anki_id IN ({placeholders})"
+        query = f"DELETE FROM sentences WHERE id IN ({placeholders})"
         cursor = self.db_manager.execute_write_query(query, tuple(ids))
         rows = cursor.fetchall()
+        self.db_manager.commit_transaction()
+        cursor.close()
         count = len(rows)
         return (count, rows)
 

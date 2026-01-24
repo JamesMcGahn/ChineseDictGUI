@@ -60,7 +60,6 @@ class LessonsDAL(BaseDAL[Lesson]):
 
         # trunk-ignore(bandit/B608)
         query = f"UPDATE lessons SET {set_clause} WHERE id = ? RETURNING *"
-        print(query, parameters)
         cursor = self.db_manager.execute_write_query(query, parameters)
         row = cursor.fetchone()
         if commit:

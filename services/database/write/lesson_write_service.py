@@ -20,11 +20,9 @@ class LessonWriteService(BaseWriteService[Lesson]):
 
     def __init__(self, job_ref: JobRef, payload: DBJobPayload):
         super().__init__(job_ref, payload, dal=LessonsDAL)
-        # self.dal = LessonsDAL(self.db_manager)
 
     @BaseWriteService.emit_db_response
     def insert_one(self, payload):
-        print("here", payload)
         lesson = payload.data.data
         id = self.dal.insert_one(lesson)
         lesson = replace(lesson, id=id)
@@ -44,7 +42,6 @@ class LessonWriteService(BaseWriteService[Lesson]):
 
     @BaseWriteService.emit_db_response
     def update_one(self, payload):
-        print("here in update")
         update = payload.data.data
         id = payload.data.id
         count, lesson = self.dal.update_one(id, update)
