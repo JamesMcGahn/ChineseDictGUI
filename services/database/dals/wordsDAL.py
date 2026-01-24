@@ -25,7 +25,7 @@ class WordsDAL(BaseDAL[Word]):
     def insert_one(self, item) -> int:
         query = "INSERT INTO words (chinese, pinyin, definition, audio, level, anki_audio, anki_id, anki_update,local_update) VALUES (?,?,?,?,?,?,?,?,?)"
 
-        result = self.db_manager.execute_write_query(
+        cursor = self.db_manager.execute_write_query(
             query,
             (
                 item.chinese,
@@ -39,10 +39,13 @@ class WordsDAL(BaseDAL[Word]):
                 item.local_update,
             ),
         )
-        return result.lastrowid
+        row_id = cursor.lastrowid
+        self.db_manager.commit_transaction()
+        cursor.close()
+        return row_id
 
     def update_one(
-        self, id, updates
+        self, id, updates, commit=True
     ) -> tuple[int, tuple[int, str, str, str, str, str, str, int, int, int] | None]:
         """
         Dynamically update fields in the 'words' table.
@@ -57,6 +60,9 @@ class WordsDAL(BaseDAL[Word]):
         query = f"UPDATE words SET {set_clause} WHERE id = ? RETURNING *;"
         cursor = self.db_manager.execute_write_query(query, parameters)
         row = cursor.fetchone()
+        if commit:
+            self.db_manager.commit_transaction()
+        cursor.close()
         count = 1 if row is not None else 0
         return (count, row)
 
@@ -66,6 +72,8 @@ class WordsDAL(BaseDAL[Word]):
         query = "DELETE FROM words WHERE id = ? RETURNING *;"
         cursor = self.db_manager.execute_write_query(query, (id,))
         row = cursor.fetchone()
+        self.db_manager.commit_transaction()
+        cursor.close()
         count = 1 if row is not None else 0
         return (count, row)
 
@@ -74,9 +82,11 @@ class WordsDAL(BaseDAL[Word]):
     ) -> tuple[int, tuple[int, str, str, str, str, str, str, int, int, int]]:
         placeholders = ",".join(["?"] * len(ids))
         # trunk-ignore(bandit/B608)
-        query = f"DELETE FROM words WHERE anki_id IN ({placeholders}) RETURNING *;"
+        query = f"DELETE FROM words WHERE id IN ({placeholders}) RETURNING *;"
         cursor = self.db_manager.execute_write_query(query, tuple(ids))
         rows = cursor.fetchall()
+        self.db_manager.commit_transaction()
+        cursor.close()
         count = len(rows)
         return (count, rows)
 

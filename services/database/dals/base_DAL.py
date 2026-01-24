@@ -44,7 +44,7 @@ class BaseDAL(Generic[T], QObjectBase):
             f"insert_one has not need implemented by {self.__class__.__name__}"
         )
 
-    def update_one(self, id: int, updates: dict):
+    def update_one(self, id: int, updates: dict, commit=True):
         self.logging(
             f"update_one has not been implemented {self.__class__.__name__}", "ERROR"
         )
