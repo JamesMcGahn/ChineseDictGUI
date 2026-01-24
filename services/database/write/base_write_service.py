@@ -1,11 +1,19 @@
 import sqlite3
+<<<<<<< HEAD
+=======
+from dataclasses import replace
+>>>>>>> a595264 (change job status in decorator, implement db service in lesson workflow)
 from functools import wraps
 from typing import Callable, Generic, ParamSpec, TypeVar
 
 from PySide6.QtCore import Signal, Slot
 
 from base import QObjectBase
+<<<<<<< HEAD
 from base.enums import DBOPERATION
+=======
+from base.enums import DBOPERATION, JOBSTATUS
+>>>>>>> a595264 (change job status in decorator, implement db service in lesson workflow)
 from models.services import JobRef
 from models.services.database import DBJobPayload, DBResponse
 from models.services.database.write import (
@@ -76,7 +84,12 @@ class BaseWriteService(Generic[T], QObjectBase):
         def wrapper(self, *args: P.args, **kwargs: P.kwargs):
             try:
                 response = fn(self, *args, **kwargs)
+<<<<<<< HEAD
                 self.task_complete.emit(self.job_ref, response)
+=======
+                jobref = replace(self.job_ref, status=JOBSTATUS.COMPLETE)
+                self.task_complete.emit(jobref, response)
+>>>>>>> a595264 (change job status in decorator, implement db service in lesson workflow)
             except (
                 sqlite3.Error,
                 sqlite3.IntegrityError,
@@ -91,7 +104,12 @@ class BaseWriteService(Generic[T], QObjectBase):
                     error=msg,
                 )
                 self.logging(msg, "ERROR")
+<<<<<<< HEAD
                 self.task_complete.emit(self.job_ref, response)
+=======
+                jobref = replace(self.job_ref, status=JOBSTATUS.ERROR)
+                self.task_complete.emit(jobref, response)
+>>>>>>> a595264 (change job status in decorator, implement db service in lesson workflow)
             self.finished.emit()
             return response
 

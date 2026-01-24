@@ -12,6 +12,7 @@ class LESSONTASK(StrEnum):
     SENT_AUDIO = "sent_audio"
     WORD_AUDIO = "word_audio"
     AUDIO = "audio"
+    SAVE_LESSON = "save_lesson"
     TRANSCRIBE = "transcribe"
     COMBINE_AUDIO = "combine_audio"
     LINGQ_LESSON = "lingq_lesson"

@@ -3,9 +3,16 @@ import uuid
 from PySide6.QtCore import QThread, Signal, Slot
 
 from base import QObjectBase, ThreadQueueManager
-from base.enums import JOBSTATUS, LESSONAUDIO, LESSONSTATUS, LESSONTASK, WHISPERPROVIDER
+from base.enums import (
+    DBJOBTYPE,
+    DBOPERATION,
+    JOBSTATUS,
+    LESSONAUDIO,
+    LESSONSTATUS,
+    LESSONTASK,
+    WHISPERPROVIDER,
+)
 from core.scrapers.cpod.lessons import LessonScraperThread
-from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Lesson, LessonAudio, Sentence, Word
 from models.services import (
     AudioDownloadPayload,
@@ -14,10 +21,13 @@ from models.services import (
     LingqLessonPayload,
     WhisperPayload,
 )
+from models.services.database import DBJobPayload
+from models.services.database.write import InsertOnePayload
 from services.network import TokenManager
 from utils.files import PathManager
 
 from .audio_download_manager import AudioDownloadManager
+from .database_service_manager import DatabaseServiceManager
 from .ffmpeg_task_manager import FFmpegTaskManager
 from .lingq_workflow_manager import LingqWorkFlowManager
 
@@ -32,11 +42,13 @@ class LessonWorkFlowManager(QObjectBase):
         audio_download_manager: AudioDownloadManager,
         ffmeg_task_manager: FFmpegTaskManager,
         lingq_workflow_manager: LingqWorkFlowManager,
+        db: DatabaseServiceManager,
     ):
         super().__init__()
         self.ffmeg_task_manager = ffmeg_task_manager
         self.audio_download_manager = audio_download_manager
         self.lingq_workflow_manager = lingq_workflow_manager
+        self.db = db
         self.lesson_threads = []
         self.token_manager = TokenManager()
         self.lessons_queue: dict[str, Lesson] = {}
@@ -125,11 +137,18 @@ class LessonWorkFlowManager(QObjectBase):
             # return  # TODO REMOVE AFTER TESTING WHISPER
             # TODO add an option to disable downloading all sentences for lesson
 
-        self.insert_lesson = DatabaseQueryThread(
-            "lessons", "insert_lesson", lesson=lesson
+        self.db.write(
+            job_ref=JobRef(
+                id=lesson.queue_id,
+                task=LESSONTASK.SAVE_LESSON,
+                status=JOBSTATUS.CREATED,
+            ),
+            payload=DBJobPayload(
+                kind=DBJOBTYPE.LESSONS,
+                operation=DBOPERATION.INSERT_ONE,
+                data=InsertOnePayload(data=lesson),
+            ),
         )
-        self.insert_lesson.start()
-        self.insert_lesson.finished.connect(self.insert_lesson.deleteLater)
 
         if sents_words_with_in_order:
             self.logging(
