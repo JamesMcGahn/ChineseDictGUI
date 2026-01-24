@@ -2,7 +2,7 @@ import sqlite3
 
 from PySide6.QtCore import QMutexLocker, QObject
 
-from .db_lock import global_db_mutex
+from db.db_lock import global_db_mutex
 
 
 class DatabaseManager(QObject):
@@ -33,23 +33,27 @@ class DatabaseManager(QObject):
             return cursor
         except sqlite3.Error as e:
             print("SQL error ", e)
-            # TODO add logging
+            raise
 
     def execute_write_query(self, query, params=None):
         with QMutexLocker(self.mutex):
             try:
                 cursor = self.connection.cursor()
-                self.begin_transaction()
+                # self.begin_transaction()
                 if params:
                     cursor.execute(query, params)
                 else:
                     cursor.execute(query)
-                self.commit_transaction()
+                # self.commit_transaction()
                 return cursor
-            except sqlite3.Error as e:
-                self.rollback_transaction()
-                print("SQL error ", e)
-                # TODO add logging
+            except (
+                sqlite3.Error,
+                sqlite3.IntegrityError,
+                sqlite3.OperationalError,
+                sqlite3.DatabaseError,
+            ) as _:
+                if self.connection.in_transaction:
+                    self.rollback_transaction()
                 raise
 
     def begin_transaction(self):

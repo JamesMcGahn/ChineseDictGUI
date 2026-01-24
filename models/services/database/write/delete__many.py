@@ -13,6 +13,6 @@ class DeleteManyPayload(Generic[T]):
 
 @dataclass(frozen=True)
 class DeleteManyResponse(Generic[T]):
-    ids: list[int] = field(default_factory=list)
     count: int
+    ids: list[int] = field(default_factory=list)
     data: list[DeleteOneResponse[T]] = field(default_factory=list)

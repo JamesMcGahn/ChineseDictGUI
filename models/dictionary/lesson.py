@@ -19,7 +19,7 @@ class Lesson:
     title: str | None = field(default=None, kw_only=True)
     level: LESSONLEVEL | None = field(default=None, kw_only=True)
     hash_code: str | None = field(default=None, kw_only=True)
-
+    id: int = field(default=0, kw_only=True)
     storage_path: str | None = field(default=None, kw_only=True)
 
     created_at: int = field(default_factory=lambda: int(time.time()), kw_only=True)
