@@ -25,11 +25,8 @@ class AppContext(QObjectBase, metaclass=QSingleton):
     check_token = Signal()
     lingq_logged_in = Signal(bool)
     appshutdown = Signal()
-<<<<<<< HEAD
-=======
-    add_to_db_write_queue = Signal(object, object)
     task_complete = Signal(object, object)
->>>>>>> a595264 (change job status in decorator, implement db service in lesson workflow)
+    add_to_db_write_queue = Signal(object, object)
 
     def __init__(self):
         super().__init__()
@@ -62,10 +59,8 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.setup_session()
         self.check_token.emit()
 
-<<<<<<< HEAD
         self.appshutdown.connect(self.db.appshutdown)
 
-=======
         # CONNECTIONS
         ## TASK COMPLETE
         self.ffmpeg_task_manager.task_complete.connect(self.task_complete)
@@ -74,11 +69,8 @@ class AppContext(QObjectBase, metaclass=QSingleton):
 
         self.task_complete.connect(self.lesson_workflow_manager.on_task_completed)
 
-        self.appshutdown.connect(self.db.appshutdown)
-
         self.add_to_db_write_queue.connect(self.db.write)
 
->>>>>>> a595264 (change job status in decorator, implement db service in lesson workflow)
     def ensure_playwright_browsers(self, app_data_path):
         env = os.environ.copy()
         env["PLAYWRIGHT_BROWSERS_PATH"] = app_data_path
