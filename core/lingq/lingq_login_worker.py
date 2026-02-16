@@ -31,6 +31,7 @@ class LingqLoginWorker(QWorkerBase):
                 "password": keys["lingqpw"],
                 "remember-me": "on",
             },
+            retry=1,
         )
         networker.moveToThread(net_thread)
         networker.response.connect(self.lingq_login_response)

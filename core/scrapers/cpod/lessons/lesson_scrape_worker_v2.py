@@ -194,9 +194,11 @@ class LessonScraperWorkerV2(QWorkerBase):
         networker.moveToThread(net_thread)
         networker.response.connect(cb)
         net_thread.started.connect(networker.do_work)
-        networker.finished.connect(lambda: self.clean_up_manager.cleanup_task(task_id))
+        networker.finished.connect(
+            lambda tid=task_id: self.clean_up_manager.cleanup_task(tid)
+        )
         net_thread.finished.connect(
-            lambda: self.clean_up_manager.cleanup_task(task_id, True)
+            lambda tid=task_id: self.clean_up_manager.cleanup_task(tid, True)
         )
         net_thread.start()
         self.clean_up_manager.add_task(

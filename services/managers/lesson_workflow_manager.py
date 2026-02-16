@@ -65,7 +65,7 @@ class LessonWorkFlowManager(QObjectBase):
         jobs = []
         for spec in lesson_specs:
             queue_id = uuid.uuid4()
-
+            # TODO change to data model
             add_lesson = Lesson(
                 provider=spec["provider"],
                 url=spec["url"],
@@ -93,7 +93,9 @@ class LessonWorkFlowManager(QObjectBase):
         self.token_manager.send_token.connect(lesson_thread.receive_token)
         lesson_thread.lesson_done.connect(self.save_lesson)
         self.lesson_threads.append(lesson_thread)
-
+        lesson_thread.finished.connect(
+            lambda: self.thread_queue_manager.on_finished_thread(lesson_thread)
+        )
         self.thread_queue_manager.add_thread(lesson_thread)
 
     @Slot(str, str)
@@ -180,6 +182,7 @@ class LessonWorkFlowManager(QObjectBase):
             else:
                 raise ValueError(f"Unsupported Job Status: {job_status}") from e
 
+    # TODO Clean up - > move code to methods
     def on_task_completed(self, job: JobRef, payload):
         print("here", job)
         if job.id not in self.lessons_queue:

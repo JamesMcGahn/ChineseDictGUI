@@ -25,7 +25,6 @@ Priorities:
 ## Network Refactor – Unified Response
 
 - [x] Define unified network result shape:
-
   - [x] `ok: bool`
   - [x] `status: int` (`0` = no HTTP response)
   - [x] `data: dict | None`
@@ -33,13 +32,11 @@ Priorities:
   - [x] `raw: Response | None`
 
 - [x] Update Networker to emit **one object** (`Signal(object)`)
-
   - [x] Normalize success responses into unified shape
   - [x] Normalize error responses into unified shape
   - [x] Never emit `None` at the top level
 
 - [x] Add safe helpers in Networker:
-
   - [x] `safe_extract_json(response)`
 
 - [/] Migrate consumers incrementally -> NetworkResponse Model:
@@ -123,9 +120,29 @@ Priorities:
   - [x] spec generation / job generation controller
   - [/] clean up controller
 - [x] Add lingqq Lesson jobs to controller (waiting to be built)
-- [ ] Add db job to controller (waiting to be built)
+- [x] Add db job to controller (waiting to be built)
+- [ ] create model for "spec" / or use the queue model
 - [ ] update project status
   - [ ] add progress fn / signal for lesson overall status
+- [ ] Queue Feature
+  - [ ] pick up progress from any part of the process
+- [ ] handle errors from any part of the process
+
+## Word Workflow Pipeline
+
+- Remove Word logic from page
+- [ ] WordTask enum
+- [ ] Expand WORD model
+  - [ ] queue_id, status, task, example sentences, source
+- [ ] refactor Word Worker
+  - [ ] Use token from context TokenWorker
+  - [ ] add fallback to request on stale token
+  - Split logic for mgdb and cpod from one single worker -
+    - handle in worklow
+- [ ] Option for "Word" List lessons for Lingq (word + example sentences)
+  - [ ] add example sentences to word model
+  - [ ] add source to word model?
+- [ ] add progress for word status
 
 ## Lingqq Lesson Auto Submission
 
@@ -212,7 +229,7 @@ Create a **generic progress pipeline** for all slow operations:
 
 ## Nice-to-Haves ⬜
 
-- [ ] Dedicated queued DB thread
+- [x] Dedicated queued DB thread
 - [ ] YouTube → Whisper → Anki pipeline
 - [ ] Grammar pattern detection engine
 - [ ] Improved packaging (Nuitka, PyInstaller, fbs)

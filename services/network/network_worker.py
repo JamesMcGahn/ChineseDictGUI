@@ -43,45 +43,44 @@ class NetworkWorker(QObjectBase):
 
         try:
             if self.operation == "POST":
-                res = self.session_manager.post(
-                    self.url,
-                    data=self.data,
-                    json=self.json,
-                    timeout=self.timeout,
-                    headers=self.headers,
-                    files=self.files,
-                )
+                for attempt in range(self.retry + 1):
+                    res = self.operation_post()
 
-                if res.status_code in (200, 201, 202, 203):
-                    self.logging(
-                        f"Received {res.status_code} response for POST to {self.url}",
-                        "INFO",
-                    )
-                    self.response_sig.emit("success", res)
-                    self.response.emit(
-                        NetworkResponse(
-                            ok=True,
-                            status=res.status_code,
-                            data=self.extract_payload(res),
-                            message="success",
-                            raw=res,
+                    if res.status_code in (200, 201, 202, 203):
+                        self.logging(
+                            f"Received {res.status_code} response for POST to {self.url}",
+                            "INFO",
                         )
-                    )
-                else:
-                    self.logging(
-                        f"Received {res.status_code} response for POST to {self.url}",
-                        "WARN",
-                    )
-                    self.error_sig.emit("error", res, res.status_code)
-                    self.response.emit(
-                        NetworkResponse(
-                            ok=False,
-                            status=res.status_code,
-                            data=self.extract_payload(res),
-                            message="error",
-                            raw=res,
+                        self.response_sig.emit("success", res)
+                        self.response.emit(
+                            NetworkResponse(
+                                ok=True,
+                                status=res.status_code,
+                                data=self.extract_payload(res),
+                                message="success",
+                                raw=res,
+                            )
                         )
-                    )
+                        break
+                    else:
+                        self.logging(
+                            f"Received {res.status_code} response for POST to {self.url}",
+                            "WARN",
+                        )
+                        if attempt < self.retry:
+                            print(f"Retrying... ({attempt + 1}/{self.retry})")
+                            continue
+
+                        self.error_sig.emit("error", res, res.status_code)
+                        self.response.emit(
+                            NetworkResponse(
+                                ok=False,
+                                status=res.status_code,
+                                data=self.extract_payload(res),
+                                message="error",
+                                raw=res,
+                            )
+                        )
 
             elif self.operation == "GET":
                 print(f"getting {self.url}")
@@ -143,9 +142,10 @@ class NetworkWorker(QObjectBase):
 
         except requests.exceptions.RequestException as e:
             self.logging(
-                f"Received Request Exception Error for POST to {self.url}",
+                f"Received Request Exception Error for POST to {self.url}: {e}",
                 "ERROR",
             )
+
             self.error_sig.emit(
                 "error", {"message": str(e)}, getattr(e.response, "status_code", 0)
             )
@@ -161,6 +161,16 @@ class NetworkWorker(QObjectBase):
 
         finally:
             self.finished.emit()
+
+    def operation_post(self):
+        return self.session_manager.post(
+            self.url,
+            data=self.data,
+            json=self.json,
+            timeout=self.timeout,
+            headers=self.headers,
+            files=self.files,
+        )
 
     def operation_get(self):
         return self.session_manager.get(

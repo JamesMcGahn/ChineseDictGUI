@@ -18,6 +18,9 @@ class LingqWorkFlowManager(QObjectBase):
     def create_lingq_lesson(self, jobs: list[JobItem[LingqLessonPayload]]):
         ling_thread = LessonLingqLessonThread(jobs=jobs)
         ling_thread.task_complete.connect(self.task_complete)
+        ling_thread.finished.connect(
+            lambda: self.queue_manager.on_finished_thread(ling_thread)
+        )
         self.queue_manager.add_thread(ling_thread)
 
     @Slot()
