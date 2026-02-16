@@ -38,10 +38,13 @@ class LingqLessonWorker(QWorkerBase):
         self.login_attempted = False
         self._busy = False
 
+        self.wait_range_between_steps = (25, 90)
+        self.wait_range_between_submissions = (25, 120)
+
     @Slot()
     def do_work(self):
         self.log_thread()
-        self.get_next_lingq()
+        self.wait_time(self.wait_range_between_steps, self.get_next_lingq)
 
     def wait_time(self, range: tuple[int, int], fn):
         random = randint(*range)
@@ -80,6 +83,7 @@ class LingqLessonWorker(QWorkerBase):
             self.logging("Completed Submitted Lingq Lessons", "INFO")
 
     def get_lingq_token(self):
+        self._busy = True
         self.logging(
             f"LingqWorker: Getting Lesson Token for - {self.current_lingq_payload.title}"
         )
@@ -87,6 +91,7 @@ class LingqLessonWorker(QWorkerBase):
         networker = NetworkWorker(
             "GET",
             "https://www.lingq.com/en/learn/zh/web/editor/",
+            retry=1,
         )
         task_id = f"{self.current_job_ref.id}-token-{self.current_lingq_payload.title}"
         networker.moveToThread(net_thread)
@@ -102,6 +107,7 @@ class LingqLessonWorker(QWorkerBase):
         net_thread.start()
 
     def lingq_token_response(self, res: NetworkResponse):
+        self._busy = False
         self.logging(
             f"LingqWorker: Received Lesson Token for - {self.current_lingq_payload.title}"
         )
@@ -115,7 +121,7 @@ class LingqLessonWorker(QWorkerBase):
                 api_csrf = match.group(1)
             if api_csrf:
                 self.current_api_csrf = api_csrf
-                self.wait_time((5, 25), self.lingq_post_lesson)
+                self.wait_time(self.wait_range_between_steps, self.lingq_post_lesson)
                 self.logging(
                     f"LingqWorker: Found Lesson Token for - {self.current_lingq_payload.title}"
                 )
@@ -125,16 +131,17 @@ class LingqLessonWorker(QWorkerBase):
                         f"LingqWorker: Failed to Get Lesson Token for - {self.current_lingq_payload.title}"
                     )
                     self.lingq_courses.appendleft(self.current_lingq)
-                self.wait_time((5, 25), self.login_again)
+                self.wait_time(self.wait_range_between_submissions, self.login_again)
         else:
             if self.current_lingq:
                 self.lingq_courses.appendleft(self.current_lingq)
                 self.logging(
                     f"LingqWorker: Failed to Get Lesson Token for - {self.current_lingq_payload.title}"
                 )
-            self.wait_time((5, 25), self.login_again)
+            self.wait_time(self.wait_range_between_submissions, self.login_again)
 
     def login_again(self):
+        self._busy = True
         self.logging("LingqWorker: Attempting to Login Again", "WARN")
         if self.login_attempted:
             self.logging(
@@ -162,16 +169,17 @@ class LingqLessonWorker(QWorkerBase):
 
     @Slot(bool)
     def receive_login(self, logged_in: bool):
+        self._busy = False
         if logged_in:
             self.login_attempted = False
             self.logging(
                 "LingqWorker: Log in Succeed. Reattempting Ling Submission", "WARN"
             )
 
-            self.wait_time((5, 25), self.get_next_lingq)
+            self.wait_time(self.wait_range_between_submissions, self.get_next_lingq)
         else:
             self.logging("LingqWorker: Login Failed. Reattempting Log in", "WARN")
-            self.login_failure()
+            self.wait_time((0, 1), self.login_failure)
 
     def login_failure(self):
         self._busy = False
@@ -192,6 +200,7 @@ class LingqLessonWorker(QWorkerBase):
         self.finished.emit()
 
     def lingq_post_lesson(self):
+        self._busy = True
         self.logging(
             f"LingqWorker: Attempting to Submit Lesson - {self.current_lingq_payload.title}",
             "INFO",
@@ -203,7 +212,7 @@ class LingqLessonWorker(QWorkerBase):
                     "LingqWorker: No Token for Submission. Trying log in Again",
                     "INFO",
                 )
-            self.wait_time((5, 25), self.login_again)
+            self.wait_time((20, 60), self.login_again)
             return
 
         net_thread = QThread()
@@ -255,6 +264,7 @@ class LingqLessonWorker(QWorkerBase):
             headers=headers,
             files=files,
             data=payload,
+            retry=1,
         )
         networker.moveToThread(net_thread)
         task_id = f"{self.current_job_ref.id}-lingq-{self.current_lingq_payload.title}"
@@ -313,6 +323,6 @@ class LingqLessonWorker(QWorkerBase):
             "INFO",
         )
         if self.lingq_courses:
-            self.wait_time((15, 30), self.get_next_lingq)
+            self.wait_time(self.wait_range_between_submissions, self.get_next_lingq)
         else:
             self.wait_time((0, 1), self.get_next_lingq)

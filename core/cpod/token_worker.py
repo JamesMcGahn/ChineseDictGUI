@@ -25,7 +25,7 @@ class TokenWorker(PlaywrightBase):
             page.wait_for_timeout(3_000)
 
         with page.expect_request(
-            lambda r: "authorization" in r.headers, timeout=15_000
+            lambda r: "authorization" in r.headers, timeout=30_000
         ) as req_info:
             page.goto(f"{keys["url"]}profile")
 
