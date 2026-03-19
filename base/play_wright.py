@@ -35,13 +35,16 @@ class PlaywrightBase(QObjectBase):
                 self.close()
 
         except Exception as e:
-            print(e)
-            self.error.emit(str(e))
+            self.on_error(e)
         finally:
             self.finished.emit()
 
     def do_work(self, page):
         raise NotImplementedError
+
+    def on_error(self, e):
+        self.logging(f"Playwright - {e}", "ERROR")
+        self.error.emit(str(e))
 
     def close(self):
         self.logging("Playwright - Closing")

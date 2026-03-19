@@ -1,3 +1,5 @@
+from typing import override
+
 from PySide6.QtCore import Signal
 
 from base.play_wright import PlaywrightBase
@@ -42,3 +44,9 @@ class TokenWorker(PlaywrightBase):
             print(self.bearer)
         else:
             self.send_token.emit(self.bearer, False)
+
+    @override
+    def on_error(self, e):
+        self.logging(f"Playwright - {e}", "ERROR")
+        self.send_token.emit(self.bearer, False)
+        self.error.emit(str(e))
