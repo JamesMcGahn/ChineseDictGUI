@@ -220,6 +220,7 @@ class LessonScraperWorkerV2(QWorkerBase):
             "newbie": LESSONLEVEL.NEWBIE,
             "beginner": LESSONLEVEL.NEWBIE,
             "elementary": LESSONLEVEL.ELEMENTARY,
+            "pre intermediate": LESSONLEVEL.PRE_INTERMEDIATE,
             "intermediate": LESSONLEVEL.INTERMEDIATE,
             "upper intermediate": LESSONLEVEL.INTERMEDIATE,
             "advanced": LESSONLEVEL.ADVANCED,

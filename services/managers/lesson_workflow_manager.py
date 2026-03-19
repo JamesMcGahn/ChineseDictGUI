@@ -8,6 +8,7 @@ from base.enums import (
     DBOPERATION,
     JOBSTATUS,
     LESSONAUDIO,
+    LESSONLEVEL,
     LESSONSTATUS,
     LESSONTASK,
     WHISPERPROVIDER,
@@ -202,7 +203,7 @@ class LessonWorkFlowManager(QObjectBase):
                 self.ffmeg_task_manager.whisper_audio(
                     lesson.storage_path, LESSONAUDIO.LESSON
                 )
-
+        # FEATURE : allow for threshold of number of errors, setting
         if job.task == LESSONTASK.AUDIO and job.status == JOBSTATUS.COMPLETE:
             self.ffmeg_task_manager.combine_audio(
                 job_ref=JobRef(
@@ -319,32 +320,32 @@ class LessonWorkFlowManager(QObjectBase):
             dialogue_audio = f"{lesson.storage_path}dialogue.mp3"
             # TODO get from settings
             collections = {
-                "Newbie": {
+                LESSONLEVEL.NEWBIE: {
                     "lesson": "2310680",
                     "sents": "2547067",
                     "dialogue": "2547067",
                 },
-                "Elementary": {
-                    "lesson": "2310680",
-                    "sents": "2310680",
-                    "dialogue": "2310680",
+                LESSONLEVEL.ELEMENTARY: {
+                    "lesson": "2653032",
+                    "sents": "2653032",
+                    "dialogue": "2653032",
                 },
-                "Pre-Intermediate": {
-                    "lesson": "2310680",
-                    "sents": "2310680",
-                    "dialogue": "2310680",
+                LESSONLEVEL.PRE_INTERMEDIATE: {
+                    "lesson": "2653032",
+                    "sents": "2653032",
+                    "dialogue": "2653032 ",
                 },
-                "Intermediate": {
+                LESSONLEVEL.INTERMEDIATE: {
                     "lesson": "2491860",
                     "sents": "2402549",
                     "dialogue": "2402549",
                 },
-                "Advanced": {
+                LESSONLEVEL.ADVANCED: {
                     "lesson": "2310680",
                     "sents": "2310680",
                     "dialogue": "2310680",
                 },
-                "Media": {
+                LESSONLEVEL.MEDIA: {
                     "lesson": "2310680",
                     "sents": "2310680",
                     "dialogue": "2310680",
