@@ -93,9 +93,9 @@ class TokenManager(QObject, metaclass=QSingleton):
         if self.token_fetch_in_progress:
             return
 
-        if self.token_tries == 2:
+        if self.token_tries == 3:
             self.logger.insert(
-                "Tried two times to get a cpod token. Failed to get token.", "ERROR"
+                "Tried three times to get a cpod token. Failed to get token.", "ERROR"
             )
             return
         self.token_fetch_in_progress = True
@@ -128,8 +128,13 @@ class TokenManager(QObject, metaclass=QSingleton):
 
         else:
             self.logger.insert("Failed to Receive Cpod Token.", "ERROR")
-            # TODO retry one time
             self.token = None
+            wait_time = self.token_tries * 10000
+            self.logger.insert(
+                f"Waiting {wait_time/1000} seconds before reattempting getting Cpod Token ",
+                "INFO",
+            )
+            QTimer.singleShot(wait_time, self.get_token)
 
     def _clear_fetch_flag(self):
         self.token_fetch_in_progress = False
