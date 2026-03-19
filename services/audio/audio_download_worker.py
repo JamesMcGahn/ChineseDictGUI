@@ -119,7 +119,7 @@ class AudioDownloadWorker(QWorkerBase):
                 self.updateAnkiAudio.emit(x)
                 self.count += 1
                 self.download_success += 1
-                self.schedule_next_download()
+                QTimer.singleShot(0, self.schedule_next_download)
 
             else:
                 self.logging("There is not an audio link for the file", "WARN")
@@ -158,13 +158,14 @@ class AudioDownloadWorker(QWorkerBase):
         self.download_success += 1
         self.updateAnkiAudio.emit(x)
         self.queue_downloading = False
-        self.schedule_next_download()
+        QTimer.singleShot(0, self.schedule_next_download)
 
     @Slot()
     def google_download_error(self):
+        self.logging("Failed Reattempt with Google Audio Download. Skipping", "WARN")
         self.download_error += 1
         self.queue_downloading = False
-        self.schedule_next_download()
+        QTimer.singleShot(0, self.schedule_next_download)
 
     @Slot()
     def stop(self) -> None:
