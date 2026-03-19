@@ -92,9 +92,11 @@ class AppContext(QObjectBase, metaclass=QSingleton):
             self.lingq_login_thread = QThread()
             self.lingq_login_worker = LingqLoginWorker()
             self.lingq_login_worker.moveToThread(self.lingq_login_thread)
-            self.lingq_login_thread.started.connect(self.lingq_logged_in)
-            self.lingq_login_worker.lingq_logged_in(self)
+            self.lingq_login_thread.started.connect(self.lingq_login_worker.do_work)
+            self.lingq_login_worker.lingq_logged_in.connect(
+                self.lingq_logged_in_response
+            )
             self.lingq_login_thread.start()
 
     def lingq_logged_in_response(self, logged_in: bool):
-        pass
+        print(f"logged in lingq: {logged_in}")
