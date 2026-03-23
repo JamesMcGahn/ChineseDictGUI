@@ -44,7 +44,6 @@ class LessonScraperThread(QThread):
 
         self.worker.finished.connect(self.worker_finished)
         self.worker.task_complete.connect(self.task_complete)
-        self.worker.lesson_done.connect(self.lesson_done)
         self.worker.request_token.connect(self.request_token)
         self.send_token.connect(self.worker.receive_token)
         QTimer.singleShot(0, self.worker.do_work)

@@ -23,10 +23,6 @@ from services.network import NetworkWorker
 
 class LessonScraperWorkerV2(QWorkerBase):
     finished = Signal()
-    send_sents_sig = Signal(list)
-    send_words_sig = Signal(list)
-    send_dialogue = Signal(object, object)
-    lesson_done = Signal(object)
     request_token = Signal()
     lesson_status = Signal(object)
     task_complete = Signal(object, object)
@@ -49,6 +45,15 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.running_tasks = {}
         self.clean_up_manager = ThreadCleanUpManager()
         self.current_lesson_checked = False
+
+        self.task_map = {
+            LESSONTASK.INFO: self.get_lesson_info,
+            LESSONTASK.DIALOGUE: self.get_dialogue,
+            LESSONTASK.VOCAB: self.get_lesson_vocab,
+            LESSONTASK.EXPANSION: self.get_expansion,
+            LESSONTASK.GRAMMAR: self.get_grammar,
+            LESSONTASK.CHECK: self.check_lesson_complete,
+        }
 
     @Slot()
     def do_work(self):
@@ -134,7 +139,7 @@ class LessonScraperWorkerV2(QWorkerBase):
 
             self.wait_time(
                 self.wait_time_between_reqs,
-                lambda: self.get_lesson_info(self.current_lesson.slug),
+                lambda: self.dispatch(LESSONTASK.INFO),
             )
 
         else:
@@ -143,6 +148,43 @@ class LessonScraperWorkerV2(QWorkerBase):
             )
             # TODO send completed LESSONS and ERRORED LESSONS
             self.finished.emit()
+
+    def dispatch(self, task: LESSONTASK):
+        self.current_lesson.task = task
+        self.send_status_update(LESSONSTATUS.IN_PROGRESS, task)
+        handler = self.task_map[task]
+        handler()
+
+    def get_next_task(self, current_task: LESSONTASK) -> LESSONTASK | None:
+        TASK_FLOW = [
+            LESSONTASK.INFO,
+            LESSONTASK.DIALOGUE,
+            LESSONTASK.VOCAB,
+            LESSONTASK.EXPANSION,
+            LESSONTASK.GRAMMAR,
+            LESSONTASK.CHECK,
+        ]
+        try:
+            index = TASK_FLOW.index(current_task)
+            return TASK_FLOW[index + 1]
+        except (ValueError, IndexError):
+            return None
+
+    def on_task_complete(self, task, success=True):
+        if not success:
+            # TODO error handling for each task
+            # self.handle_error(task)
+            return
+
+        next_task = self.get_next_task(task)
+        self.send_status_update(LESSONSTATUS.COMPLETE, task)
+
+        if next_task:
+            self.wait_time(
+                self.wait_time_between_reqs, lambda: self.dispatch(next_task)
+            )
+        else:
+            self.lesson_completed()
 
     def extract_slug(self, input_str: str) -> str | None:
         """
@@ -205,7 +247,8 @@ class LessonScraperWorkerV2(QWorkerBase):
             task_id=task_id, thread=net_thread, worker=networker
         )
 
-    def get_lesson_info(self, slug):
+    def get_lesson_info(self):
+        slug = self.current_lesson.slug
         self.logging(f"LessonWorker: Getting Lesson Info for - {slug}")
 
         self.create_networker(
@@ -259,16 +302,16 @@ class LessonScraperWorkerV2(QWorkerBase):
                         "dialogue_audio": lesson_info["mp3_dialogue"],
                     },
                 )
-
-                self.wait_time(self.wait_time_between_reqs, self.get_dialogue)
-                self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.INFO)
+                self.on_task_complete(LESSONTASK.INFO, True)
+                # self.wait_time(self.wait_time_between_reqs, self.get_dialogue)
+                # self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.INFO)
                 return
         else:
             self.logging(
                 "Did not receive the Lesson Information. Skipping Lesson",
                 LOGLEVEL.ERROR,
             )
-
+            # TODO MOVE ERROR TO DISPATCH
             self.lesson_completed(error=True)
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.INFO)
 
@@ -327,7 +370,7 @@ class LessonScraperWorkerV2(QWorkerBase):
                     LOGLEVEL.WARN,
                 )
             self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.DIALOGUE)
-
+            # TODO SEND STATUS - EMPTY ARRAY
         else:
 
             self.logging(
@@ -335,6 +378,9 @@ class LessonScraperWorkerV2(QWorkerBase):
                 LOGLEVEL.WARN,
             )
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.DIALOGUE)
+
+        self.on_task_complete(LESSONTASK.DIALOGUE, True)
+        # TODO ERROR HANDLING
         self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
 
     def get_lesson_vocab(self):
@@ -382,17 +428,17 @@ class LessonScraperWorkerV2(QWorkerBase):
                     LOGLEVEL.WARN,
                 )
                 self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
-
-            self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.VOCAB)
+                # TODO send response with empty array
+            # self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.VOCAB)
         else:
             self.logging(
                 f"LessonWorker: Error recieving Vocab - {res.status} - {res.message}",
                 LOGLEVEL.WARN,
             )
-
+            # TODO handle error
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.VOCAB)
 
-        self.wait_time(self.wait_time_between_reqs, self.get_expansion)
+        self.on_task_complete(LESSONTASK.VOCAB, True)
 
     def get_expansion(self):
         self.logging("LessonWorker: Getting Expansion for Lesson")
@@ -447,15 +493,16 @@ class LessonScraperWorkerV2(QWorkerBase):
                     f"Lesson - {self.current_lesson.title} doesnt have a Expansion Section",
                     LOGLEVEL.WARN,
                 )
-            self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.EXPANSION)
+                # TODO send empty array
+            # self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.EXPANSION)
         else:
             self.logging(
                 f"Error recieving Expansion - {res.status} - {res.message} ",
                 LOGLEVEL.ERROR,
             )
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.EXPANSION)
-
-        self.wait_time(self.wait_time_between_reqs, self.get_grammar)
+            # TODO handle error
+        self.on_task_complete(LESSONTASK.EXPANSION, True)
 
     def get_grammar(self):
         self.logging("LessonWorker: Getting Grammar for Lesson")
@@ -522,15 +569,15 @@ class LessonScraperWorkerV2(QWorkerBase):
                     f"Lesson - {self.current_lesson.title} doesnt have a Grammar Section",
                     LOGLEVEL.WARN,
                 )
-            self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.GRAMMAR)
+            # self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.GRAMMAR)
         else:
             self.logging(
                 f"LessonWorker: Error recieving Grammar - {res.status} - {res.message}",
                 LOGLEVEL.ERROR,
             )
             self.send_status_update(LESSONSTATUS.ERROR, LESSONTASK.GRAMMAR)
-
-        self.wait_time(self.wait_time_between_reqs, self.check_lesson_complete)
+        self.on_task_complete(LESSONTASK.GRAMMAR, True)
+        # self.wait_time(self.wait_time_between_reqs, self.check_lesson_complete)
 
     def check_lesson_complete(self):
         if self.current_lesson_checked or not self.current_lesson.lesson_id:
