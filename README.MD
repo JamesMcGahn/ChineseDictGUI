@@ -113,6 +113,14 @@ Priorities:
 - [x] Combine Whisper + audio processing under a single **AudioManager**
 - [/] Remove thread logic from UI pages
 
+## PIPELINES
+
+- [ ] Create BasePipeline
+- [ ] Create PipelineFactory
+- [ ] Move Chinesepod Lesson Specific Logic to ChinesePodLesson Pipeline
+- [ ] Move Chinesepod Word Specific Logic to ChinesepodWord Pipeline
+- [ ] Move MGDB Word Specific Logic to MGDB Word Pipeline
+
 ## Lesson Workflow Pipeline
 
 - [x] Remove Lesson thread logic from lesson page
@@ -137,8 +145,8 @@ Priorities:
 - [ ] refactor Word Worker
   - [ ] Use token from context TokenWorker
   - [ ] add fallback to request on stale token
-  - Split logic for mgdb and cpod from one single worker -
-    - handle in worklow
+  - [ ] Split logic for mgdb and cpod from one single worker -
+    - [ ] handle in pipeline
 - [ ] Option for "Word" List lessons for Lingq (word + example sentences)
   - [ ] add example sentences to word model
   - [ ] add source to word model?
