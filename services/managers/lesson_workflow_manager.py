@@ -14,6 +14,7 @@ from base.enums import (
     WHISPERPROVIDER,
 )
 from core.scrapers.cpod.lessons import LessonScraperThread
+from models.core import LessonTaskPayload
 from models.dictionary import Lesson, LessonAudio, Sentence, Word
 from models.services import (
     AudioDownloadPayload,
@@ -216,12 +217,14 @@ class LessonWorkFlowManager(QObjectBase):
             ),
         )
 
-    def process_lesson_info(self, lesson: Lesson, payload):
-        lesson.hash_code = payload["hash_code"]
-        lesson.level = payload["level"]
-        lesson.lesson_id = payload["lesson_id"]
-        lesson.title = payload["title"]
-        lesson.slug = payload["slug"]
+    def process_lesson_info(self, lesson: Lesson, payload: LessonTaskPayload):
+        lesson_info = payload.lesson_info
+
+        lesson.hash_code = lesson_info.hash_code
+        lesson.level = lesson_info.level
+        lesson.lesson_id = lesson_info.lesson_id
+        lesson.title = lesson_info.title
+        lesson.slug = lesson_info.slug
 
         path = f"{self.base_path}{lesson.level}/{lesson.title}/"
         lesson.storage_path = path
@@ -229,7 +232,7 @@ class LessonWorkFlowManager(QObjectBase):
         dialogue_audio = LessonAudio(
             title="dialogue",
             audio_type=LESSONAUDIO.DIALOGUE,
-            audio=payload["dialogue_audio"],
+            audio=lesson_info.dialogue_audio,
             level=lesson.level,
             lesson=lesson.title,
             transcribe=False,
@@ -238,7 +241,7 @@ class LessonWorkFlowManager(QObjectBase):
         lesson_audio = LessonAudio(
             title="lesson",
             audio_type=LESSONAUDIO.LESSON,
-            audio=payload["lesson_audio"],
+            audio=lesson_info.lesson_audio,
             level=lesson.level,
             lesson=lesson.title,
             transcribe=lesson.transcribe_lesson,
@@ -270,8 +273,10 @@ class LessonWorkFlowManager(QObjectBase):
                 ),
             )
 
-    def process_dialogue(self, lesson: Lesson, payload):
-        dialogue = payload["sentences"]
+    def process_dialogue(self, lesson: Lesson, payload: LessonTaskPayload):
+        dialogue = payload.sentences
+        if not dialogue:
+            return
         lesson.lesson_parts.dialogue = dialogue
         lesson.lesson_parts.all_sentences.extend(dialogue)
         PathManager.path_exists(lesson.storage_path, True)
@@ -284,20 +289,20 @@ class LessonWorkFlowManager(QObjectBase):
             for sent in dialogue:
                 f.write(f"{sent.chinese}\n")
 
-    def process_vocab(self, lesson: Lesson, payload):
-        words = payload["words"]
+    def process_vocab(self, lesson: Lesson, payload: LessonTaskPayload):
+        words = payload.words
         lesson.lesson_parts.vocab = words
         self.send_words_sig.emit(words, False)
 
-    def process_expansion(self, lesson: Lesson, payload):
-        expansion = payload["sentences"]
+    def process_expansion(self, lesson: Lesson, payload: LessonTaskPayload):
+        expansion = payload.sentences
         lesson.lesson_parts.expansion = expansion
         lesson.lesson_parts.all_sentences.extend(expansion)
         self.send_sents_sig.emit(expansion, lesson.check_dup_sents)
 
-    def process_grammar(self, lesson: Lesson, payload):
-        grammar_points = payload["grammar"]
-        sentences = payload["sentences"]
+    def process_grammar(self, lesson: Lesson, payload: LessonTaskPayload):
+        grammar_points = payload.grammar
+        sentences = payload.sentences
         lesson.lesson_parts.grammar = grammar_points
         lesson.lesson_parts.all_sentences.extend(sentences)
         self.send_sents_sig.emit(sentences, lesson.check_dup_sents)

@@ -16,9 +16,19 @@ from base.enums import (
     LOGLEVEL,
 )
 from keys import keys
+from models.core import LessonTaskPayload
 from models.dictionary import GrammarPoint, Lesson, LessonAudio, Sentence, Word
 from models.services import JobRef, NetworkResponse
 from services.network import NetworkWorker
+
+from .lesson_parsers import (
+    extract_slug,
+    parse_dialogue,
+    parse_expansion,
+    parse_grammar,
+    parse_lesson_info,
+    parse_vocab,
+)
 
 
 class LessonScraperWorkerV2(QWorkerBase):
@@ -125,7 +135,7 @@ class LessonScraperWorkerV2(QWorkerBase):
 
             self.headers = {"Authorization": f"Bearer {self.token}"}
 
-            slug = self.extract_slug(self.current_lesson.url)
+            slug = extract_slug(self.current_lesson.url)
 
             self.current_lesson.slug = slug
 
@@ -173,6 +183,7 @@ class LessonScraperWorkerV2(QWorkerBase):
     def on_task_complete(self, task, success=True):
         if not success:
             # TODO error handling for each task
+            self.logging(f"Task {task} failed", LOGLEVEL.ERROR)
             # self.handle_error(task)
             return
 
@@ -185,44 +196,6 @@ class LessonScraperWorkerV2(QWorkerBase):
             )
         else:
             self.lesson_completed()
-
-    def extract_slug(self, input_str: str) -> str | None:
-        """
-        Extracts the slug from a lesson URL or returns the input
-        if it's already a slug.
-
-        Supports:
-        - https://www.xyz.com/lesson/personal-finances
-        - https://www.xyz.com/lessons/personal-finances#dialogue
-        - personal-finances
-        """
-        # If it's a full URL, parse the path
-        if input_str.startswith("http"):
-            path = urlparse(input_str).path  # e.g., "/lesson/personal-finances"
-            match = re.search(r"/lessons?/([^/?#]+)", path)
-            return match.group(1) if match else None
-
-        # If it's already a slug (e.g., "personal-finances")
-        if re.fullmatch(r"[a-z0-9\-]+", input_str):
-            return input_str
-
-        return None
-
-    def build_audio_url(self, path: str) -> str:
-
-        if path.startswith(
-            ("https://s3.amazonaws.com", "http://s3.amazonaws.com", self.audio_host_url)
-        ):
-            return path
-        elif "expansionbygrammar" in path:
-            match = re.search(r"chinesepod_(\d+)_", path)
-            if match:
-                grammar_id = match.group(1)
-                return f"{self.audio_host_url}grammar/grammar_{grammar_id}/{grammar_id}/expansion/translation/mp3/{path}"
-            else:
-                return ""
-        else:
-            return f"{self.audio_host_url}{self.current_lesson.lesson_id}/{self.current_lesson.hash_code}/{path}"
 
     def create_networker(self, task_id, operation, url, cb, json=None):
         net_thread = QThread()
@@ -258,54 +231,27 @@ class LessonScraperWorkerV2(QWorkerBase):
             cb=self.lesson_info_received,
         )
 
-    def parse_lesson_level(self, raw: str | None) -> LESSONLEVEL | None:
-        LEVEL_MAP: dict[str, LESSONLEVEL] = {
-            "newbie": LESSONLEVEL.NEWBIE,
-            "beginner": LESSONLEVEL.NEWBIE,
-            "elementary": LESSONLEVEL.ELEMENTARY,
-            "pre intermediate": LESSONLEVEL.PRE_INTERMEDIATE,
-            "intermediate": LESSONLEVEL.INTERMEDIATE,
-            "upper intermediate": LESSONLEVEL.INTERMEDIATE,
-            "advanced": LESSONLEVEL.ADVANCED,
-        }
-        normalized = raw.strip().lower()
-        if normalized is None:
-            return None
-        return LEVEL_MAP.get(normalized)
-
     def lesson_info_received(self, res: NetworkResponse):
         self.logging("LessonWorker: Recieved Response for Lesson Info")
         if res.ok:
-            lesson_info = res.data
-            print(lesson_info)
-            if "hash_code" in lesson_info and "id" in lesson_info:
-                self.current_lesson.hash_code = lesson_info["hash_code"]
-                self.current_lesson.level = self.parse_lesson_level(
-                    lesson_info["level"]
-                )
-                self.current_lesson.lesson_id = lesson_info["id"]
-                self.current_lesson.title = lesson_info["title"]
-
-                self.task_complete.emit(
-                    JobRef(
-                        id=self.current_lesson.queue_id,
-                        task=LESSONTASK.INFO,
-                        status=JOBSTATUS.COMPLETE,
-                    ),
-                    {
-                        "hash_code": self.current_lesson.hash_code,
-                        "level": self.current_lesson.level,
-                        "lesson_id": self.current_lesson.lesson_id,
-                        "title": self.current_lesson.title,
-                        "slug": lesson_info["slug"],
-                        "lesson_audio": lesson_info["mp3_private"],
-                        "dialogue_audio": lesson_info["mp3_dialogue"],
-                    },
-                )
-                self.on_task_complete(LESSONTASK.INFO, True)
-                # self.wait_time(self.wait_time_between_reqs, self.get_dialogue)
-                # self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.INFO)
+            payload = parse_lesson_info(res.data)
+            if payload.lesson_info is None:
+                self.lesson_completed(error=True)
                 return
+            self.current_lesson.hash_code = payload.lesson_info.hash_code
+            self.current_lesson.level = payload.lesson_info.level
+            self.current_lesson.lesson_id = payload.lesson_info.lesson_id
+            self.current_lesson.title = payload.lesson_info.title
+
+            self.task_complete.emit(
+                JobRef(
+                    id=self.current_lesson.queue_id,
+                    task=LESSONTASK.INFO,
+                    status=JOBSTATUS.COMPLETE,
+                ),
+                payload,
+            )
+            self.on_task_complete(LESSONTASK.INFO, True)
         else:
             self.logging(
                 "Did not receive the Lesson Information. Skipping Lesson",
@@ -319,7 +265,6 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.logging(
             f"Lesson: {self.current_lesson.title} - Getting Dialogue for Lesson"
         )
-        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.DIALOGUE)
         self.create_networker(
             "dialogue",
             "GET",
@@ -330,49 +275,29 @@ class LessonScraperWorkerV2(QWorkerBase):
     def dialogue_received(self, res: NetworkResponse):
         self.logging("LessonWorker: Received Response for Dialog")
         if res.ok:
-            dialogue_payload = res.data
+            payload = parse_dialogue(lesson=self.current_lesson, res_data=res.data)
 
-            if "dialogue" in dialogue_payload:
-                for sentence in dialogue_payload["dialogue"]:
-                    audio_path = sentence["audio"]
-                    audio = self.build_audio_url(audio_path)
-                    new_sent = Sentence(
-                        chinese=sentence["s"],
-                        english=sentence["en"],
-                        pinyin=sentence["p"],
-                        audio=audio,
-                        level=self.current_lesson.level,
-                        sent_type="dialogue",
-                        lesson=(
-                            self.current_lesson.title
-                            if self.current_lesson.title
-                            else ""
-                        ),
-                    )
-                    self.current_lesson.lesson_parts.dialogue.append(new_sent)
-                    self.current_lesson.lesson_parts.all_sentences.append(new_sent)
-
-                self.logging(
-                    f"Lesson: {self.current_lesson.title} - Sending {len(self.current_lesson.lesson_parts.dialogue)} Dialogue Sentences"
-                )
-                self.task_complete.emit(
-                    JobRef(
-                        id=self.current_lesson.queue_id,
-                        task=LESSONTASK.DIALOGUE,
-                        status=JOBSTATUS.COMPLETE,
-                    ),
-                    {"sentences": self.current_lesson.lesson_parts.dialogue},
-                )
-
-            else:
+            if not payload.sentences:
                 self.logging(
                     f"Lesson - {self.current_lesson.title}  doesnt have a Dialogue Section",
                     LOGLEVEL.WARN,
                 )
-            self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.DIALOGUE)
-            # TODO SEND STATUS - EMPTY ARRAY
-        else:
 
+            self.current_lesson.lesson_parts.dialogue.extend(payload.sentences)
+            self.current_lesson.lesson_parts.all_sentences.extend(payload.sentences)
+
+            self.logging(
+                f"Lesson: {self.current_lesson.title} - Sending {len(payload.sentences)} Dialogue Sentences"
+            )
+            self.task_complete.emit(
+                JobRef(
+                    id=self.current_lesson.queue_id,
+                    task=LESSONTASK.DIALOGUE,
+                    status=JOBSTATUS.COMPLETE,
+                ),
+                payload,
+            )
+        else:
             self.logging(
                 f"Error receiving Dialogue - {res.status} -{res.message}",
                 LOGLEVEL.WARN,
@@ -381,11 +306,9 @@ class LessonScraperWorkerV2(QWorkerBase):
 
         self.on_task_complete(LESSONTASK.DIALOGUE, True)
         # TODO ERROR HANDLING
-        self.wait_time(self.wait_time_between_reqs, self.get_lesson_vocab)
 
     def get_lesson_vocab(self):
         self.logging("LessonWorker: Getting Vocabulary for Lesson")
-        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.VOCAB)
         self.create_networker(
             "vocab",
             "GET",
@@ -396,40 +319,27 @@ class LessonScraperWorkerV2(QWorkerBase):
     def vocab_received(self, res: NetworkResponse):
         self.logging("LessonWorker: Received Vocab Response for Lesson")
         if res.ok:
-            vocab = res.data
+            payload = parse_vocab(lesson=self.current_lesson, res_data=res.data)
 
-            if isinstance(vocab, list) and vocab:
-                for word in vocab:
-                    audio_path = word["audio"]
-                    audio = self.build_audio_url(audio_path)
-                    new_word = Word(
-                        chinese=word["s"],
-                        definition=word["en"],
-                        pinyin=word["p"],
-                        audio=audio,
-                        lesson=self.current_lesson.title,
-                    )
-                    self.current_lesson.lesson_parts.vocab.append(new_word)
-                self.logging(
-                    f"Lesson: {self.current_lesson.title} - Sending {len(self.current_lesson.lesson_parts.vocab)} Vocabulary Words"
-                )
-
-                self.task_complete.emit(
-                    JobRef(
-                        id=self.current_lesson.queue_id,
-                        task=LESSONTASK.VOCAB,
-                        status=JOBSTATUS.COMPLETE,
-                    ),
-                    {"words": self.current_lesson.lesson_parts.vocab},
-                )
-            else:
+            if not payload.words:
                 self.logging(
                     f"Lesson {self.current_lesson.title} doesnt have Vocabulary Words",
                     LOGLEVEL.WARN,
                 )
-                self.current_lesson.status = LESSONSTATUS.IN_PROGRESS
-                # TODO send response with empty array
-            # self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.VOCAB)
+            self.current_lesson.lesson_parts.vocab.extend(payload.words)
+            self.logging(
+                f"Lesson: {self.current_lesson.title} - Sending {len(payload.words)} Vocabulary Words"
+            )
+
+            self.task_complete.emit(
+                JobRef(
+                    id=self.current_lesson.queue_id,
+                    task=LESSONTASK.VOCAB,
+                    status=JOBSTATUS.COMPLETE,
+                ),
+                payload,
+            )
+
         else:
             self.logging(
                 f"LessonWorker: Error recieving Vocab - {res.status} - {res.message}",
@@ -442,7 +352,6 @@ class LessonScraperWorkerV2(QWorkerBase):
 
     def get_expansion(self):
         self.logging("LessonWorker: Getting Expansion for Lesson")
-        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.EXPANSION)
         self.create_networker(
             "expansion",
             "GET",
@@ -453,48 +362,27 @@ class LessonScraperWorkerV2(QWorkerBase):
     def expansion_received(self, res: NetworkResponse):
         self.logging("LessonWorker: Received Expansion Response")
         if res.ok:
-            expansion_payload = res.data
-            if expansion_payload:
-                for section in expansion_payload:
-                    for sentence in section["examples"]:
-                        audio_path = sentence["audio"]
-                        audio = self.build_audio_url(audio_path)
-                        new_sent = Sentence(
-                            chinese=sentence["s"],
-                            english=sentence["en"],
-                            pinyin=sentence["p"],
-                            audio=audio,
-                            level=self.current_lesson.level,
-                            sent_type="expansion",
-                            lesson=(
-                                self.current_lesson.title
-                                if self.current_lesson.title
-                                else ""
-                            ),
-                        )
-                        self.current_lesson.lesson_parts.expansion.append(new_sent)
-                        self.current_lesson.lesson_parts.all_sentences.append(new_sent)
-
-                self.logging(
-                    f"Lesson: {self.current_lesson.title} - Sending {len(self.current_lesson.lesson_parts.expansion)} Expansion Sentences"
-                )
-
-                self.task_complete.emit(
-                    JobRef(
-                        id=self.current_lesson.queue_id,
-                        task=LESSONTASK.EXPANSION,
-                        status=JOBSTATUS.COMPLETE,
-                    ),
-                    {"sentences": self.current_lesson.lesson_parts.expansion},
-                )
-
-            else:
+            payload = parse_expansion(lesson=self.current_lesson, res_data=res.data)
+            if not payload.sentences:
                 self.logging(
                     f"Lesson - {self.current_lesson.title} doesnt have a Expansion Section",
                     LOGLEVEL.WARN,
                 )
-                # TODO send empty array
-            # self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.EXPANSION)
+            self.current_lesson.lesson_parts.expansion.extend(payload.sentences)
+            self.current_lesson.lesson_parts.all_sentences.extend(payload.sentences)
+
+            self.logging(
+                f"Lesson: {self.current_lesson.title} - Sending {len(payload.sentences)} Expansion Sentences"
+            )
+
+            self.task_complete.emit(
+                JobRef(
+                    id=self.current_lesson.queue_id,
+                    task=LESSONTASK.EXPANSION,
+                    status=JOBSTATUS.COMPLETE,
+                ),
+                payload,
+            )
         else:
             self.logging(
                 f"Error recieving Expansion - {res.status} - {res.message} ",
@@ -506,7 +394,6 @@ class LessonScraperWorkerV2(QWorkerBase):
 
     def get_grammar(self):
         self.logging("LessonWorker: Getting Grammar for Lesson")
-        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.GRAMMAR)
         self.g_net_thread = QThread()
         self.create_networker(
             "grammar",
@@ -518,58 +405,26 @@ class LessonScraperWorkerV2(QWorkerBase):
     def grammar_received(self, res: NetworkResponse):
         self.logging("LessonWorker: Received Grammar Response for Lesson")
         if res.ok:
-            grammar_payload = res.data
-            grammar = []
-
-            if grammar_payload:
-                for section in grammar_payload:
-
-                    grammar_point = GrammarPoint(
-                        name=section["grammar"]["name"],
-                        explanation=section["grammar"]["introduction"],
-                    )
-                    for sentence in section["examples"]:
-
-                        audio_path = sentence["audio"]
-                        audio = self.build_audio_url(audio_path)
-                        new_sent = Sentence(
-                            chinese=sentence["s"],
-                            english=sentence["en"],
-                            pinyin=sentence["p"],
-                            audio=audio,
-                            level=self.current_lesson.level,
-                            sent_type="grammar",
-                            lesson=(
-                                self.current_lesson.title
-                                if self.current_lesson.title
-                                else ""
-                            ),
-                        )
-                        grammar.append(new_sent)
-                        grammar_point.examples.append(new_sent)
-                        self.current_lesson.lesson_parts.all_sentences.append(new_sent)
-                    self.current_lesson.lesson_parts.grammar.append(grammar_point)
-                self.logging(
-                    f"Lesson: {self.current_lesson.title} - Sending {len(grammar)} Grammar Sentences"
-                )
-                self.task_complete.emit(
-                    JobRef(
-                        id=self.current_lesson.queue_id,
-                        task=LESSONTASK.GRAMMAR,
-                        status=JOBSTATUS.COMPLETE,
-                    ),
-                    {
-                        "sentences": grammar,
-                        "grammar": self.current_lesson.lesson_parts.grammar,
-                    },
-                )
-
-            else:
+            payload = parse_grammar(lesson=self.current_lesson, res_data=res.data)
+            if not payload.sentences:
                 self.logging(
                     f"Lesson - {self.current_lesson.title} doesnt have a Grammar Section",
                     LOGLEVEL.WARN,
                 )
-            # self.send_status_update(LESSONSTATUS.COMPLETE, LESSONTASK.GRAMMAR)
+
+            self.current_lesson.lesson_parts.all_sentences.extend(payload.sentences)
+            self.current_lesson.lesson_parts.grammar.extend(payload.grammar)
+            self.logging(
+                f"Lesson: {self.current_lesson.title} - Sending {len(payload.sentences)} Grammar Sentences"
+            )
+            self.task_complete.emit(
+                JobRef(
+                    id=self.current_lesson.queue_id,
+                    task=LESSONTASK.GRAMMAR,
+                    status=JOBSTATUS.COMPLETE,
+                ),
+                payload,
+            )
         else:
             self.logging(
                 f"LessonWorker: Error recieving Grammar - {res.status} - {res.message}",
@@ -587,7 +442,6 @@ class LessonScraperWorkerV2(QWorkerBase):
             f"Trying to check Complete for Lesson for {self.current_lesson.lesson_id}"
         )
         self.current_lesson.task = LESSONTASK.CHECK
-        self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.CHECK)
         self.create_networker(
             "toggle-studied",
             "POST",
