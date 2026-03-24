@@ -18,6 +18,9 @@ def extract_slug(input_str: str) -> str | None:
     - https://www.xyz.com/lessons/personal-finances#dialogue
     - personal-finances
     """
+
+    input_str = re.sub(r"[.,;:!?)]*$", "", input_str)
+
     # If it's a full URL, parse the path
     if input_str.startswith("http"):
         path = urlparse(input_str).path  # e.g., "/lesson/personal-finances"
