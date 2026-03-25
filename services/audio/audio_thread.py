@@ -1,7 +1,7 @@
 from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QThreadBase
-from models.services import AudioDownloadPayload, JobRef
+from models.services import AudioDownloadPayload, JobItem
 
 from .audio_download_worker import AudioDownloadWorker
 
@@ -14,21 +14,17 @@ class AudioThread(QThreadBase):
 
     def __init__(
         self,
-        job_ref: JobRef,
-        payload: AudioDownloadPayload,
+        job: JobItem[AudioDownloadPayload],
         google_audio_credential="",
     ):
         super().__init__()
-        self.job_ref = job_ref
-        self.payload = payload
+        self.job = job
         self.google_audio_credential = google_audio_credential
-        self.job_ref = job_ref
 
     def run(self):
         print("Starting Audio Thread")
         self.worker = AudioDownloadWorker(
-            job_ref=self.job_ref,
-            payload=self.payload,
+            job=self.job,
             google_audio_credential=self.google_audio_credential,
         )
 

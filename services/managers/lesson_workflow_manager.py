@@ -252,12 +252,15 @@ class LessonWorkFlowManager(QObjectBase):
         lesson.lesson_parts.lesson_audios.append(lesson_audio)
 
         self.audio_download_manager.download_audio(
-            job_ref=JobRef(lesson.queue_id, LESSONTASK.LESSON_AUDIO, JOBSTATUS.CREATED),
-            payload=AudioDownloadPayload(
-                audio_urls=lesson.lesson_parts.lesson_audios,
-                export_path=lesson.storage_path,
-                project_name=lesson.title,
-            ),
+            job=JobItem(
+                id=lesson.queue_id,
+                task=LESSONTASK.LESSON_AUDIO,
+                payload=AudioDownloadPayload(
+                    audio_urls=lesson.lesson_parts.lesson_audios,
+                    export_path=lesson.storage_path,
+                    project_name=lesson.title,
+                ),
+            )
         )
 
     def transcribe_lesson(self, lesson: Lesson, payload):
@@ -471,16 +474,17 @@ class LessonWorkFlowManager(QObjectBase):
             self.logging(
                 f"Adding - {lesson.title} - Sentences & Words Audio to Download Queue."
             )
-            # TODO move parmeters to payload
+
             self.audio_download_manager.download_audio(
-                job_ref=JobRef(
-                    id=lesson.queue_id, task=LESSONTASK.AUDIO, status=JOBSTATUS.CREATED
-                ),
-                payload=AudioDownloadPayload(
-                    audio_urls=sents_words_with_in_order,
-                    export_path=f"{lesson.storage_path}audio",
-                    project_name=lesson.title,
-                ),
+                JobItem(
+                    id=lesson.queue_id,
+                    task=LESSONTASK.AUDIO,
+                    payload=AudioDownloadPayload(
+                        audio_urls=sents_words_with_in_order,
+                        export_path=f"{lesson.storage_path}audio",
+                        project_name=lesson.title,
+                    ),
+                )
             )
 
             # combine_audio=False,
