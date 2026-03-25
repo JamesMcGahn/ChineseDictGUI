@@ -456,16 +456,15 @@ class LessonWorkFlowManager(QObjectBase):
             # TODO add an option to disable downloading all sentences for lesson
 
         self.db.write(
-            job_ref=JobRef(
+            JobItem(
                 id=lesson.queue_id,
                 task=LESSONTASK.SAVE_LESSON,
-                status=JOBSTATUS.CREATED,
-            ),
-            payload=DBJobPayload(
-                kind=DBJOBTYPE.LESSONS,
-                operation=DBOPERATION.INSERT_ONE,
-                data=InsertOnePayload(data=lesson),
-            ),
+                payload=DBJobPayload(
+                    kind=DBJOBTYPE.LESSONS,
+                    operation=DBOPERATION.INSERT_ONE,
+                    data=InsertOnePayload(data=lesson),
+                ),
+            )
         )
 
         if sents_words_with_in_order:

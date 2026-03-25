@@ -1,5 +1,7 @@
+from typing import Any
+
 from models.dictionary import AnkiIntegration
-from models.services import JobRef
+from models.services import JobItem
 from models.services.database import DBJobPayload, DBResponse
 from models.services.database.write import (
     UpdateOneResponse,
@@ -11,8 +13,8 @@ from .base_write_service import BaseWriteService
 
 class AnkiIntegrationWriteService(BaseWriteService[AnkiIntegration]):
 
-    def __init__(self, job_ref: JobRef, payload: DBJobPayload):
-        super().__init__(job_ref, payload, dal=AnkiIntegrationDAL)
+    def __init__(self, job: JobItem[DBJobPayload[Any]]):
+        super().__init__(job=job, dal=AnkiIntegrationDAL)
 
     @BaseWriteService.emit_db_response
     def update_one(self, payload):

@@ -1,11 +1,12 @@
 import uuid
 from collections import deque
+from typing import Any
 
 from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QThreadBase, ThreadCleanUpManager
 from base.enums import DBJOBTYPE
-from models.services import JobRef
+from models.services import JobItem
 from models.services.database import DBJobPayload
 
 from ..db_manager import DatabaseManager
@@ -39,14 +40,14 @@ class DBWriteService(QThreadBase):
         self.exec()
 
     @Slot(object, object)
-    def add_to_queue(self, job_ref: JobRef, payload: DBJobPayload):
-        self.logging(f"Added DB Write Job: {payload.operation.value}")
-        self.write_queue.append((job_ref, payload))
+    def add_to_queue(self, job: JobItem[DBJobPayload[Any]]):
+        self.logging(f"Added DB Write Job: {job.payload.operation.value}")
+        self.write_queue.append(job)
         if len(self.write_queue) == 1:
             QTimer.singleShot(0, self.maybe_start_next_write)
 
-    def _build_worker(self, job_ref: JobRef, payload: DBJobPayload) -> BaseWriteService:
-        return self.worker_mapping[payload.kind](job_ref, payload)
+    def _build_worker(self, job: JobItem[DBJobPayload[Any]]) -> BaseWriteService:
+        return self.worker_mapping[job.payload.kind](job)
 
     def maybe_start_next_write(self):
         if len(self.write_queue) == 0 or self.running:
@@ -54,9 +55,9 @@ class DBWriteService(QThreadBase):
         self.logging("Starting next DB Write Task.")
         queue_id = uuid.uuid4()
         self.running = True
-        jobref, payload = self.write_queue.popleft()
-        worker = self._build_worker(jobref, payload)
-        task_id = f"{jobref.id}-{payload.operation}-{queue_id}"
+        job = self.write_queue.popleft()
+        worker = self._build_worker(job)
+        task_id = f"{job.id}-{job.payload.operation}-{queue_id}"
         self.clean_up.add_task(task_id, None, worker)
         worker.moveToThread(self)
         worker.setup_db(self.database_manager)

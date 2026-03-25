@@ -1,7 +1,8 @@
 from dataclasses import replace
+from typing import Any
 
 from models.dictionary import Word
-from models.services import JobRef
+from models.services import JobItem
 from models.services.database import DBJobPayload, DBResponse
 from models.services.database.write import (
     DeleteManyResponse,
@@ -18,8 +19,8 @@ from .base_write_service import BaseWriteService
 
 class WordsWriteService(BaseWriteService[Word]):
 
-    def __init__(self, job_ref: JobRef, payload: DBJobPayload):
-        super().__init__(job_ref, payload, dal=WordsDAL)
+    def __init__(self, job: JobItem[DBJobPayload[Any]]):
+        super().__init__(job, dal=WordsDAL)
 
     @BaseWriteService.emit_db_response
     def insert_one(self, payload):

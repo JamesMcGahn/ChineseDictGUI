@@ -1,13 +1,12 @@
 import sqlite3
-from dataclasses import replace
 from functools import wraps
-from typing import Callable, Generic, ParamSpec, TypeVar
+from typing import Any, Callable, Generic, ParamSpec, TypeVar
 
 from PySide6.QtCore import Signal, Slot
 
 from base import QObjectBase
 from base.enums import DBOPERATION, JOBSTATUS
-from models.services import JobRef
+from models.services import JobItem, JobRef
 from models.services.database import DBJobPayload, DBResponse
 from models.services.database.write import (
     DeleteManyPayload,
@@ -35,11 +34,11 @@ class BaseWriteService(Generic[T], QObjectBase):
     finished = Signal()
     task_complete = Signal(object, object)
 
-    def __init__(self, job_ref: JobRef, payload: DBJobPayload, dal: BaseDAL):
+    def __init__(self, job: JobItem[DBJobPayload[Any]], dal: BaseDAL):
         super().__init__()
         self.db_manager: DatabaseManager | None = None
-        self.job_ref = job_ref
-        self.payload = payload
+        self.job = job
+
         self._dal_class = dal
         self.dal: BaseDAL | None = None
         self.operation_mapping = {
@@ -77,8 +76,13 @@ class BaseWriteService(Generic[T], QObjectBase):
         def wrapper(self, *args: P.args, **kwargs: P.kwargs):
             try:
                 response = fn(self, *args, **kwargs)
-                jobref = replace(self.job_ref, status=JOBSTATUS.COMPLETE)
-                self.task_complete.emit(jobref, response)
+
+                self.task_complete.emit(
+                    JobRef(
+                        id=self.job.id, task=self.job.task, status=JOBSTATUS.COMPLETE
+                    ),
+                    response,
+                )
             except (
                 sqlite3.Error,
                 sqlite3.IntegrityError,
@@ -93,7 +97,10 @@ class BaseWriteService(Generic[T], QObjectBase):
                     error=msg,
                 )
                 self.logging(msg, "ERROR")
-                self.task_complete.emit(self.job_ref, response)
+                self.task_complete.emit(
+                    JobRef(id=self.job.id, task=self.job.task, status=JOBSTATUS.ERROR),
+                    response,
+                )
             self.finished.emit()
             return response
 
@@ -105,28 +112,28 @@ class BaseWriteService(Generic[T], QObjectBase):
         if self.db_manager is None:
             raise RuntimeError("DB Manager is not set")
         self.setup_dal(self._dal_class)
-        entry = self.operation_mapping.get(self.payload.operation)
+        entry = self.operation_mapping.get(self.job.payload.operation)
 
         if not entry:
             self.logging(
-                f"{self.__class__.__name__} does not support operation {self.payload.operation}",
+                f"{self.__class__.__name__} does not support operation {self.job.payload.operation}",
                 "ERROR",
             )
             raise ValueError(
-                f"{self.__class__.__name__} does not support operation {self.payload.operation}"
+                f"{self.__class__.__name__} does not support operation {self.job.payload.operation}"
             )
 
         payload_type, handler = entry
-        if not isinstance(self.payload.data, payload_type):
+        if not isinstance(self.job.payload.data, payload_type):
             self.logging(
-                f"{handler.__name__} expected {payload_type.__name__} got {type(self.payload).__name__}",
+                f"{handler.__name__} expected {payload_type.__name__} got {type(self.job.payload).__name__}",
                 "ERROR",
             )
             raise TypeError(
-                f"{handler.__name__} expected {payload_type.__name__} got {type(self.payload).__name__}"
+                f"{handler.__name__} expected {payload_type.__name__} got {type(self.job.payload).__name__}"
             )
 
-        handler(self.payload)
+        handler(self.job.payload)
 
     def setup_db(self, database_manager: DatabaseManager) -> None:
         self.db_manager = database_manager
