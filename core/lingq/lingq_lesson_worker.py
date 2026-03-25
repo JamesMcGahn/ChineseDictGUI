@@ -32,8 +32,7 @@ class LingqLessonWorker(QWorkerBase):
         self.clean_up_manager = ThreadCleanUpManager()
 
         self.current_lingq = None
-        self.current_lingq_payload = None
-        self.current_job_ref = None
+
         self.current_api_csrf = None
         self.login_attempted = False
         self._busy = False
@@ -58,10 +57,8 @@ class LingqLessonWorker(QWorkerBase):
             return
         self._busy = True
 
-        self.current_lingq: JobItem | None = None
-        self.current_lingq_payload: LingqLessonPayload | None = None
-        self.current_job_ref: JobRef | None = None
-        self.current_api_csrf: str | None = None
+        self.current_lingq = None
+        self.current_api_csrf = None
 
         self.logging(f"Total Lessons to Submit: {len(self.lingq_courses)} Lessons")
         if self.lingq_courses:
@@ -75,7 +72,8 @@ class LingqLessonWorker(QWorkerBase):
                     self._wait_condition.wait(self._mutex)
 
             self.current_lingq = self.lingq_courses.popleft()
-            self.current_job_ref, self.current_lingq_payload = self.current_lingq
+
+            # TODO JOB ITEM
             self.get_lingq_token()
         else:
             self._busy = False
@@ -85,7 +83,7 @@ class LingqLessonWorker(QWorkerBase):
     def get_lingq_token(self):
         self._busy = True
         self.logging(
-            f"LingqWorker: Getting Lesson Token for - {self.current_lingq_payload.title}"
+            f"LingqWorker: Getting Lesson Token for - {self.current_lingq.payload.title}"
         )
         net_thread = QThread()
         networker = NetworkWorker(
@@ -93,7 +91,7 @@ class LingqLessonWorker(QWorkerBase):
             "https://www.lingq.com/en/learn/zh/web/editor/",
             retry=1,
         )
-        task_id = f"{self.current_job_ref.id}-token-{self.current_lingq_payload.title}"
+        task_id = f"{self.current_lingq.id}-token-{self.current_lingq.payload.title}"
         networker.moveToThread(net_thread)
         networker.response.connect(self.lingq_token_response)
         net_thread.started.connect(networker.do_work)
@@ -109,7 +107,7 @@ class LingqLessonWorker(QWorkerBase):
     def lingq_token_response(self, res: NetworkResponse):
         self._busy = False
         self.logging(
-            f"LingqWorker: Received Lesson Token for - {self.current_lingq_payload.title}"
+            f"LingqWorker: Received Lesson Token for - {self.current_lingq.payload.title}"
         )
         if res.ok:
             data = res.data
@@ -123,12 +121,12 @@ class LingqLessonWorker(QWorkerBase):
                 self.current_api_csrf = api_csrf
                 self.wait_time(self.wait_range_between_steps, self.lingq_post_lesson)
                 self.logging(
-                    f"LingqWorker: Found Lesson Token for - {self.current_lingq_payload.title}"
+                    f"LingqWorker: Found Lesson Token for - {self.current_lingq.payload.title}"
                 )
             else:
                 if self.current_lingq:
                     self.logging(
-                        f"LingqWorker: Failed to Get Lesson Token for - {self.current_lingq_payload.title}"
+                        f"LingqWorker: Failed to Get Lesson Token for - {self.current_lingq.payload.title}"
                     )
                     self.lingq_courses.appendleft(self.current_lingq)
                 self.wait_time(self.wait_range_between_submissions, self.login_again)
@@ -136,7 +134,7 @@ class LingqLessonWorker(QWorkerBase):
             if self.current_lingq:
                 self.lingq_courses.appendleft(self.current_lingq)
                 self.logging(
-                    f"LingqWorker: Failed to Get Lesson Token for - {self.current_lingq_payload.title}"
+                    f"LingqWorker: Failed to Get Lesson Token for - {self.current_lingq.payload.title}"
                 )
             self.wait_time(self.wait_range_between_submissions, self.login_again)
 
@@ -149,7 +147,7 @@ class LingqLessonWorker(QWorkerBase):
             )
             self.login_failure()
             return
-        task_id = f"{self.current_job_ref.id}-login"
+        task_id = f"{self.current_lingq.id}-login"
         login_worker = LingqLoginWorker()
         login_thread = QThread()
         login_worker.moveToThread(login_thread)
@@ -188,11 +186,10 @@ class LingqLessonWorker(QWorkerBase):
             self.lingq_courses.appendleft(self.current_lingq)
 
         for lingq in self.lingq_courses:
-            job_ref, payload = lingq
             self.task_complete.emit(
                 JobRef(
-                    id=job_ref.id,
-                    task=job_ref.task,
+                    id=lingq.id,
+                    task=lingq.task,
                     status=JOBSTATUS.ERROR,
                 ),
                 {},
@@ -202,7 +199,7 @@ class LingqLessonWorker(QWorkerBase):
     def lingq_post_lesson(self):
         self._busy = True
         self.logging(
-            f"LingqWorker: Attempting to Submit Lesson - {self.current_lingq_payload.title}",
+            f"LingqWorker: Attempting to Submit Lesson - {self.current_lingq.payload.title}",
             "INFO",
         )
         if self.current_api_csrf is None:
@@ -224,26 +221,26 @@ class LingqLessonWorker(QWorkerBase):
             "language": "zh",
             "status": "private",
             "tags": "",
-            "title": f"{self.current_lingq_payload.title}",
+            "title": f"{self.current_lingq.payload.title}",
             "translations": "[]",
             "notes": "",
             "save": "true",
-            "collection": self.current_lingq_payload.collection,
+            "collection": self.current_lingq.payload.collection,
         }
 
         audio_file = open(
-            self.current_lingq_payload.audio_file_path,
+            self.current_lingq.payload.audio_file_path,
             "rb",
         )
         text_file = open(
-            self.current_lingq_payload.text_file_path,
+            self.current_lingq.payload.text_file_path,
             "rb",
         )
         files = [
             (
                 "audio",
                 (
-                    self.current_lingq_payload.audio_file_name,
+                    self.current_lingq.payload.audio_file_name,
                     audio_file,
                     "audio/mpeg",
                 ),
@@ -251,7 +248,7 @@ class LingqLessonWorker(QWorkerBase):
             (
                 "file",
                 (
-                    self.current_lingq_payload.text_file_name,
+                    self.current_lingq.payload.text_file_name,
                     text_file,
                     "text/plain",
                 ),
@@ -267,7 +264,7 @@ class LingqLessonWorker(QWorkerBase):
             retry=1,
         )
         networker.moveToThread(net_thread)
-        task_id = f"{self.current_job_ref.id}-lingq-{self.current_lingq_payload.title}"
+        task_id = f"{self.current_lingq.id}-lingq-{self.current_lingq.payload.title}"
         networker.response.connect(self.lesson_post_response)
         net_thread.started.connect(networker.do_work)
         networker.finished.connect(
@@ -295,25 +292,25 @@ class LingqLessonWorker(QWorkerBase):
         if res.ok:
             self.task_complete.emit(
                 JobRef(
-                    id=self.current_job_ref.id,
-                    task=self.current_job_ref.task,
+                    id=self.current_lingq.id,
+                    task=self.current_lingq.task,
                     status=JOBSTATUS.COMPLETE,
                 ),
                 {},
             )
             self.logging(
-                f"LingqWorker: Submission Succeeded for - {self.current_lingq_payload.title}",
+                f"LingqWorker: Submission Succeeded for - {self.current_lingq.payload.title}",
                 "INFO",
             )
         else:
             self.logging(
-                f"LingqWorker: Submission Failed for - {self.current_lingq_payload.title}",
+                f"LingqWorker: Submission Failed for - {self.current_lingq.payload.title}",
                 "ERROR",
             )
             self.task_complete.emit(
                 JobRef(
-                    id=self.current_job_ref.id,
-                    task=self.current_job_ref.task,
+                    id=self.current_lingq.id,
+                    task=self.current_lingq.task,
                     status=JOBSTATUS.ERROR,
                 ),
                 {},

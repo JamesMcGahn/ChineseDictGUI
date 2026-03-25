@@ -19,6 +19,7 @@ from models.dictionary import Lesson, LessonAudio, Sentence, Word
 from models.services import (
     AudioDownloadPayload,
     CombineAudioPayload,
+    JobItem,
     JobRef,
     LingqLessonPayload,
     WhisperPayload,
@@ -34,6 +35,7 @@ from .ffmpeg_task_manager import FFmpegTaskManager
 from .lingq_workflow_manager import LingqWorkFlowManager
 
 
+# TODO move logic to pipeline
 class LessonWorkFlowManager(QObjectBase):
     scraping_active = Signal(bool)
     send_sents_sig = Signal(list, bool)
@@ -331,9 +333,10 @@ class LessonWorkFlowManager(QObjectBase):
 
         job_list = []
 
-        lesson = (
-            JobRef(lesson.queue_id, LESSONTASK.LINGQ_LESSON, JOBSTATUS.CREATED),
-            LingqLessonPayload(
+        lesson = JobItem[LingqLessonPayload](
+            id=lesson.queue_id,
+            task=LESSONTASK.LINGQ_LESSON,
+            payload=LingqLessonPayload(
                 title=f"{lesson.title} - Lesson",
                 collection=collection["lesson"],
                 audio_file_name="lesson.mp3",
@@ -343,6 +346,7 @@ class LessonWorkFlowManager(QObjectBase):
                 project_name=lesson.title,
             ),
         )
+
         job_list.append(lesson)
         self.lingq_workflow_manager.create_lingq_lesson(jobs=job_list)
 
@@ -377,9 +381,10 @@ class LessonWorkFlowManager(QObjectBase):
         )
         job_list = []
         if sents_audio_exists and sents_txt_exists:
-            sents = (
-                JobRef(lesson.queue_id, LESSONTASK.LINGQ_SENTS, JOBSTATUS.CREATED),
-                LingqLessonPayload(
+            sents = JobItem[LingqLessonPayload](
+                id=lesson.queue_id,
+                task=LESSONTASK.LINGQ_SENTS,
+                payload=LingqLessonPayload(
                     title=f"{lesson.title} - Sents",
                     collection=collection["sents"],
                     audio_file_name="sentences.mp3",
@@ -392,9 +397,10 @@ class LessonWorkFlowManager(QObjectBase):
             job_list.append(sents)
 
         if dialogue_audio_exists and dialogue_txt_exists:
-            dialogue = (
-                JobRef(lesson.queue_id, LESSONTASK.LINGQ_DIALOGUE, JOBSTATUS.CREATED),
-                LingqLessonPayload(
+            dialogue = JobItem[LingqLessonPayload](
+                id=lesson.queue_id,
+                task=LESSONTASK.LINGQ_DIALOGUE,
+                payload=LingqLessonPayload(
                     title=f"{lesson.title} - Dialogue",
                     collection=collection["dialogue"],
                     audio_file_name="dialogue.mp3",
@@ -404,6 +410,7 @@ class LessonWorkFlowManager(QObjectBase):
                     project_name=lesson.title,
                 ),
             )
+
             job_list.append(dialogue)
 
         self.lingq_workflow_manager.create_lingq_lesson(jobs=job_list)
