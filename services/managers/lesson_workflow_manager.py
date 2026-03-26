@@ -19,6 +19,7 @@ from models.dictionary import Lesson, LessonAudio, Sentence, Word
 from models.services import (
     AudioDownloadPayload,
     CombineAudioPayload,
+    CPodLessonPayload,
     JobItem,
     JobRef,
     LingqLessonPayload,
@@ -112,6 +113,7 @@ class LessonWorkFlowManager(QObjectBase):
             LESSONTASK.COMBINE_AUDIO: self.lesson_parts_ready_for_lingq,
         }
 
+    # TODO change dc from lesson spec objs into dc LessonWorkFlowRequest
     def create_lesson_scrape(self, lesson_specs):
         jobs = []
         for spec in lesson_specs:
@@ -125,18 +127,14 @@ class LessonWorkFlowManager(QObjectBase):
                 queue_id=queue_id,
                 slug="",
             )
-
-            new_spec = {
-                "provider": "cpod",
-                "slug": "",
-                "queue_id": queue_id,
-                "url": spec["url"],
-                "check_dup_sents": spec["check_dup_sents"],
-                "transcribe_lesson": spec["transcribe_lesson"],
-            }
+            job = JobItem(
+                id=queue_id,
+                task=LESSONTASK.INFO,
+                payload=CPodLessonPayload(url=spec["url"]),
+            )
 
             self.lessons_queue[queue_id] = add_lesson
-            jobs.append(new_spec)
+            jobs.append(job)
 
         lesson_thread = LessonScraperThread(jobs)
         lesson_thread.request_token.connect(self.token_manager.request_token)

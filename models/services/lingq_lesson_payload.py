@@ -9,5 +9,5 @@ class LingqLessonPayload:
     audio_file_path: str
     text_file_name: str
     text_file_path: str
-    project_name: str = field(default=None)
+    project_name: str | None = field(default=None)
     language: str = field(default="zh")

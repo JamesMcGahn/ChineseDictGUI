@@ -14,7 +14,7 @@ from base.enums import (
 from keys import keys
 from models.core import LessonTaskPayload
 from models.dictionary import Lesson
-from models.services import JobRef, NetworkResponse
+from models.services import CPodLessonPayload, JobItem, JobRef, NetworkResponse
 from services.network import NetworkWorker
 
 from .lesson_parsers import (
@@ -33,7 +33,13 @@ class LessonScraperWorkerV2(QWorkerBase):
     lesson_status = Signal(object)
     task_complete = Signal(object, object)
 
-    def __init__(self, lesson_list, mutex, wait_condition, parent_thread):
+    def __init__(
+        self,
+        lesson_list: list[JobItem[CPodLessonPayload]],
+        mutex,
+        wait_condition,
+        parent_thread,
+    ):
         super().__init__()
         self.lesson_list = deque(lesson_list)
         self._mutex = mutex
@@ -135,12 +141,10 @@ class LessonScraperWorkerV2(QWorkerBase):
             spec = self.lesson_list.popleft()
 
             self.current_lesson = Lesson(
-                provider=spec["provider"],
-                url=spec["url"],
-                check_dup_sents=spec["check_dup_sents"],
-                transcribe_lesson=spec["transcribe_lesson"],
-                queue_id=spec["queue_id"],
-                slug="",
+                provider="cpod",
+                url=spec.payload.url,
+                queue_id=spec.id,
+                slug=spec.payload.url,
             )
 
             self.send_status_update(LESSONSTATUS.IN_PROGRESS, LESSONTASK.INFO)

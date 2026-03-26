@@ -1,5 +1,6 @@
 from .audio_download_payload import AudioDownloadPayload
 from .combine_audio_payload import CombineAudioPayload
+from .cpod_lesson_payload import CPodLessonPayload
 from .faster_whisper_options import FasterWhisperOptions
 from .job_item import JobItem
 from .job_ref import JobRef
@@ -16,4 +17,5 @@ __all__ = [
     "JobItem",
     "LingqLessonPayload",
     "NetworkResponse",
+    "CPodLessonPayload",
 ]
