@@ -22,6 +22,7 @@ from models.services import (
     CPodLessonPayload,
     JobItem,
     JobRef,
+    LessonWorkFlowRequest,
     LingqLessonPayload,
     WhisperPayload,
 )
@@ -114,23 +115,24 @@ class LessonWorkFlowManager(QObjectBase):
         }
 
     # TODO change dc from lesson spec objs into dc LessonWorkFlowRequest
-    def create_lesson_scrape(self, lesson_specs):
+    def create_lesson_scrape(self, lesson_specs: list[LessonWorkFlowRequest]):
         jobs = []
         for spec in lesson_specs:
             queue_id = uuid.uuid4()
-            # TODO change to data model
+
             add_lesson = Lesson(
-                provider=spec["provider"],
-                url=spec["url"],
-                check_dup_sents=spec["check_dup_sents"],
-                transcribe_lesson=spec["transcribe_lesson"],
+                provider=spec.provider,
+                url=spec.url,
+                check_dup_sents=spec.check_dup_sents,
+                transcribe_lesson=spec.transcribe_lesson,
                 queue_id=queue_id,
                 slug="",
             )
+
             job = JobItem(
                 id=queue_id,
                 task=LESSONTASK.INFO,
-                payload=CPodLessonPayload(url=spec["url"]),
+                payload=CPodLessonPayload(url=spec.url),
             )
 
             self.lessons_queue[queue_id] = add_lesson

@@ -1,7 +1,7 @@
 from PySide6.QtCore import QFile, QIODevice, QTextStream, Signal
 from PySide6.QtWidgets import QFileDialog, QWidget
 
-from models.dictionary import Lesson
+from models.services import LessonWorkFlowRequest
 
 from .add_lessons_dialog_ui import AddLessonsDialogView
 
@@ -73,13 +73,13 @@ class AddLessonsDialog(QWidget):
         for url in lesson_urls:
             if "chinesepod" in url:
                 lessons.append(
-                    {
-                        "provider": "cpod",
-                        "url": url,
-                        "slug": "",
-                        "check_dup_sents": self.check_for_dups,
-                        "transcribe_lesson": self.transcribe_lesson,
-                    }
+                    LessonWorkFlowRequest(
+                        provider="cpod",
+                        url=url,
+                        slug=None,
+                        check_dup_sents=self.check_for_dups,
+                        transcribe_lesson=self.transcribe_lesson,
+                    )
                 )
 
         self.add_lesson_submited_signal.emit(
