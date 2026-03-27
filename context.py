@@ -66,8 +66,8 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.ffmpeg_task_manager.task_complete.connect(self.task_complete)
         self.audio_download_manager.task_complete.connect(self.task_complete)
         self.db.task_complete.connect(self.task_complete)
-
-        self.task_complete.connect(self.lesson_workflow_manager.on_task_completed)
+        self.lingq_workflow_manager.task_complete.connect(self.task_complete)
+        # self.task_complete.connect(self.lesson_workflow_manager.on_task_completed)
 
         self.add_to_db_write_queue.connect(self.db.write)
 
