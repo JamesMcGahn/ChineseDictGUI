@@ -224,7 +224,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.lesson.status = lesson_status
 
     def combine_audio(self, lesson: Lesson, payload):
-        self.ffmeg_task_manager.combine_audio(
+        self.ffmpeg_task_manager.combine_audio(
             job_ref=JobRef(
                 lesson.queue_id, LESSONTASK.COMBINE_AUDIO, JOBSTATUS.CREATED
             ),
@@ -284,7 +284,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
     def transcribe_lesson(self, lesson: Lesson, payload):
         # TODO WHISPER SETTINGS From Settings
         if lesson.transcribe_lesson:
-            self.ffmeg_task_manager.whisper_audio(
+            self.ffmpeg_task_manager.whisper_audio(
                 job_ref=JobRef(
                     lesson.queue_id, LESSONTASK.TRANSCRIBE, JOBSTATUS.CREATED
                 ),
