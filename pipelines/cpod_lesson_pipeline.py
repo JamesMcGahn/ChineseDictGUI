@@ -17,7 +17,6 @@ from base.enums import (
     DBJOBTYPE,
     DBOPERATION,
     JOBSTATUS,
-    LESSONAUDIO,
     LESSONLEVEL,
     LESSONSTATUS,
     LESSONTASK,
@@ -25,7 +24,7 @@ from base.enums import (
 )
 from core.scrapers.cpod.lessons import LessonScraperThread
 from models.core import LessonTaskPayload
-from models.dictionary import Lesson, LessonAudio
+from models.dictionary import Lesson
 from models.pipelines import LessonPipelinePayload
 from models.services import (
     AudioDownloadPayload,
@@ -38,12 +37,20 @@ from models.services import (
 )
 from models.services.database import DBJobPayload
 from models.services.database.write import InsertOnePayload
+from services.lessons import LessonFileService
+from services.lessons.processors.cpod import (
+    CPodLessonDialogueProcessor,
+    CPodLessonExpansionProcessor,
+    CPodLessonGrammarProcessor,
+    CPodLessonInfoProcessor,
+    CPodLessonVocabProcessor,
+)
 from services.network import TokenManager
 from utils.files import PathManager
 
-
 # TODO ADD STEP ERROR HANDLING
-# TODO MOVE TRANSFORMATIONS, PROCESSING to SERVICE CLASSES
+
+
 class CPodLessonPipeline(BaseLessonPipeline):
     scraping_active = Signal(bool)
     send_sents_sig = Signal(list, bool)
@@ -113,17 +120,33 @@ class CPodLessonPipeline(BaseLessonPipeline):
             },
         }
 
+        self.flow_map = {
+            LESSONTASK.INFO: [LESSONTASK.LESSON_AUDIO],
+            LESSONTASK.CHECK: [LESSONTASK.SAVE_LESSON, LESSONTASK.AUDIO],
+            LESSONTASK.AUDIO: [LESSONTASK.COMBINE_AUDIO],
+            LESSONTASK.TRANSCRIBE: [LESSONTASK.LINGQ_LESSON],
+            LESSONTASK.LESSON_AUDIO: [LESSONTASK.TRANSCRIBE, LESSONTASK.LINGQ_DIALOGUE],
+            LESSONTASK.COMBINE_AUDIO: [LESSONTASK.LINGQ_SENTS],
+        }
+
         self.success_task_handlers = {
-            LESSONTASK.AUDIO: self.combine_audio,
             LESSONTASK.INFO: self.process_lesson_info,
-            LESSONTASK.LESSON_AUDIO: self.transcribe_lesson,
             LESSONTASK.DIALOGUE: self.process_dialogue,
             LESSONTASK.VOCAB: self.process_vocab,
             LESSONTASK.EXPANSION: self.process_expansion,
             LESSONTASK.GRAMMAR: self.process_grammar,
-            LESSONTASK.CHECK: self.save_lesson,
-            LESSONTASK.TRANSCRIBE: self.transcription_ready_for_lingq,
-            LESSONTASK.COMBINE_AUDIO: self.lesson_parts_ready_for_lingq,
+            LESSONTASK.CHECK: self.process_check,
+        }
+
+        self.dispatchers = {
+            LESSONTASK.LESSON_AUDIO: self.dispatch_lesson_audio,
+            LESSONTASK.COMBINE_AUDIO: self.dispatch_combine_audio,
+            LESSONTASK.SAVE_LESSON: self.dispatch_save_lesson,
+            LESSONTASK.AUDIO: self.dispatch_lesson_parts_audio,
+            LESSONTASK.LINGQ_LESSON: self.dispatch_lingq_lesson,
+            LESSONTASK.TRANSCRIBE: self.dispatch_transcribe_lesson,
+            LESSONTASK.LINGQ_SENTS: self.dispatch_lingq_sents,
+            LESSONTASK.LINGQ_DIALOGUE: self.dispatch_lingq_dialogue,
         }
 
     def process(self):
@@ -186,6 +209,17 @@ class CPodLessonPipeline(BaseLessonPipeline):
             if spec.create_lingq_lessons:
                 self.expected_tasks.add(LESSONTASK.LINGQ_LESSON)
 
+    def get_next_tasks(self, task):
+        return self.flow_map.get(task, [])
+
+    def dispatch(self, task: LESSONTASK, lesson: Lesson):
+        dispatcher = self.dispatchers.get(task, None)
+
+        if dispatcher is None:
+            raise ValueError(f"No dispatcher defined for task: {task}")
+
+        dispatcher(lesson=lesson)
+
     def on_task_completed(self, job: JobRef, payload):
         print("here", job)
         if job.id != self.queue_id or self.lesson is None:
@@ -194,6 +228,11 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.update_lesson_status(job.task, self.job_to_lesson_status(job.status))
         if job.status == JOBSTATUS.COMPLETE:
             self.handle_success(job, payload, self.lesson)
+
+            next_tasks = self.get_next_tasks(job.task)
+            for task in next_tasks:
+                self.dispatch(task, self.lesson)
+
         elif job.status == JOBSTATUS.ERROR:
             self.handle_failure(job, payload, self.lesson)
         else:
@@ -223,65 +262,35 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.lesson.task = lesson_task
         self.lesson.status = lesson_status
 
-    def combine_audio(self, lesson: Lesson, payload):
-        self.ffmpeg_task_manager.combine_audio(
-            job_ref=JobRef(
-                lesson.queue_id, LESSONTASK.COMBINE_AUDIO, JOBSTATUS.CREATED
-            ),
-            payload=CombineAudioPayload(
-                combine_folder_path=f"{lesson.storage_path}audio",
-                export_file_name="sentences.mp3",
-                export_path=lesson.storage_path,
-                delay_between_audio=1500,
-                project_name=lesson.title,
-            ),
-        )
+    # def combine_audio(self, lesson: Lesson, payload):
 
+    ## PROCESSOR HANDLERS
     def process_lesson_info(self, lesson: Lesson, payload: LessonTaskPayload):
-        lesson_info = payload.lesson_info
+        CPodLessonInfoProcessor().apply(lesson=lesson, payload=payload)
 
-        lesson.hash_code = lesson_info.hash_code
-        lesson.level = lesson_info.level
-        lesson.lesson_id = lesson_info.lesson_id
-        lesson.title = lesson_info.title
-        lesson.slug = lesson_info.slug
+    def process_dialogue(self, lesson: Lesson, payload: LessonTaskPayload):
+        CPodLessonDialogueProcessor().apply(lesson=lesson, payload=payload)
+        self.send_sents_sig.emit(lesson.lesson_parts.dialogue, lesson.check_dup_sents)
+        LessonFileService().write_dialogue(lesson=lesson)
 
-        path = f"{self.base_path}{lesson.level}/{lesson.title}/"
-        lesson.storage_path = path
+    def process_vocab(self, lesson: Lesson, payload: LessonTaskPayload):
+        CPodLessonVocabProcessor().apply(lesson=lesson, payload=payload)
+        self.send_words_sig.emit(lesson.lesson_parts.vocab, False)
 
-        dialogue_audio = LessonAudio(
-            title="dialogue",
-            audio_type=LESSONAUDIO.DIALOGUE,
-            audio=lesson_info.dialogue_audio,
-            level=lesson.level,
-            lesson=lesson.title,
-            transcribe=False,
-        )
+    def process_expansion(self, lesson: Lesson, payload: LessonTaskPayload):
+        CPodLessonExpansionProcessor().apply(lesson=lesson, payload=payload)
+        self.send_sents_sig.emit(lesson.lesson_parts.expansion, lesson.check_dup_sents)
 
-        lesson_audio = LessonAudio(
-            title="lesson",
-            audio_type=LESSONAUDIO.LESSON,
-            audio=lesson_info.lesson_audio,
-            level=lesson.level,
-            lesson=lesson.title,
-            transcribe=lesson.transcribe_lesson,
-        )
-        lesson.lesson_parts.lesson_audios.append(dialogue_audio)
-        lesson.lesson_parts.lesson_audios.append(lesson_audio)
+    def process_grammar(self, lesson: Lesson, payload: LessonTaskPayload):
+        CPodLessonGrammarProcessor().apply(lesson=lesson, payload=payload)
+        self.send_sents_sig.emit(payload.sentences, lesson.check_dup_sents)
 
-        self.audio_download_manager.download_audio(
-            job=JobItem(
-                id=lesson.queue_id,
-                task=LESSONTASK.LESSON_AUDIO,
-                payload=AudioDownloadPayload(
-                    audio_urls=lesson.lesson_parts.lesson_audios,
-                    export_path=lesson.storage_path,
-                    project_name=lesson.title,
-                ),
-            )
-        )
+    def process_check(self, lesson: Lesson, payload: LessonTaskPayload):
+        LessonFileService().write_lesson_parts(lesson=lesson)
 
-    def transcribe_lesson(self, lesson: Lesson, payload):
+    ## DISPATCH HANDLERS
+
+    def dispatch_transcribe_lesson(self, lesson: Lesson):
         # TODO WHISPER SETTINGS From Settings
         if lesson.transcribe_lesson:
             self.ffmpeg_task_manager.whisper_audio(
@@ -296,41 +305,73 @@ class CPodLessonPipeline(BaseLessonPipeline):
                 ),
             )
 
-    def process_dialogue(self, lesson: Lesson, payload: LessonTaskPayload):
-        dialogue = payload.sentences
-        if not dialogue:
-            return
-        lesson.lesson_parts.dialogue = dialogue
-        lesson.lesson_parts.all_sentences.extend(dialogue)
-        PathManager.path_exists(lesson.storage_path, True)
-        self.send_sents_sig.emit(dialogue, lesson.check_dup_sents)
-        with open(
-            f"{lesson.storage_path}dialogue.txt",
-            "w",
-            encoding="utf-8",
-        ) as f:
-            for sent in dialogue:
-                f.write(f"{sent.chinese}\n")
+    def dispatch_lesson_audio(self, lesson: Lesson):
+        self.audio_download_manager.download_audio(
+            job=JobItem(
+                id=lesson.queue_id,
+                task=LESSONTASK.LESSON_AUDIO,
+                payload=AudioDownloadPayload(
+                    audio_urls=lesson.lesson_parts.lesson_audios,
+                    export_path=lesson.storage_path,
+                    project_name=lesson.title,
+                ),
+            )
+        )
 
-    def process_vocab(self, lesson: Lesson, payload: LessonTaskPayload):
-        words = payload.words
-        lesson.lesson_parts.vocab = words
-        self.send_words_sig.emit(words, False)
+    def dispatch_combine_audio(self, lesson: Lesson):
+        self.ffmpeg_task_manager.combine_audio(
+            job_ref=JobRef(
+                lesson.queue_id, LESSONTASK.COMBINE_AUDIO, JOBSTATUS.CREATED
+            ),
+            payload=CombineAudioPayload(
+                combine_folder_path=f"{lesson.storage_path}audio",
+                export_file_name="sentences.mp3",
+                export_path=lesson.storage_path,
+                delay_between_audio=1500,
+                project_name=lesson.title,
+            ),
+        )
 
-    def process_expansion(self, lesson: Lesson, payload: LessonTaskPayload):
-        expansion = payload.sentences
-        lesson.lesson_parts.expansion = expansion
-        lesson.lesson_parts.all_sentences.extend(expansion)
-        self.send_sents_sig.emit(expansion, lesson.check_dup_sents)
+    def dispatch_save_lesson(self, lesson: Lesson):
+        self.db.write(
+            JobItem(
+                id=lesson.queue_id,
+                task=LESSONTASK.SAVE_LESSON,
+                payload=DBJobPayload(
+                    kind=DBJOBTYPE.LESSONS,
+                    operation=DBOPERATION.INSERT_ONE,
+                    data=InsertOnePayload(data=lesson),
+                ),
+            )
+        )
 
-    def process_grammar(self, lesson: Lesson, payload: LessonTaskPayload):
-        grammar_points = payload.grammar
-        sentences = payload.sentences
-        lesson.lesson_parts.grammar = grammar_points
-        lesson.lesson_parts.all_sentences.extend(sentences)
-        self.send_sents_sig.emit(sentences, lesson.check_dup_sents)
+    def dispatch_lesson_parts_audio(self, lesson: Lesson):
+        all_sents = lesson.lesson_parts.all_sentences
+        words = lesson.lesson_parts.vocab
 
-    def transcription_ready_for_lingq(self, lesson: Lesson, payload):
+        sents_words_with_in_order = []
+        for i, sent_item in enumerate(all_sents + words):
+            sent_item.id = i + 1
+            sents_words_with_in_order.append(sent_item)
+
+        if sents_words_with_in_order:
+            self.logging(
+                f"Adding - {lesson.title} - Sentences & Words Audio to Download Queue."
+            )
+
+            self.audio_download_manager.download_audio(
+                JobItem(
+                    id=lesson.queue_id,
+                    task=LESSONTASK.AUDIO,
+                    payload=AudioDownloadPayload(
+                        audio_urls=sents_words_with_in_order,
+                        export_path=f"{lesson.storage_path}audio",
+                        project_name=lesson.title,
+                    ),
+                )
+            )
+
+    def dispatch_lingq_lesson(self, lesson: Lesson):
         if not lesson.transcribe_lesson:
             return
         lesson_txt = f"{lesson.storage_path}lesson.txt"
@@ -371,11 +412,9 @@ class CPodLessonPipeline(BaseLessonPipeline):
         job_list.append(lesson)
         self.lingq_workflow_manager.create_lingq_lesson(jobs=job_list)
 
-    def lesson_parts_ready_for_lingq(self, lesson: Lesson, payload):
+    def dispatch_lingq_sents(self, lesson: Lesson):
         sents_text = f"{lesson.storage_path}sentences.txt"
         sents_audio = f"{lesson.storage_path}sentences.mp3"
-        dialogue_text = f"{lesson.storage_path}dialogue.txt"
-        dialogue_audio = f"{lesson.storage_path}dialogue.mp3"
 
         sents_audio_exists = PathManager.path_exists(
             path=sents_audio,
@@ -386,6 +425,33 @@ class CPodLessonPipeline(BaseLessonPipeline):
             path=sents_text,
             makepath=False,
         )
+
+        collection = self.collections.get(
+            lesson.level,
+            {"lesson": "2310680", "sents": "2310680", "dialogue": "2310680"},
+        )
+
+        if sents_audio_exists and sents_txt_exists:
+            lingq_sent = JobItem[LingqLessonPayload](
+                id=lesson.queue_id,
+                task=LESSONTASK.LINGQ_SENTS,
+                payload=LingqLessonPayload(
+                    title=f"{lesson.title} - Sents",
+                    collection=collection["sents"],
+                    audio_file_name="sentences.mp3",
+                    audio_file_path=sents_audio,
+                    text_file_name="sentences.txt",
+                    text_file_path=sents_text,
+                    project_name=lesson.title,
+                ),
+            )
+
+            self.lingq_workflow_manager.create_lingq_lesson(jobs=[lingq_sent])
+
+    def dispatch_lingq_dialogue(self, lesson: Lesson):
+
+        dialogue_text = f"{lesson.storage_path}dialogue.txt"
+        dialogue_audio = f"{lesson.storage_path}dialogue.mp3"
 
         dialogue_audio_exists = PathManager.path_exists(
             path=dialogue_audio,
@@ -401,21 +467,6 @@ class CPodLessonPipeline(BaseLessonPipeline):
             {"lesson": "2310680", "sents": "2310680", "dialogue": "2310680"},
         )
         job_list = []
-        if sents_audio_exists and sents_txt_exists:
-            sents = JobItem[LingqLessonPayload](
-                id=lesson.queue_id,
-                task=LESSONTASK.LINGQ_SENTS,
-                payload=LingqLessonPayload(
-                    title=f"{lesson.title} - Sents",
-                    collection=collection["sents"],
-                    audio_file_name="sentences.mp3",
-                    audio_file_path=sents_audio,
-                    text_file_name="sentences.txt",
-                    text_file_path=sents_text,
-                    project_name=lesson.title,
-                ),
-            )
-            job_list.append(sents)
 
         if dialogue_audio_exists and dialogue_txt_exists:
             dialogue = JobItem[LingqLessonPayload](
@@ -436,78 +487,6 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
         self.lingq_workflow_manager.create_lingq_lesson(jobs=job_list)
         print("Ready for Lingq")
-
-    # TODO SPLIT OUT METHOD
-    def save_lesson(self, lesson: Lesson, payload):
-        all_sents = lesson.lesson_parts.all_sentences
-        words = lesson.lesson_parts.vocab
-
-        PathManager.path_exists(lesson.storage_path, True)
-
-        with open(f"{lesson.storage_path}sentences.txt", "w", encoding="utf-8") as f:
-            if lesson.lesson_parts.dialogue:
-                f.write("对话:\n")
-                for sent in lesson.lesson_parts.dialogue:
-                    f.write(f"{sent.chinese}\n")
-
-            if lesson.lesson_parts.expansion:
-                f.write("例句:\n")
-                for sent in lesson.lesson_parts.expansion:
-                    f.write(f"{sent.chinese}\n")
-
-            if lesson.lesson_parts.grammar:
-                f.write("语法:\n")
-                for grammar_point in lesson.lesson_parts.grammar:
-                    f.write(f"{grammar_point.name}\n")
-                    f.write(f"{grammar_point.explanation}\n")
-                    for sent in grammar_point.examples:
-                        f.write(f"{sent.chinese}\n")
-
-            if lesson.lesson_parts.vocab:
-                f.write("词汇:\n")
-                for word in lesson.lesson_parts.vocab:
-                    f.write(f"{word.chinese}\n")
-
-        sents_words_with_in_order = []
-        for i, sent_item in enumerate(all_sents + words):
-            sent_item.id = i + 1
-            sents_words_with_in_order.append(sent_item)
-            # return  # TODO REMOVE AFTER TESTING WHISPER
-            # TODO add an option to disable downloading all sentences for lesson
-
-        self.db.write(
-            JobItem(
-                id=lesson.queue_id,
-                task=LESSONTASK.SAVE_LESSON,
-                payload=DBJobPayload(
-                    kind=DBJOBTYPE.LESSONS,
-                    operation=DBOPERATION.INSERT_ONE,
-                    data=InsertOnePayload(data=lesson),
-                ),
-            )
-        )
-
-        if sents_words_with_in_order:
-            self.logging(
-                f"Adding - {lesson.title} - Sentences & Words Audio to Download Queue."
-            )
-
-            self.audio_download_manager.download_audio(
-                JobItem(
-                    id=lesson.queue_id,
-                    task=LESSONTASK.AUDIO,
-                    payload=AudioDownloadPayload(
-                        audio_urls=sents_words_with_in_order,
-                        export_path=f"{lesson.storage_path}audio",
-                        project_name=lesson.title,
-                    ),
-                )
-            )
-
-            # combine_audio=False,
-            # combine_audio_export_folder=path,
-            # combine_audio_export_filename="Sentences.mp3",
-            # combine_audio_delay_between_audio=1500,
 
     def check_pipeline_completed(self):
 
