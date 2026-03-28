@@ -8,7 +8,6 @@ from base.enums import (
     LESSONPROVIDERS,
     PIPELINEJOBTYPE,
 )
-from models.dictionary import Lesson
 from models.pipelines import LessonPipelinePayload, PipelineRequest
 from models.services import (
     LessonWorkFlowRequest,
@@ -23,7 +22,7 @@ from .lingq_workflow_manager import LingqWorkFlowManager
 
 
 # TODO move logic to pipeline
-class LessonWorkFlowManager(QObjectBase):
+class LessonPipelineManager(QObjectBase):
     scraping_active = Signal(bool)
     send_sents_sig = Signal(list, bool)
     send_words_sig = Signal(list, bool)
@@ -47,7 +46,7 @@ class LessonWorkFlowManager(QObjectBase):
         self.current_pipeline: None | BaseLessonPipeline = None
 
     # TODO change name of method
-    def create_lesson_scrape(self, lesson_specs: list[LessonWorkFlowRequest]):
+    def enqueue_lessons(self, lesson_specs: list[LessonWorkFlowRequest]):
 
         for spec in lesson_specs:
             queue_id = str(uuid.uuid4())

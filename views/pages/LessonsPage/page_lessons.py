@@ -33,13 +33,13 @@ class PageLessons(QWidgetBase):
         self.ui = PageLessonsView()
         self.ctx = AppContext()
 
-        self.ctx.lesson_workflow_manager.scraping_active.connect(
+        self.ctx.lesson_pipeline_manager.scraping_active.connect(
             self.set_button_disabled
         )
-        self.ctx.lesson_workflow_manager.send_words_sig.connect(
+        self.ctx.lesson_pipeline_manager.send_words_sig.connect(
             self.get_words_from_sthread_loop
         )
-        self.ctx.lesson_workflow_manager.send_sents_sig.connect(
+        self.ctx.lesson_pipeline_manager.send_sents_sig.connect(
             self.get_sentences_from_thread_loop
         )
 
@@ -293,5 +293,5 @@ class PageLessons(QWidgetBase):
     @Slot(list, bool, bool)
     def get_dialog_submitted(self, form_data, check_for_dups, transcribe_lesson):
         self.logging(f"Received {len(form_data)} Lessons", "INFO")
-        self.ctx.lesson_workflow_manager.create_lesson_scrape(form_data)
+        self.ctx.lesson_pipeline_manager.enqueue_lessons(form_data)
         # lesson_urls = [x.strip() for x in form_data if x]
