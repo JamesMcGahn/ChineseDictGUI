@@ -54,7 +54,7 @@ class TokenManager(QObject, metaclass=QSingleton):
 
     @Slot()
     def check_token(self):
-        self.logger.insert("Checking For a Stored Cpod token.")
+        self.logger.insert("TokenManager: Checking For a Stored Cpod token.")
         self.token = self.settings.get_value("cpod_token")
 
         if self.token:
@@ -64,25 +64,26 @@ class TokenManager(QObject, metaclass=QSingleton):
                 if not valid:
                     self.token = None
                     self.logger.insert(
-                        "Cpod token going to expire. Trying to get a new token"
+                        "TokenManager: Cpod token going to expire. Trying to get a new token"
                     )
                     self.get_token()
                 else:
                     minutes_left = time_left // 60
                     hours_left = minutes_left // 60
                     self.logger.insert(
-                        f"Cpod token is still valid for {hours_left} hours."
+                        f"TokenManager: Cpod token is still valid for {hours_left} hours."
                     )
                     fetch_new_token = max((minutes_left - 60) * 60000, 0)
                     QTimer.singleShot(fetch_new_token, self.get_token)
                     self.logger.insert(
-                        f"Scheduling a new token request in {minutes_left} minutes."
+                        f"TokenManager: Scheduling a new token request in {minutes_left} minutes."
                     )
             except Exception as e:
                 print(e)
 
                 self.logger.insert(
-                    "Error decoding Cpod token. Trying to get a new token.", "ERROR"
+                    "TokenManager: Error decoding Cpod token. Trying to get a new token.",
+                    "ERROR",
                 )
                 self.get_token()
         else:
@@ -95,7 +96,8 @@ class TokenManager(QObject, metaclass=QSingleton):
 
         if self.token_tries == 3:
             self.logger.insert(
-                "Tried three times to get a cpod token. Failed to get token.", "ERROR"
+                "TokenManager: Tried three times to get a cpod token. Failed to get token.",
+                "ERROR",
             )
             return
         self.token_fetch_in_progress = True
@@ -120,20 +122,24 @@ class TokenManager(QObject, metaclass=QSingleton):
     @Slot(str, bool)
     def receive_token(self, token, wasReceived):
         self._clear_fetch_flag()
+
         if wasReceived:
-            self.logger.insert("Cpod Token was Recieved.")
+            self.logger.insert("TokenManager: Cpod Token was Recieved.")
             self.token = self.remove_bearer(token)
             self.check_token()
             self.send_token.emit(self.token)
 
         else:
-            self.logger.insert("Failed to Receive Cpod Token.", "ERROR")
+            self.logger.insert("TokenManager: Failed to Receive Cpod Token.", "ERROR")
             self.token = None
-            wait_time = self.token_tries * 10000
-            self.logger.insert(
-                f"Waiting {wait_time/1000} seconds before reattempting getting Cpod Token ",
-                "INFO",
-            )
+            if self.token_tries < 3:
+                wait_time = self.token_tries * 30000
+                self.logger.insert(
+                    f"TokenManager: Waiting {int(wait_time/1000)} seconds before reattempting getting Cpod Token ",
+                    "INFO",
+                )
+            else:
+                wait_time = 0
             QTimer.singleShot(wait_time, self.get_token)
 
     def _clear_fetch_flag(self):

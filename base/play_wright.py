@@ -48,5 +48,7 @@ class PlaywrightBase(QObjectBase):
 
     def close(self):
         self.logging("Playwright - Closing")
-        self.context.close()
-        self.browser.close()
+        if self.context:
+            self.context.close()
+        if self.browser:
+            self.browser.close()
