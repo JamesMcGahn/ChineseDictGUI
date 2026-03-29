@@ -115,9 +115,9 @@ Priorities:
 
 ## PIPELINES
 
-- [ ] Create BasePipeline
-- [ ] Create PipelineFactory
-- [ ] Move Chinesepod Lesson Specific Logic to ChinesePodLesson Pipeline
+- [X] Create BasePipeline
+- [X] Create PipelineFactory
+- [x] Move Chinesepod Lesson Specific Logic to ChinesePodLesson Pipeline
 - [ ] Move Chinesepod Word Specific Logic to ChinesepodWord Pipeline
 - [ ] Move MGDB Word Specific Logic to MGDB Word Pipeline
 
@@ -129,7 +129,7 @@ Priorities:
   - [/] clean up controller
 - [x] Add lingqq Lesson jobs to controller (waiting to be built)
 - [x] Add db job to controller (waiting to be built)
-- [ ] create model for "spec" / or use the queue model
+- [x] create model for "spec" / or use the queue model
 - [ ] update project status
   - [ ] add progress fn / signal for lesson overall status
 - [ ] Queue Feature

@@ -1,3 +1,4 @@
+from .cpod_lesson_processor import CpodLessonProcessor
 from .dialogue_processor import CPodLessonDialogueProcessor
 from .expansion_processor import CPodLessonExpansionProcessor
 from .grammar_processor import CPodLessonGrammarProcessor
@@ -10,4 +11,5 @@ __all__ = [
     "CPodLessonVocabProcessor",
     "CPodLessonExpansionProcessor",
     "CPodLessonGrammarProcessor",
+    "CpodLessonProcessor",
 ]

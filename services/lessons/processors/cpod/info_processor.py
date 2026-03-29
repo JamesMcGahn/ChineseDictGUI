@@ -2,8 +2,10 @@ from base.enums import LESSONAUDIO
 from models.core import LessonTaskPayload
 from models.dictionary import Lesson, LessonAudio
 
+from ..base_lesson_processor import BaseLessonProcessor
 
-class CPodLessonInfoProcessor:
+
+class CPodLessonInfoProcessor(BaseLessonProcessor):
     def __init__(self):
         # TODO set app data base path
         self.base_path = "./test/"

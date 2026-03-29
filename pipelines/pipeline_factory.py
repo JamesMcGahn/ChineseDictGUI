@@ -26,6 +26,7 @@ class PipelineFactory:
         db: "DatabaseServiceManager",
     ) -> BaseLessonPipeline:
 
+        # TODO move to mapping
         if pipe_request.job_type == PIPELINEJOBTYPE.LESSONS:
             if pipe_request.payload.provider == LESSONPROVIDERS.CPOD:
                 return CPodLessonPipeline(

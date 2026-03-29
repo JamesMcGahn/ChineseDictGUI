@@ -1,8 +1,10 @@
 from models.core import LessonTaskPayload
 from models.dictionary import Lesson
 
+from ..base_lesson_processor import BaseLessonProcessor
 
-class CPodLessonDialogueProcessor:
+
+class CPodLessonDialogueProcessor(BaseLessonProcessor):
     def apply(self, lesson: Lesson, payload: LessonTaskPayload):
         dialogue = payload.sentences
         if not dialogue:

@@ -38,13 +38,7 @@ from models.services import (
 from models.services.database import DBJobPayload
 from models.services.database.write import InsertOnePayload
 from services.lessons import LessonFileService
-from services.lessons.processors.cpod import (
-    CPodLessonDialogueProcessor,
-    CPodLessonExpansionProcessor,
-    CPodLessonGrammarProcessor,
-    CPodLessonInfoProcessor,
-    CPodLessonVocabProcessor,
-)
+from services.lessons.processors.cpod import CpodLessonProcessor
 from services.network import TokenManager
 from utils.files import PathManager
 
@@ -80,6 +74,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.completed_tasks = set()
         self.queue_id = None
         self.lesson = None
+        self.processor = CpodLessonProcessor()
 
         self.ffmpeg_task_manager.task_complete.connect(self.on_task_completed)
         self.audio_download_manager.task_complete.connect(self.on_task_completed)
@@ -127,15 +122,6 @@ class CPodLessonPipeline(BaseLessonPipeline):
             LESSONTASK.TRANSCRIBE: [LESSONTASK.LINGQ_LESSON],
             LESSONTASK.LESSON_AUDIO: [LESSONTASK.TRANSCRIBE, LESSONTASK.LINGQ_DIALOGUE],
             LESSONTASK.COMBINE_AUDIO: [LESSONTASK.LINGQ_SENTS],
-        }
-
-        self.success_task_handlers = {
-            LESSONTASK.INFO: self.process_lesson_info,
-            LESSONTASK.DIALOGUE: self.process_dialogue,
-            LESSONTASK.VOCAB: self.process_vocab,
-            LESSONTASK.EXPANSION: self.process_expansion,
-            LESSONTASK.GRAMMAR: self.process_grammar,
-            LESSONTASK.CHECK: self.process_check,
         }
 
         self.dispatchers = {
@@ -227,6 +213,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
         self.update_lesson_status(job.task, self.job_to_lesson_status(job.status))
         if job.status == JOBSTATUS.COMPLETE:
+
             self.handle_success(job, payload, self.lesson)
 
             next_tasks = self.get_next_tasks(job.task)
@@ -240,12 +227,23 @@ class CPodLessonPipeline(BaseLessonPipeline):
         # FEATURE : allow for threshold of number of errors, setting
 
     def handle_success(self, job: JobRef, payload, lesson: Lesson):
-        handler = self.success_task_handlers.get(job.task)
-
-        self.update_completed_tasks(job.task)
-
-        if handler:
-            handler(lesson, payload)
+        self.processor.apply(task=job.task, lesson=self.lesson, payload=payload)
+        # TODO Remove after moving ProcessorResult and UIEvent is created/implemented
+        if job.task == LESSONTASK.DIALOGUE:
+            self.send_sents_sig.emit(
+                lesson.lesson_parts.dialogue, lesson.check_dup_sents
+            )
+            LessonFileService().write_dialogue(lesson=lesson)
+        elif job.task == LESSONTASK.VOCAB:
+            self.send_words_sig.emit(lesson.lesson_parts.vocab, False)
+        elif job.task == LESSONTASK.EXPANSION:
+            self.send_sents_sig.emit(
+                lesson.lesson_parts.expansion, lesson.check_dup_sents
+            )
+        elif job.task == LESSONTASK.GRAMMAR:
+            self.send_sents_sig.emit(payload.sentences, lesson.check_dup_sents)
+        elif job.task == LESSONTASK.CHECK:
+            LessonFileService().write_lesson_parts(lesson=lesson)
 
     def update_completed_tasks(self, task: LESSONTASK):
         self.completed_tasks.add(task)
@@ -261,32 +259,6 @@ class CPodLessonPipeline(BaseLessonPipeline):
     ):
         self.lesson.task = lesson_task
         self.lesson.status = lesson_status
-
-    # def combine_audio(self, lesson: Lesson, payload):
-
-    ## PROCESSOR HANDLERS
-    def process_lesson_info(self, lesson: Lesson, payload: LessonTaskPayload):
-        CPodLessonInfoProcessor().apply(lesson=lesson, payload=payload)
-
-    def process_dialogue(self, lesson: Lesson, payload: LessonTaskPayload):
-        CPodLessonDialogueProcessor().apply(lesson=lesson, payload=payload)
-        self.send_sents_sig.emit(lesson.lesson_parts.dialogue, lesson.check_dup_sents)
-        LessonFileService().write_dialogue(lesson=lesson)
-
-    def process_vocab(self, lesson: Lesson, payload: LessonTaskPayload):
-        CPodLessonVocabProcessor().apply(lesson=lesson, payload=payload)
-        self.send_words_sig.emit(lesson.lesson_parts.vocab, False)
-
-    def process_expansion(self, lesson: Lesson, payload: LessonTaskPayload):
-        CPodLessonExpansionProcessor().apply(lesson=lesson, payload=payload)
-        self.send_sents_sig.emit(lesson.lesson_parts.expansion, lesson.check_dup_sents)
-
-    def process_grammar(self, lesson: Lesson, payload: LessonTaskPayload):
-        CPodLessonGrammarProcessor().apply(lesson=lesson, payload=payload)
-        self.send_sents_sig.emit(payload.sentences, lesson.check_dup_sents)
-
-    def process_check(self, lesson: Lesson, payload: LessonTaskPayload):
-        LessonFileService().write_lesson_parts(lesson=lesson)
 
     ## DISPATCH HANDLERS
 
