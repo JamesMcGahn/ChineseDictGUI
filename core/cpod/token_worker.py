@@ -15,6 +15,26 @@ class TokenWorker(PlaywrightBase):
         super().__init__()
         self.bearer = None
 
+    def log_in(self, page):
+        try:
+            email = page.locator('input[placeholder="Email"]')
+            password = page.locator('input[placeholder="Password"]')
+            email.wait_for(state="visible", timeout=10_000)
+            password.wait_for(state="visible", timeout=10_000)
+            if email.is_visible() and password.is_visible():
+                self.logging("TokenWorker: Login form visible")
+                email.fill(keys["email"], timeout=5_000)
+                password.fill(keys["password"], timeout=5_000)
+                password.press("Enter")
+                self.logging("TokenWorker: Trying to Log In...")
+                page.wait_for_url("https://www.chinesepod.com/home", timeout=15_000)
+                self.logging("TokenWorker: Successfully Logged in")
+                return True
+            else:
+                return False
+        except PWTimeoutError:
+            return False
+
     def do_work(self, page):
         self.logging("TokenWorker: Going to https://www.chinesepod.com/")
         page.goto("https://www.chinesepod.com/", wait_until="domcontentloaded")
@@ -22,36 +42,16 @@ class TokenWorker(PlaywrightBase):
         page.goto("https://www.chinesepod.com/home", wait_until="domcontentloaded")
 
         self.logging("TokenWorker: Waiting for Login Form")
-        page.wait_for_timeout(1_000)
+        page.wait_for_timeout(5_000)
+        filled = False
+        for _ in range(3):
+            if filled:
+                break
+            else:
+                filled = self.log_in(page)
 
-        email = page.locator('input[placeholder="Email"]')
-        password = page.locator('input[placeholder="Password"]')
-        for locator, value in ((email, keys["email"]), (password, keys["password"])):
-            filled = False
-            for fill_attempt in range(3):
-                try:
-                    locator.wait_for(state="visible", timeout=10_000)
-                    locator.click(timeout=5_000)
-                    locator.fill(value, timeout=5_000)
-                    filled = True
-                    break
-                except PWTimeoutError:
-                    self.logging(
-                        f"TokenWorker: Failed login form fill attempt {fill_attempt +1}"
-                    )
-                    page.wait_for_timeout(3_000)
-            if not filled:
-                self.logging("TokenWorker: Failed fill in login form", "ERROR")
-                self.send_token.emit(self.bearer, False)
-                return
-        self.logging("TokenWorker: Login form visible and filled In.")
-        try:
-            self.logging("TokenWorker: Trying to Log In...")
-            submit_btn = page.locator(".btn-primary")
-            submit_btn.wait_for(state="visible", timeout=10_000)
-            submit_btn.click(timeout=5_000)
-        except PWTimeoutError:
-            self.logging("TokenWorker: Failed to log in.", "ERROR")
+        if not filled:
+            self.logging("TokenWorker: Failed to log in", "ERROR")
             self.send_token.emit(self.bearer, False)
             return
 
