@@ -5,8 +5,7 @@ from models.services import JobRef
 
 
 class BaseLessonPipeline(QObjectBase):
-    send_sents_sig = Signal(list, bool)
-    send_words_sig = Signal(list, bool)
+    ui_event = Signal(object)
     pipeline_finished = Signal(str)
 
     def process(self, input_data):

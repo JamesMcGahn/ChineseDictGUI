@@ -8,6 +8,7 @@ from .lesson_status import LESSONSTATUS
 from .lesson_task import LESSONTASK
 from .log_level import LOGLEVEL
 from .pipeline_jobtype import PIPELINEJOBTYPE
+from .ui_event_type import UIEVENTTYPE
 from .whisper_provider import WHISPERPROVIDER
 from .word_status import WORDSTATUS
 from .word_task import WORDTASK
@@ -26,4 +27,5 @@ __all__ = [
     "WORDTASK",
     "PIPELINEJOBTYPE",
     "LESSONPROVIDERS",
+    "UIEVENTTYPE",
 ]

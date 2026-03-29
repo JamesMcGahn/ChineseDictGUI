@@ -20,10 +20,11 @@ from base.enums import (
     LESSONLEVEL,
     LESSONSTATUS,
     LESSONTASK,
+    UIEVENTTYPE,
     WHISPERPROVIDER,
 )
 from core.scrapers.cpod.lessons import LessonScraperThread
-from models.core import LessonTaskPayload
+from models.core import LessonTaskPayload, UIEvent
 from models.dictionary import Lesson
 from models.pipelines import LessonPipelinePayload
 from models.services import (
@@ -47,8 +48,6 @@ from utils.files import PathManager
 
 class CPodLessonPipeline(BaseLessonPipeline):
     scraping_active = Signal(bool)
-    send_sents_sig = Signal(list, bool)
-    send_words_sig = Signal(list, bool)
 
     # TODO SERVICE CONTAINER?
     def __init__(
@@ -230,18 +229,39 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.processor.apply(task=job.task, lesson=self.lesson, payload=payload)
         # TODO Remove after moving ProcessorResult and UIEvent is created/implemented
         if job.task == LESSONTASK.DIALOGUE:
-            self.send_sents_sig.emit(
-                lesson.lesson_parts.dialogue, lesson.check_dup_sents
+            self.ui_event.emit(
+                UIEvent(
+                    type=UIEVENTTYPE.SENTENCES,
+                    data=lesson.lesson_parts.dialogue,
+                    check_duplicates=lesson.check_dup_sents,
+                )
             )
             LessonFileService().write_dialogue(lesson=lesson)
         elif job.task == LESSONTASK.VOCAB:
-            self.send_words_sig.emit(lesson.lesson_parts.vocab, False)
+            self.ui_event.emit(
+                UIEvent(
+                    type=UIEVENTTYPE.WORDS,
+                    data=lesson.lesson_parts.vocab,
+                    check_duplicates=False,
+                )
+            )
+
         elif job.task == LESSONTASK.EXPANSION:
-            self.send_sents_sig.emit(
-                lesson.lesson_parts.expansion, lesson.check_dup_sents
+            self.ui_event.emit(
+                UIEvent(
+                    type=UIEVENTTYPE.SENTENCES,
+                    data=lesson.lesson_parts.expansion,
+                    check_duplicates=lesson.check_dup_sents,
+                )
             )
         elif job.task == LESSONTASK.GRAMMAR:
-            self.send_sents_sig.emit(payload.sentences, lesson.check_dup_sents)
+            self.ui_event.emit(
+                UIEvent(
+                    type=UIEVENTTYPE.SENTENCES,
+                    data=payload.sentences,
+                    check_duplicates=lesson.check_dup_sents,
+                )
+            )
         elif job.task == LESSONTASK.CHECK:
             LessonFileService().write_lesson_parts(lesson=lesson)
 

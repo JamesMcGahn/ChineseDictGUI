@@ -24,8 +24,7 @@ from .lingq_workflow_manager import LingqWorkFlowManager
 # TODO move logic to pipeline
 class LessonPipelineManager(QObjectBase):
     scraping_active = Signal(bool)
-    send_sents_sig = Signal(list, bool)
-    send_words_sig = Signal(list, bool)
+    ui_event = Signal(object)
     on_task_completed = Signal(object, object)
 
     def __init__(
@@ -70,9 +69,9 @@ class LessonPipelineManager(QObjectBase):
         self.logging(f"LessonPipelineManager - {queue_id} - completed")
         self.current_pipeline = None
         if pipeline:
-            pipeline.send_sents_sig.disconnect(self.send_sents_sig)
+            pipeline.ui_event.disconnect(self.ui_event)
             pipeline.pipeline_finished.disconnect(self.on_pipeline_completed)
-            pipeline.send_words_sig.disconnect(self.send_words_sig)
+
         self.run_next()
 
     def run_next(self):
@@ -92,8 +91,7 @@ class LessonPipelineManager(QObjectBase):
             db=self.db,
         )
 
-        self.current_pipeline.send_sents_sig.connect(self.send_sents_sig)
-        self.current_pipeline.send_words_sig.connect(self.send_words_sig)
+        self.current_pipeline.ui_event.connect(self.ui_event)
         self.current_pipeline.pipeline_finished.connect(self.on_pipeline_completed)
 
         self.current_pipeline.process()

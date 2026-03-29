@@ -4,6 +4,7 @@ from PySide6.QtCore import QThread, Signal, Slot
 from PySide6.QtWidgets import QMessageBox
 
 from base import QWidgetBase
+from base.enums import UIEVENTTYPE
 from components.dialogs import (
     AddLessonsDialog,
     AddWordsDialog,
@@ -13,6 +14,7 @@ from components.dialogs import (
 from context import AppContext
 from core.scrapers.words.word_scrape_thread import WordScraperThread
 from db import DatabaseManager, DatabaseQueryThread
+from models.core import UIEvent
 from models.dictionary import Lesson, Sentence, Word
 from models.table import SentenceTableModel, WordTableModel
 from services.audio import AudioThread, CombineAudioThread, WhisperThread
@@ -20,6 +22,8 @@ from services.network import TokenManager
 from utils.files import PathManager
 
 from .page_lessons_ui import PageLessonsView
+
+# TODO: CLEAN UP : Remove OLD DB ACCESS
 
 
 class PageLessons(QWidgetBase):
@@ -36,10 +40,10 @@ class PageLessons(QWidgetBase):
         self.ctx.lesson_pipeline_manager.scraping_active.connect(
             self.set_button_disabled
         )
-        self.ctx.lesson_pipeline_manager.send_words_sig.connect(
+        self.ctx.lesson_pipeline_manager.ui_event.connect(
             self.get_words_from_sthread_loop
         )
-        self.ctx.lesson_pipeline_manager.send_sents_sig.connect(
+        self.ctx.lesson_pipeline_manager.ui_event.connect(
             self.get_sentences_from_thread_loop
         )
 
@@ -169,22 +173,25 @@ class PageLessons(QWidgetBase):
             self.use_cpod_def_sig.emit(False)
 
     @Slot(object)
-    def get_words_from_sthread_loop(self, words):
-        print("page-word-received", len(words))
-        if len(words) == 0:
+    def get_words_from_sthread_loop(self, event: UIEvent):
+        if event.type != UIEVENTTYPE.WORDS:
             return
-        else:
+        self.logging(f"Lesson Page: Received {len(event.data)} Words")
+
+        if event.check_duplicates:
             # dup_check = "".join(f"{word.chinese}" for word in words)
             self.check_word_duplicates = DatabaseQueryThread(
-                "words", "check_for_duplicate_words", words=words
+                "words", "check_for_duplicate_words", words=event.data
             )
             self.check_word_duplicates.start()
             self.check_word_duplicates.result.connect(
-                lambda result: self.receive_duplicates(result, words)
+                lambda result: self.receive_duplicates(result, event.data)
             )
             self.check_word_duplicates.finished.connect(
                 self.check_word_duplicates.deleteLater
             )
+        else:
+            [self.table_wordmodel.add_word(x) for x in event.data]
 
     def receive_duplicates(self, result, words):
         unique_words = [word for word in words if word.chinese not in result]
@@ -253,21 +260,25 @@ class PageLessons(QWidgetBase):
             self.updated_sents_levels_sig.emit(False, levels)
 
     @Slot(list)
-    def get_sentences_from_thread_loop(self, sentences, check_for_dups):
-        print("received senteces", len(sentences))
-        if check_for_dups:
+    def get_sentences_from_thread_loop(self, event: UIEvent):
+        if event.type != UIEVENTTYPE.SENTENCES:
+            return
+
+        self.logging(f"Lesson Page: Received {len(event.data)} Sentences")
+
+        if event.check_duplicates:
             self.check_sentences_duplicates = DatabaseQueryThread(
-                "sents", "check_for_duplicate_sentences", sentences=sentences
+                "sents", "check_for_duplicate_sentences", sentences=event.data
             )
             self.check_sentences_duplicates.start()
             self.check_sentences_duplicates.result.connect(
-                lambda result: self.receive_duplicate_sentences(result, sentences)
+                lambda result: self.receive_duplicate_sentences(result, event.data)
             )
             self.check_sentences_duplicates.finished.connect(
                 self.check_sentences_duplicates.deleteLater
             )
         else:
-            self.receive_duplicate_sentences([], sentences)
+            self.receive_duplicate_sentences([], event.data)
 
     def receive_duplicate_sentences(self, result, sentences):
         unique_sentences = [
