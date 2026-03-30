@@ -13,7 +13,7 @@ from services.managers import (
     AudioDownloadManager,
     DatabaseServiceManager,
     FFmpegTaskManager,
-    LessonWorkFlowManager,
+    LessonPipelineManager,
     LingqWorkFlowManager,
 )
 from services.network import SessionManager, TokenManager
@@ -41,7 +41,7 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.ffmpeg_task_manager = FFmpegTaskManager()
         self.audio_download_manager = AudioDownloadManager()
         self.lingq_workflow_manager = LingqWorkFlowManager()
-        self.lesson_workflow_manager = LessonWorkFlowManager(
+        self.lesson_pipeline_manager = LessonPipelineManager(
             self.audio_download_manager,
             self.ffmpeg_task_manager,
             self.lingq_workflow_manager,
