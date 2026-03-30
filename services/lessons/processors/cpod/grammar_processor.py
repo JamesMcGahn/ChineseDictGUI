@@ -1,5 +1,8 @@
-from models.core import LessonTaskPayload
+from base.enums import UIEVENTTYPE
+from models.core import LessonTaskPayload, UIEvent
 from models.dictionary import Lesson
+from models.pipelines import EmitUIEventAction
+from models.services import ProcessorResponse
 
 from ..base_lesson_processor import BaseLessonProcessor
 
@@ -10,3 +13,14 @@ class CPodLessonGrammarProcessor(BaseLessonProcessor):
         sentences = payload.sentences
         lesson.lesson_parts.grammar = grammar_points
         lesson.lesson_parts.all_sentences.extend(sentences)
+        return ProcessorResponse(
+            actions=[
+                EmitUIEventAction(
+                    event=UIEvent(
+                        type=UIEVENTTYPE.SENTENCES,
+                        data=sentences,
+                        check_duplicates=lesson.check_dup_sents,
+                    )
+                )
+            ]
+        )

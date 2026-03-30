@@ -1,6 +1,7 @@
 from base.enums import LESSONAUDIO
 from models.core import LessonTaskPayload
 from models.dictionary import Lesson, LessonAudio
+from models.services import ProcessorResponse
 
 from ..base_lesson_processor import BaseLessonProcessor
 
@@ -41,3 +42,5 @@ class CPodLessonInfoProcessor(BaseLessonProcessor):
         )
         lesson.lesson_parts.lesson_audios.append(dialogue_audio)
         lesson.lesson_parts.lesson_audios.append(lesson_audio)
+
+        return ProcessorResponse()

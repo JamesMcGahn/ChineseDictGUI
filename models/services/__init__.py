@@ -7,6 +7,7 @@ from .job_ref import JobRef
 from .lesson_work_flow_request import LessonWorkFlowRequest
 from .lingq_lesson_payload import LingqLessonPayload
 from .network_response import NetworkResponse
+from .processor_response import ProcessorResponse
 from .whisper_payload import WhisperPayload
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "NetworkResponse",
     "CPodLessonPayload",
     "LessonWorkFlowRequest",
+    "ProcessorResponse",
 ]
