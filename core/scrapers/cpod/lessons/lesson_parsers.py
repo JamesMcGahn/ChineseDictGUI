@@ -109,6 +109,9 @@ def parse_expansion(lesson: Lesson, res_data) -> LessonTaskPayload:
     sentences = []
     if res_data:
         for section in res_data:
+            if "examples" not in section:
+                continue
+
             for sentence in section["examples"]:
                 audio_path = sentence["audio"]
                 audio = build_audio_url(lesson=lesson, path=audio_path)
@@ -130,6 +133,8 @@ def parse_grammar(lesson: Lesson, res_data) -> LessonTaskPayload:
     sentences = []
     if res_data:
         for section in res_data:
+            if "grammar" not in section:
+                continue
 
             grammar_point = GrammarPoint(
                 name=section["grammar"]["name"],
