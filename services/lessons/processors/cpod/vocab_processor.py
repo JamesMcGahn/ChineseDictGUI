@@ -1,7 +1,7 @@
 from base.enums import UIEVENTTYPE
 from models.core import LessonTaskPayload, UIEvent
 from models.dictionary import Lesson
-from models.pipelines import EmitUIEventAction, FileWriteServiceAction
+from models.pipelines import EmitUIEventAction, WriteWordsAction
 from models.services import ProcessorResponse
 
 from ..base_lesson_processor import BaseLessonProcessor
@@ -16,11 +16,16 @@ class CPodLessonVocabProcessor(BaseLessonProcessor):
             actions=[
                 EmitUIEventAction(
                     event=UIEvent(
-                        type=UIEVENTTYPE.WORDS,
+                        event_type=UIEVENTTYPE.WORDS,
                         data=words,
                         check_duplicates=lesson.check_dup_sents,
                     )
                 ),
-                FileWriteServiceAction(),
+                WriteWordsAction(
+                    write_path=lesson.storage_path,
+                    file_name="vocab.txt",
+                    header="词汇:",
+                    data=words,
+                ),
             ]
         )

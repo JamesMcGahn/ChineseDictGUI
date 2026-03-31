@@ -20,13 +20,16 @@ from base.enums import (
     LESSONLEVEL,
     LESSONSTATUS,
     LESSONTASK,
-    UIEVENTTYPE,
     WHISPERPROVIDER,
 )
 from core.scrapers.cpod.lessons import LessonScraperThread
-from models.core import LessonTaskPayload, UIEvent
 from models.dictionary import Lesson
-from models.pipelines import LessonPipelinePayload
+from models.pipelines import (
+    EmitUIEventAction,
+    FileWriteAction,
+    LessonPipelinePayload,
+    PipelineAction,
+)
 from models.services import (
     AudioDownloadPayload,
     CombineAudioPayload,
@@ -74,6 +77,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.queue_id = None
         self.lesson = None
         self.processor = CpodLessonProcessor()
+        self.writer = LessonFileService()
 
         self.ffmpeg_task_manager.task_complete.connect(self.on_task_completed)
         self.audio_download_manager.task_complete.connect(self.on_task_completed)
@@ -132,6 +136,11 @@ class CPodLessonPipeline(BaseLessonPipeline):
             LESSONTASK.TRANSCRIBE: self.dispatch_transcribe_lesson,
             LESSONTASK.LINGQ_SENTS: self.dispatch_lingq_sents,
             LESSONTASK.LINGQ_DIALOGUE: self.dispatch_lingq_dialogue,
+        }
+
+        self.action_map = {
+            FileWriteAction: self.writer.write_file,
+            EmitUIEventAction: self.handle_ui_event_action,
         }
 
     def process(self):
@@ -226,44 +235,27 @@ class CPodLessonPipeline(BaseLessonPipeline):
         # FEATURE : allow for threshold of number of errors, setting
 
     def handle_success(self, job: JobRef, payload, lesson: Lesson):
-        self.processor.apply(task=job.task, lesson=self.lesson, payload=payload)
-        # TODO Remove after moving ProcessorResult and UIEvent is created/implemented
-        if job.task == LESSONTASK.DIALOGUE:
-            self.ui_event.emit(
-                UIEvent(
-                    type=UIEVENTTYPE.SENTENCES,
-                    data=lesson.lesson_parts.dialogue,
-                    check_duplicates=lesson.check_dup_sents,
-                )
-            )
-            LessonFileService().write_dialogue(lesson=lesson)
-        elif job.task == LESSONTASK.VOCAB:
-            self.ui_event.emit(
-                UIEvent(
-                    type=UIEVENTTYPE.WORDS,
-                    data=lesson.lesson_parts.vocab,
-                    check_duplicates=False,
-                )
-            )
+        self.update_completed_tasks(job.task)
+        processor_response = self.processor.apply(
+            task=job.task, lesson=self.lesson, payload=payload
+        )
+        self.execute_actions(actions=processor_response.actions)
 
-        elif job.task == LESSONTASK.EXPANSION:
-            self.ui_event.emit(
-                UIEvent(
-                    type=UIEVENTTYPE.SENTENCES,
-                    data=lesson.lesson_parts.expansion,
-                    check_duplicates=lesson.check_dup_sents,
-                )
-            )
-        elif job.task == LESSONTASK.GRAMMAR:
-            self.ui_event.emit(
-                UIEvent(
-                    type=UIEVENTTYPE.SENTENCES,
-                    data=payload.sentences,
-                    check_duplicates=lesson.check_dup_sents,
-                )
-            )
-        elif job.task == LESSONTASK.CHECK:
-            LessonFileService().write_lesson_parts(lesson=lesson)
+    def execute_actions(self, actions: list[PipelineAction]):
+        for action in actions:
+            self.execute_action(action=action)
+
+    def execute_action(self, action: PipelineAction):
+        for action_type, handler in self.action_map.items():
+            if isinstance(action, action_type):
+                return handler(action)
+        self.logging(
+            f"{self.__class__.__name__}: {type(action)} has not been implemented as an action."
+        )
+        raise NotImplementedError
+
+    def handle_ui_event_action(self, action: EmitUIEventAction):
+        self.ui_event.emit(action.event)
 
     def update_completed_tasks(self, task: LESSONTASK):
         self.completed_tasks.add(task)

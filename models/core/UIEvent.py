@@ -7,6 +7,6 @@ from ..dictionary import Sentence, Word
 
 @dataclass
 class UIEvent:
-    type: UIEVENTTYPE
+    event_type: UIEVENTTYPE
     data: list[Sentence] | list[Word] = field(default_factory=list)
     check_duplicates: bool = False

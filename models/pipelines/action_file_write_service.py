@@ -4,5 +4,6 @@ from .pipeline_action import PipelineAction
 
 
 @dataclass
-class FileWriteServiceAction(PipelineAction):
-    pass
+class FileWriteAction(PipelineAction):
+    write_path: str
+    file_name: str

@@ -1,7 +1,7 @@
 from base.enums import UIEVENTTYPE
 from models.core import LessonTaskPayload, UIEvent
 from models.dictionary import Lesson
-from models.pipelines import EmitUIEventAction
+from models.pipelines import EmitUIEventAction, WriteGrammarAction
 from models.services import ProcessorResponse
 
 from ..base_lesson_processor import BaseLessonProcessor
@@ -17,10 +17,16 @@ class CPodLessonGrammarProcessor(BaseLessonProcessor):
             actions=[
                 EmitUIEventAction(
                     event=UIEvent(
-                        type=UIEVENTTYPE.SENTENCES,
+                        event_type=UIEVENTTYPE.SENTENCES,
                         data=sentences,
                         check_duplicates=lesson.check_dup_sents,
                     )
-                )
+                ),
+                WriteGrammarAction(
+                    write_path=lesson.storage_path,
+                    file_name="grammar.txt",
+                    header="语法:",
+                    data=grammar_points,
+                ),
             ]
         )

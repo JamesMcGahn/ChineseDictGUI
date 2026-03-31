@@ -1,7 +1,7 @@
 from base.enums import UIEVENTTYPE
 from models.core import LessonTaskPayload, UIEvent
 from models.dictionary import Lesson
-from models.pipelines import EmitUIEventAction, FileWriteServiceAction
+from models.pipelines import EmitUIEventAction, WriteSentencesAction
 from models.services import ProcessorResponse
 
 from ..base_lesson_processor import BaseLessonProcessor
@@ -17,11 +17,16 @@ class CPodLessonDialogueProcessor(BaseLessonProcessor):
             actions=[
                 EmitUIEventAction(
                     event=UIEvent(
-                        type=UIEVENTTYPE.SENTENCES,
+                        event_type=UIEVENTTYPE.SENTENCES,
                         data=dialogue,
                         check_duplicates=lesson.check_dup_sents,
                     )
                 ),
-                FileWriteServiceAction(),
+                WriteSentencesAction(
+                    write_path=lesson.storage_path,
+                    file_name="dialogue.txt",
+                    header="对话:",
+                    data=dialogue,
+                ),
             ]
         )

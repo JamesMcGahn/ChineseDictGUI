@@ -174,7 +174,7 @@ class PageLessons(QWidgetBase):
 
     @Slot(object)
     def get_words_from_sthread_loop(self, event: UIEvent):
-        if event.type != UIEVENTTYPE.WORDS:
+        if event.event_type != UIEVENTTYPE.WORDS:
             return
         self.logging(f"Lesson Page: Received {len(event.data)} Words")
 
@@ -261,7 +261,7 @@ class PageLessons(QWidgetBase):
 
     @Slot(list)
     def get_sentences_from_thread_loop(self, event: UIEvent):
-        if event.type != UIEVENTTYPE.SENTENCES:
+        if event.event_type != UIEVENTTYPE.SENTENCES:
             return
 
         self.logging(f"Lesson Page: Received {len(event.data)} Sentences")
@@ -291,7 +291,7 @@ class PageLessons(QWidgetBase):
         # unique_words = "".join(f"{word.chinese}\n" for word in words)
 
         if len(unique_sentences) == 0:
-            print("No words to add")
+            print("No Sentences to add")
         else:
             # self.wdialog = AddWordsDialog(unique_words)
             # self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)

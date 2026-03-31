@@ -17,7 +17,7 @@ class CPodLessonExpansionProcessor(BaseLessonProcessor):
             actions=[
                 EmitUIEventAction(
                     event=UIEvent(
-                        type=UIEVENTTYPE.SENTENCES,
+                        event_type=UIEVENTTYPE.SENTENCES,
                         data=expansion,
                         check_duplicates=lesson.check_dup_sents,
                     )
