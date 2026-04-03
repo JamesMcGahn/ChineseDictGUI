@@ -6,24 +6,30 @@ from PySide6.QtCore import Signal, Slot
 
 from base import QWorkerBase
 from base.enums import JOBSTATUS
-from models.services import CombineAudioPayload, JobRef
+from models.services import (
+    CombineAudioPayload,
+    CombineAudioResponse,
+    JobRef,
+    JobRequest,
+    JobResponse,
+)
+from utils.files import PathManager
 
 
 class AudioCombineWorker(QWorkerBase):
-    finished = Signal(str)
     progress = Signal(str)
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
 
-    def __init__(self, job_ref: JobRef, payload: CombineAudioPayload):
+    def __init__(self, job: JobRequest[CombineAudioPayload]):
         super().__init__()
-        self.job_ref = job_ref
-        self.folder_path = payload.combine_folder_path
-        self.output_file_name = payload.export_file_name
-        self.output_file_folder = payload.export_path
-        self.project_name = payload.project_name
-        self.silence_ms = payload.delay_between_audio
+        self.job = job
+        self.folder_path = job.payload.combine_folder_path
+        self.output_file_name = job.payload.export_file_name
+        self.output_file_folder = job.payload.export_path
+        self.project_name = job.payload.project_name
+        self.silence_ms = job.payload.delay_between_audio
+        self.over_write = job.payload.over_write
         self._stopped = False
-        self.log_thread()
 
     def natural_sort_key(self, s: str):
         return [
@@ -34,6 +40,16 @@ class AudioCombineWorker(QWorkerBase):
     def do_work(self):
         self.log_thread()
         try:
+            output_path = os.path.join(self.output_file_folder, self.output_file_name)
+            path_exists = PathManager.path_exists(path=output_path, makepath=False)
+            if path_exists:
+                if self.over_write:
+                    os.remove(output_path)
+                else:
+                    raise FileExistsError(
+                        f"{output_path} already exists and overwrite is False"
+                    )
+
             files = [
                 f
                 for f in os.listdir(self.folder_path)
@@ -45,7 +61,17 @@ class AudioCombineWorker(QWorkerBase):
                 self.logging(
                     f"(Lesson: {self.project_name}) No audio files found.", "WARN"
                 )
-                self.finished.emit("")
+                self.task_complete.emit(
+                    JobResponse(
+                        job_ref=JobRef(
+                            id=self.job.id,
+                            task=self.job.task,
+                            status=JOBSTATUS.COMPLETE,
+                        ),
+                        payload=None,
+                    )
+                )
+                self.done.emit()
                 return
 
             combined = AudioSegment.empty()
@@ -57,7 +83,17 @@ class AudioCombineWorker(QWorkerBase):
                         f"(Lesson: {self.project_name}) Combine Audio process stopped",
                         "WARN",
                     )
-                    self.finished.emit()
+                    self.task_complete.emit(
+                        JobResponse(
+                            job_ref=JobRef(
+                                id=self.job.id,
+                                task=self.job.task,
+                                status=JOBSTATUS.COMPLETE,
+                            ),
+                            payload=None,
+                        )
+                    )
+                    self.done.emit()
                     return
 
                 filepath = os.path.join(self.folder_path, filename)
@@ -70,41 +106,42 @@ class AudioCombineWorker(QWorkerBase):
                     combined += spacer
 
             combined.export(
-                f"{self.output_file_folder}{self.output_file_name}",
+                output_path,
                 format="mp3",
                 bitrate="192k",
             )
             self.logging(
-                f"(Lesson: {self.project_name}) Saved combined audio to {self.output_file_folder}{self.output_file_name}",
+                f"(Lesson: {self.project_name}) Saved combined audio to {output_path}",
                 "INFO",
             )
 
-            self.finished.emit(self.output_file_name)
             self.task_complete.emit(
-                JobRef(
-                    id=self.job_ref.id,
-                    task=self.job_ref.task,
-                    status=JOBSTATUS.COMPLETE,
-                ),
-                {
-                    "filename": self.output_file_name,
-                    "path": self.output_file_folder,
-                    "message": "success",
-                },
+                JobResponse(
+                    job_ref=JobRef(
+                        id=self.job.id,
+                        task=self.job.task,
+                        status=JOBSTATUS.COMPLETE,
+                    ),
+                    payload=CombineAudioResponse(
+                        filename=self.output_file_name,
+                        path=self.output_file_folder,
+                        full_path=output_path,
+                    ),
+                )
             )
+            self.done.emit()
         except Exception as e:
-            self.logging(f"Error in CombineAudioWorker: {e}")
+            self.logging(f"{e}")
             self.task_complete.emit(
-                JobRef(
-                    id=self.job_ref.id,
-                    task=self.job_ref.task,
-                    status=JOBSTATUS.ERROR,
-                ),
-                {
-                    "filename": self.output_file_name,
-                    "path": self.output_file_folder,
-                    "message": f"{e}",
-                },
+                JobResponse(
+                    job_ref=JobRef(
+                        id=self.job.id,
+                        task=self.job.task,
+                        status=JOBSTATUS.ERROR,
+                        error=f"{e}",
+                    ),
+                    payload=None,
+                )
             )
 
     @Slot()

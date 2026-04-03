@@ -3,7 +3,7 @@ from typing import Any
 from PySide6.QtCore import Signal, Slot
 
 from base import QObjectBase
-from models.services import JobItem
+from models.services import JobRequest
 from models.services.database import DBJobPayload
 
 from ..database import DatabaseManager
@@ -13,7 +13,7 @@ from ..database.write.db_write_service import DBWriteService
 
 class DatabaseServiceManager(QObjectBase):
     appshutdown = Signal()
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
     add_to_write_queue = Signal(object)
 
     def __init__(self):
@@ -32,7 +32,7 @@ class DatabaseServiceManager(QObjectBase):
         return self.read_service
 
     @Slot(object, object)
-    def write(self, job: JobItem[DBJobPayload[Any]]):
+    def write(self, job: JobRequest[DBJobPayload[Any]]):
         self.add_to_write_queue.emit(job)
 
     def shut_down_write_service(self):

@@ -7,20 +7,27 @@ from PySide6.QtCore import QProcess, Signal, Slot
 
 from base import QWorkerBase
 from base.enums import JOBSTATUS, LOGLEVEL
-from models.services import JobRef, WhisperPayload
+from models.services import (
+    JobRef,
+    JobRequest,
+    JobResponse,
+    WhisperPayload,
+    WhisperResponse,
+)
 from utils.files import PathManager
 
 
 class OpenAIWhisperWorker(QWorkerBase):
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
 
-    def __init__(self, job_ref: JobRef, payload: WhisperPayload):
+    def __init__(self, job: JobRequest[WhisperPayload]):
         super().__init__()
-        self.job_ref = job_ref
-        self.folder = Path(payload.file_folder_path)
-        self.filename = payload.file_filename
-        self.language = payload.language
-        self.model_name = payload.model_name
+        self.job = job
+        self.folder = Path(job.payload.file_folder_path)
+        self.filename = job.payload.file_filename
+        self.language = job.payload.language
+        self.model_name = job.payload.model_name
+        self.initial_prompt = self.job.payload.initial_prompt
 
         self.path = None
         self.audio_length_sec = 0
@@ -30,13 +37,24 @@ class OpenAIWhisperWorker(QWorkerBase):
         return audio_exists
 
     def do_work(self):
+        self.log_thread()
         self.path = Path(self.folder, self.filename)
         audio_exists = self.check_path(self.path)
         if not audio_exists:
             self.logging(
                 f"No audio found in {self.folder}/{self.filename}", LOGLEVEL.ERROR
             )
-            self.finished.emit()
+            self.task_complete.emit(
+                JobResponse(
+                    job_ref=JobRef(
+                        id=self.job.id,
+                        task=self.job.task,
+                        status=JOBSTATUS.ERROR,
+                    ),
+                    payload=None,
+                )
+            )
+            self.done.emit()
             return
         else:
             self.audio_length_sec = self.get_audio_duration(self.path)
@@ -51,7 +69,7 @@ class OpenAIWhisperWorker(QWorkerBase):
                     "--language",
                     self.language,
                     "--initial_prompt",
-                    "Transcribe Mandarin in Simplified Chinese. Transcribe English in Standard English",
+                    self.initial_prompt,
                     "--output_format",
                     "txt",
                     "--output_dir",
@@ -63,7 +81,6 @@ class OpenAIWhisperWorker(QWorkerBase):
             self.process.readyReadStandardOutput.connect(self.on_stdout)
             self.process.readyReadStandardError.connect(self.on_stderr)
             self.process.finished.connect(self.on_finished)
-
             self.process.start()
 
     @Slot()
@@ -84,37 +101,42 @@ class OpenAIWhisperWorker(QWorkerBase):
                 f"{progress_ts}% Percent done - Transcribing {self.filename}",
                 LOGLEVEL.INFO,
             )
-
-        self.logging(f"OpenAI Whisper: {text.strip()}", LOGLEVEL.INFO)
+        else:
+            self.logging(f"OpenAI Whisper: {text.strip()}", LOGLEVEL.INFO)
 
     @Slot(int, QProcess.ExitStatus)
     def on_finished(self, code, status):
         if code == 0 and status == QProcess.ExitStatus.NormalExit:
             self.logging(f"100% Percent done - Transcribing {self.filename}")
-
+            out_file = self.path.with_suffix(".txt")
             self.task_complete.emit(
-                JobRef(
-                    id=self.job_ref.id,
-                    task=self.job_ref.task,
-                    status=JOBSTATUS.COMPLETE,
-                ),
-                {
-                    "path": self.path.with_suffix(".txt"),
-                },
+                JobResponse(
+                    job_ref=JobRef(
+                        id=self.job.id,
+                        task=self.job.task,
+                        status=JOBSTATUS.COMPLETE,
+                    ),
+                    payload=WhisperResponse(
+                        filename=out_file.name,
+                        path=self.folder,
+                        full_path=str(self.path.with_suffix(".txt")),
+                    ),
+                )
             )
-        if code == 1:
+        else:
             self.task_complete.emit(
-                JobRef(
-                    id=self.job_ref.id,
-                    task=self.job_ref.task,
-                    status=JOBSTATUS.ERROR,
-                ),
-                {
-                    "path": None,
-                },
+                JobResponse(
+                    job_ref=JobRef(
+                        id=self.job.id,
+                        task=self.job.task,
+                        status=JOBSTATUS.ERROR,
+                        error=f"Whisper failed with code {code}",
+                    ),
+                    payload=None,
+                )
             )
         self.logging(f"OpenAI has finished with code: {code} - status: {status}")
-        self.finished.emit()
+        self.done.emit()
 
     def parse_timestamp(self, ts):
         # Matches timestamps like 00:03.800 or 01:26.480
@@ -139,7 +161,6 @@ class OpenAIWhisperWorker(QWorkerBase):
             text=True,
         )
         info = json.loads(result.stdout)
-        print(info)
         return float(info["format"]["duration"])
 
     @Slot()

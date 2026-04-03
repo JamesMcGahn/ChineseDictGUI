@@ -7,6 +7,7 @@ from models.services import NetworkResponse
 from .session_manager import SessionManager
 
 
+# TODO change finished signal to done
 class NetworkWorker(QObjectBase):
     finished = Signal()
     response = Signal(object)

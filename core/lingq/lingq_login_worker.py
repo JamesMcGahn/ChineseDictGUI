@@ -61,4 +61,4 @@ class LingqLoginWorker(QWorkerBase):
         else:
             self.logging(f"Error logging to Lingq: {res.status}", "ERROR")
             self.lingq_logged_in.emit(False)
-        self.finished.emit()
+        self.done.emit()

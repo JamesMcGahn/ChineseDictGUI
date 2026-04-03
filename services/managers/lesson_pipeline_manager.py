@@ -25,7 +25,6 @@ from .lingq_workflow_manager import LingqWorkFlowManager
 class LessonPipelineManager(QObjectBase):
     scraping_active = Signal(bool)
     ui_event = Signal(object)
-    on_task_completed = Signal(object, object)
 
     def __init__(
         self,

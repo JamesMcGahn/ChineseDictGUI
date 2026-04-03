@@ -5,7 +5,7 @@ from PySide6.QtCore import Signal, Slot
 from base import QObjectBase, ThreadQueueManager
 from db import DatabaseQueryThread
 from models.dictionary import Sentence, Word
-from models.services import AudioDownloadPayload, JobItem
+from models.services import AudioDownloadPayload, JobRequest
 from services.audio import AudioThread
 
 # TODO update db code when context db thread is built out
@@ -13,14 +13,14 @@ from services.audio import AudioThread
 
 class AudioDownloadManager(QObjectBase):
     appshutdown = Signal()
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
 
     def __init__(self):
         super().__init__()
         self.queue_manager = ThreadQueueManager("Audio Download")
 
     @Slot(list)
-    def download_audio(self, job: JobItem[AudioDownloadPayload]):
+    def download_audio(self, job: JobRequest[AudioDownloadPayload]):
         audio_thread = AudioThread(job=job)
         if job.payload.update_db:
             audio_thread.updateAnkiAudio.connect(self.update_anki_audio)

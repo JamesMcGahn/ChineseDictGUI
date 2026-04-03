@@ -14,7 +14,13 @@ from base.enums import (
 from keys import keys
 from models.core import LessonTaskPayload
 from models.dictionary import Lesson
-from models.services import CPodLessonPayload, JobItem, JobRef, NetworkResponse
+from models.services import (
+    CPodLessonPayload,
+    JobRef,
+    JobRequest,
+    JobResponse,
+    NetworkResponse,
+)
 from services.network import NetworkWorker
 
 from .lesson_parsers import (
@@ -28,14 +34,13 @@ from .lesson_parsers import (
 
 
 class LessonScraperWorkerV2(QWorkerBase):
-    finished = Signal()
     request_token = Signal()
     lesson_status = Signal(object)
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
 
     def __init__(
         self,
-        lesson_list: list[JobItem[CPodLessonPayload]],
+        lesson_list: list[JobRequest[CPodLessonPayload]],
         mutex,
         wait_condition,
         parent_thread,
@@ -90,9 +95,7 @@ class LessonScraperWorkerV2(QWorkerBase):
 
     def wait_time(self, range, fn):
         random = randint(*range)
-        self.logging(
-            f"LessonWorker: Waiting {random} secs before sending out next request."
-        )
+        self.logging(f"Waiting {random} secs before sending out next request.")
         QTimer.singleShot(random * 1000, fn)
 
     def send_status_update(self, status: LESSONSTATUS, task: LESSONTASK):
@@ -112,12 +115,14 @@ class LessonScraperWorkerV2(QWorkerBase):
             payload = LessonTaskPayload(success=not error)
 
         self.task_complete.emit(
-            JobRef(
-                id=self.current_lesson.queue_id,
-                task=task,
-                status=(JOBSTATUS.COMPLETE if not error else JOBSTATUS.ERROR),
-            ),
-            payload,
+            JobResponse(
+                job_ref=JobRef(
+                    id=self.current_lesson.queue_id,
+                    task=task,
+                    status=(JOBSTATUS.COMPLETE if not error else JOBSTATUS.ERROR),
+                ),
+                payload=payload,
+            )
         )
 
     def get_next_lesson(self):
@@ -133,7 +138,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         if self.lesson_list:
             with QMutexLocker(self._mutex):
                 if self.parent_thread._stop:
-                    self.finished.emit()
+                    self.done.emit()
 
                 while self.parent_thread._paused:
                     self._wait_condition.wait(self._mutex)
@@ -167,10 +172,9 @@ class LessonScraperWorkerV2(QWorkerBase):
 
         else:
             self.logging(
-                f"LessonWorker: Finished getting all lessons. Completed: {len(self.completed_lessons)} Errored: {len(self.errored_lessons)} "
+                f"Finished getting all lessons. Completed: {len(self.completed_lessons)} Errored: {len(self.errored_lessons)} "
             )
-            # TODO send completed LESSONS and ERRORED LESSONS
-            self.finished.emit()
+            self.done.emit()
 
     def dispatch(self, task: LESSONTASK, error=False):
         self.send_status_update(LESSONSTATUS.IN_PROGRESS, task)
@@ -240,7 +244,7 @@ class LessonScraperWorkerV2(QWorkerBase):
 
     def get_lesson_info(self):
         slug = self.current_lesson.slug
-        self.logging(f"LessonWorker: Getting Lesson Info for - {slug}")
+        self.logging(f"Getting Lesson Info for - {slug}")
 
         self.create_networker(
             "lesson-info",
@@ -250,7 +254,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         )
 
     def lesson_info_received(self, res: NetworkResponse):
-        self.logging("LessonWorker: Recieved Response for Lesson Info")
+        self.logging("Recieved Response for Lesson Info")
         if res.ok:
             payload = parse_lesson_info(res.data)
             if payload.lesson_info is None:
@@ -281,7 +285,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         )
 
     def dialogue_received(self, res: NetworkResponse):
-        self.logging("LessonWorker: Received Response for Dialog")
+        self.logging("Received Response for Dialog")
         if res.ok:
             payload = parse_dialogue(lesson=self.current_lesson, res_data=res.data)
 
@@ -304,7 +308,7 @@ class LessonScraperWorkerV2(QWorkerBase):
             self.on_task_complete(LESSONTASK.DIALOGUE, False)
 
     def get_lesson_vocab(self):
-        self.logging("LessonWorker: Getting Vocabulary for Lesson")
+        self.logging("Getting Vocabulary for Lesson")
         self.create_networker(
             "vocab",
             "GET",
@@ -313,7 +317,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         )
 
     def vocab_received(self, res: NetworkResponse):
-        self.logging("LessonWorker: Received Vocab Response for Lesson")
+        self.logging("Received Vocab Response for Lesson")
         if res.ok:
             payload = parse_vocab(lesson=self.current_lesson, res_data=res.data)
 
@@ -331,13 +335,13 @@ class LessonScraperWorkerV2(QWorkerBase):
             self.on_task_complete(LESSONTASK.VOCAB, True)
         else:
             self.logging(
-                f"LessonWorker: Error recieving Vocab - {res.status} - {res.message}",
+                f"Error recieving Vocab - {res.status} - {res.message}",
                 LOGLEVEL.WARN,
             )
             self.on_task_complete(LESSONTASK.VOCAB, False)
 
     def get_expansion(self):
-        self.logging("LessonWorker: Getting Expansion for Lesson")
+        self.logging("Getting Expansion for Lesson")
         self.create_networker(
             "expansion",
             "GET",
@@ -346,7 +350,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         )
 
     def expansion_received(self, res: NetworkResponse):
-        self.logging("LessonWorker: Received Expansion Response")
+        self.logging("Received Expansion Response")
         if res.ok:
             payload = parse_expansion(lesson=self.current_lesson, res_data=res.data)
             if not payload.sentences:
@@ -369,7 +373,7 @@ class LessonScraperWorkerV2(QWorkerBase):
             self.on_task_complete(LESSONTASK.EXPANSION, False)
 
     def get_grammar(self):
-        self.logging("LessonWorker: Getting Grammar for Lesson")
+        self.logging("Getting Grammar for Lesson")
         self.create_networker(
             "grammar",
             "GET",
@@ -378,7 +382,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         )
 
     def grammar_received(self, res: NetworkResponse):
-        self.logging("LessonWorker: Received Grammar Response for Lesson")
+        self.logging("Received Grammar Response for Lesson")
         if res.ok:
             payload = parse_grammar(lesson=self.current_lesson, res_data=res.data)
             if not payload.sentences:
@@ -395,12 +399,10 @@ class LessonScraperWorkerV2(QWorkerBase):
             self.on_task_complete(LESSONTASK.GRAMMAR, True)
         else:
             self.logging(
-                f"LessonWorker: Error recieving Grammar - {res.status} - {res.message}",
+                f"Error recieving Grammar - {res.status} - {res.message}",
                 LOGLEVEL.ERROR,
             )
             self.on_task_complete(LESSONTASK.GRAMMAR, False)
-
-        # self.wait_time(self.wait_time_between_reqs, self.check_lesson_complete)
 
     def check_lesson_complete(self):
         if self.current_lesson_checked or not self.current_lesson.lesson_id:
@@ -447,7 +449,5 @@ class LessonScraperWorkerV2(QWorkerBase):
                 self.completed_lessons.append(self.current_lesson)
 
         wait_time = randint(10, 90) if self.lesson_list else 0
-        self.logging(
-            f"LessonWorker: Waiting {wait_time} seconds before scraping next lesson."
-        )
+        self.logging(f"Waiting {wait_time} seconds before scraping next lesson.")
         QTimer.singleShot(wait_time * 1000, self.get_next_lesson)

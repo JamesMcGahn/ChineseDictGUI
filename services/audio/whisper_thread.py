@@ -4,7 +4,7 @@ from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QThreadBase
 from base.enums import WHISPERPROVIDER
-from models.services import JobRef, WhisperPayload
+from models.services import JobRequest, WhisperPayload
 
 from .faster_whisper_worker import FasterWhisperWorker
 from .open_ai_whisper_worker import OpenAIWhisperWorker
@@ -12,22 +12,18 @@ from .open_ai_whisper_worker import OpenAIWhisperWorker
 
 class WhisperThread(QThreadBase):
     stop_worker = Signal()
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
 
-    def __init__(self, job_ref: JobRef, payload: WhisperPayload):
+    def __init__(self, job: JobRequest[WhisperPayload]):
         super().__init__()
-        self.job_ref = job_ref
-        self.payload = payload
+        self.job = job
 
     def run(self):
-        if self.payload.provider == WHISPERPROVIDER.FASTER_WHISPER:
-            self.worker = FasterWhisperWorker(
-                job_ref=self.job_ref, payload=self.payload
-            )
-        elif self.payload.provider == WHISPERPROVIDER.WHISPER:
-            self.worker = OpenAIWhisperWorker(
-                job_ref=self.job_ref, payload=self.payload
-            )
+        self.log_thread()
+        if self.job.payload.provider == WHISPERPROVIDER.FASTER_WHISPER:
+            self.worker = FasterWhisperWorker(job=self.job)
+        elif self.job.payload.provider == WHISPERPROVIDER.WHISPER:
+            self.worker = OpenAIWhisperWorker(job=self.job)
         else:
             self.logging("Incorrect Whisper Provider selected. Ending Thread", "WARN")
             self.done.emit()
@@ -35,8 +31,8 @@ class WhisperThread(QThreadBase):
 
         self.worker.moveToThread(self)
         self.stop_worker.connect(self.worker.stop)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.worker.finished.connect(self.done)
+        self.worker.done.connect(self.worker.deleteLater)
+        self.worker.done.connect(self.done)
         self.worker.task_complete.connect(self.task_complete)
         QTimer.singleShot(0, self.worker.do_work)
         self.exec()

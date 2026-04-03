@@ -8,15 +8,15 @@ from PySide6.QtCore import (
 )
 
 from base import QThreadBase
-from models.services import JobItem, LingqLessonPayload
+from models.services import JobRequest, LingqLessonPayload
 
 from .lingq_lesson_worker import LingqLessonWorker
 
 
 class LessonLingqLessonThread(QThreadBase):
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
 
-    def __init__(self, jobs: list[JobItem[LingqLessonPayload]]):
+    def __init__(self, jobs: list[JobRequest[LingqLessonPayload]]):
         super().__init__()
         self.jobs = jobs
         self._mutex = QMutex()
@@ -35,7 +35,7 @@ class LessonLingqLessonThread(QThreadBase):
             self,
         )
         self.worker.moveToThread(self)
-        self.worker.finished.connect(self.worker_finished)
+        self.worker.done.connect(self.worker_finished)
         self.worker.task_complete.connect(self.task_complete)
         QTimer.singleShot(0, self.worker.do_work)
         self.exec()

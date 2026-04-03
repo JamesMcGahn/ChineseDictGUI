@@ -1,8 +1,6 @@
 from PySide6.QtCore import Signal
 
 from models.dictionary import AnkiIntegration
-from models.services.database import DBResponse
-from models.services.database.read import GetByID
 
 from ..dals import AnkiIntegrationDAL
 from .base_read_service import BaseReadService
@@ -28,7 +26,4 @@ class AnkiIntegrationReadService(BaseReadService[AnkiIntegration]):
                 initial_import_done=initialSyncDone,
                 id=id,
             )
-        return DBResponse(
-            ok=True,
-            data=GetByID(data=item),
-        )
+        return item

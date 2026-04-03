@@ -11,3 +11,4 @@ class JobRef:
     id: str
     task: LESSONTASK
     status: JOBSTATUS
+    error: str | None = None

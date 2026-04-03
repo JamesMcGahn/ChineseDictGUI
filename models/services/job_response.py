@@ -1,14 +1,13 @@
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from base.enums import LESSONTASK
+from .job_ref import JobRef
 
 P = TypeVar("P")
 
 
 # Command
 @dataclass(frozen=True)
-class JobItem(Generic[P]):
-    id: str
-    task: LESSONTASK
-    payload: P
+class JobResponse(Generic[P]):
+    job_ref: JobRef
+    payload: P | None = None

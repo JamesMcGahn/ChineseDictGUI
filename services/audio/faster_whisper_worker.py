@@ -5,23 +5,30 @@ from PySide6.QtCore import Signal, Slot
 
 from base import QWorkerBase
 from base.enums import JOBSTATUS
-from models.services import FasterWhisperOptions, JobRef, WhisperPayload
+from models.services import (
+    FasterWhisperOptions,
+    JobRef,
+    JobRequest,
+    JobResponse,
+    WhisperPayload,
+    WhisperResponse,
+)
 from utils.files import PathManager
 
 
 class FasterWhisperWorker(QWorkerBase):
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
 
-    def __init__(self, job_ref: JobRef, payload: WhisperPayload):
+    def __init__(self, job: JobRequest[WhisperPayload]):
         super().__init__()
-        self.job_ref = job_ref
-        self.folder = Path(payload.file_folder_path)
-        self.filename = payload.file_filename
-        self.language = payload.language
-        self.model_name = payload.model_name
+        self.job = job
+        self.folder = Path(job.payload.file_folder_path)
+        self.filename = job.payload.file_filename
+        self.language = job.payload.language
+        self.model_name = job.payload.model_name
         self._stopped = False
 
-        options = payload.options
+        options = job.payload.options
         if options is None:
             options = FasterWhisperOptions()
 
@@ -29,35 +36,36 @@ class FasterWhisperWorker(QWorkerBase):
         self.beam_size = options.beam_size
         self.min_silence_ms = options.min_silence_ms
         self.chunk_length = options.chunk_length
-        self.initial_prompt = payload.initial_prompt
+        self.initial_prompt = job.payload.initial_prompt
         self.on_previous_text = options.on_previous_text
         self.vad_filter = options.vad_filter
         self.multilingual = options.multilingual
 
     @Slot()
     def do_work(self):
+        self.log_thread()
         try:
-            print("in whisper worker")
             audio_exists = PathManager.path_exists(
                 f"{self.folder}/{self.filename}", False
             )
 
-            print("in whisper worker", audio_exists)
             if not audio_exists:
                 self.logging(
-                    f"No audio found in {self.folder}/{self.filename}", "ERROR"
+                    f"No audio found in {self.folder}/{self.filename}",
+                    "ERROR",
                 )
                 self.task_complete.emit(
-                    JobRef(
-                        id=self.job_ref.id,
-                        task=self.job_ref.task,
-                        status=JOBSTATUS.ERROR,
-                    ),
-                    {
-                        "path": None,
-                    },
+                    JobResponse(
+                        job_ref=JobRef(
+                            id=self.job.id,
+                            task=self.job.task,
+                            status=JOBSTATUS.ERROR,
+                            error="No audio found in folder",
+                        ),
+                        payload=None,
+                    )
                 )
-                self.finished.emit()
+                self.done.emit()
                 return
             else:
                 audio = Path(f"{self.folder}/{self.filename}")
@@ -86,7 +94,7 @@ class FasterWhisperWorker(QWorkerBase):
                 language=self.language,
                 vad_filter=self.vad_filter,
                 vad_parameters={"min_silence_duration_ms": self.min_silence_ms},
-                condition_on_previous_text=self.vad_filter,
+                condition_on_previous_text=self.on_previous_text,
                 beam_size=self.beam_size,
                 word_timestamps=False,
                 initial_prompt=self.initial_prompt,
@@ -101,7 +109,18 @@ class FasterWhisperWorker(QWorkerBase):
             for seg in segments:
                 if self._stopped:
                     self.logging("Whisper Process Stopped.", "WARN")
-                    self.finished.emit()
+                    self.task_complete.emit(
+                        JobResponse(
+                            job_ref=JobRef(
+                                id=self.job.id,
+                                task=self.job.task,
+                                status=JOBSTATUS.ERROR,
+                                error="Whisper process stopped.",
+                            ),
+                            payload=None,
+                        )
+                    )
+                    self.done.emit()
                     return
 
                 t = self.normalize_cjk_spacing(seg.text).strip()
@@ -122,7 +141,19 @@ class FasterWhisperWorker(QWorkerBase):
             text = "\n".join(buf) + "\n"
             if not text:
                 self.logging("Empty transcript.", "ERROR")
-                self.finished.emit()
+
+                self.task_complete.emit(
+                    JobResponse(
+                        job_ref=JobRef(
+                            id=self.job.id,
+                            task=self.job.task,
+                            status=JOBSTATUS.ERROR,
+                            error="Empty Transcript",
+                        ),
+                        payload=None,
+                    )
+                )
+                self.done.emit()
                 return
 
             out_path = audio.with_suffix(".txt")
@@ -130,19 +161,35 @@ class FasterWhisperWorker(QWorkerBase):
             self.logging(f"100% Percent Done - Transcribing {out_path}")
             self.logging(f"Wrote: {out_path.name}")
             self.task_complete.emit(
-                JobRef(
-                    id=self.job_ref.id,
-                    task=self.job_ref.task,
-                    status=JOBSTATUS.COMPLETE,
-                ),
-                {
-                    "path": out_path,
-                },
+                JobResponse(
+                    job_ref=JobRef(
+                        id=self.job.id,
+                        task=self.job.task,
+                        status=JOBSTATUS.COMPLETE,
+                    ),
+                    payload=WhisperResponse(
+                        filename=out_path.name,
+                        path=str(self.folder),
+                        full_path=out_path.absolute(),
+                    ),
+                )
             )
-            self.finished.emit()
+
+            self.done.emit()
 
         except Exception as e:
             self.logging(f"{type(e).__name__}: {e}", "ERROR")
+            self.task_complete.emit(
+                JobResponse(
+                    job_ref=JobRef(
+                        id=self.job.id,
+                        task=self.job.task,
+                        status=JOBSTATUS.ERROR,
+                    ),
+                    payload=None,
+                )
+            )
+            self.done.emit()
 
     def normalize_cjk_spacing(self, text: str) -> str:
         # Remove stray spaces between CJK chars while keeping English spacing

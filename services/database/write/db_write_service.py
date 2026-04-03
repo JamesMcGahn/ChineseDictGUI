@@ -6,7 +6,7 @@ from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QThreadBase, ThreadCleanUpManager
 from base.enums import DBJOBTYPE
-from models.services import JobItem
+from models.services import JobRequest
 from models.services.database import DBJobPayload
 
 from ..db_manager import DatabaseManager
@@ -18,7 +18,7 @@ from .words_write_service import WordsWriteService
 
 
 class DBWriteService(QThreadBase):
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
 
     def __init__(self):
         super().__init__()
@@ -40,13 +40,13 @@ class DBWriteService(QThreadBase):
         self.exec()
 
     @Slot(object, object)
-    def add_to_queue(self, job: JobItem[DBJobPayload[Any]]):
+    def add_to_queue(self, job: JobRequest[DBJobPayload[Any]]):
         self.logging(f"Added DB Write Job: {job.payload.operation.value}")
         self.write_queue.append(job)
         if len(self.write_queue) == 1:
             QTimer.singleShot(0, self.maybe_start_next_write)
 
-    def _build_worker(self, job: JobItem[DBJobPayload[Any]]) -> BaseWriteService:
+    def _build_worker(self, job: JobRequest[DBJobPayload[Any]]) -> BaseWriteService:
         return self.worker_mapping[job.payload.kind](job)
 
     def maybe_start_next_write(self):
@@ -62,8 +62,8 @@ class DBWriteService(QThreadBase):
         worker.moveToThread(self)
         worker.setup_db(self.database_manager)
         worker.task_complete.connect(self.task_complete)
-        worker.finished.connect(lambda: self.clean_up.cleanup_task(task_id, True))
-        worker.finished.connect(self.on_finished)
+        worker.done.connect(lambda: self.clean_up.cleanup_task(task_id, True))
+        worker.done.connect(self.on_finished)
         QTimer.singleShot(0, worker.do_work)
 
     def on_finished(self):

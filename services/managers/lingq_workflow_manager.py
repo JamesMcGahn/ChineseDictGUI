@@ -2,12 +2,12 @@ from PySide6.QtCore import QThread, Signal, Slot
 
 from base import QObjectBase, ThreadQueueManager
 from core.lingq import LessonLingqLessonThread, LingqCollectionsWorker
-from models.services import JobItem, LingqLessonPayload
+from models.services import JobRequest, LingqLessonPayload
 
 
 class LingqWorkFlowManager(QObjectBase):
     appshutdown = Signal()
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
     ling_collections = Signal(list)
 
     def __init__(self):
@@ -15,7 +15,7 @@ class LingqWorkFlowManager(QObjectBase):
         self.queue_manager = ThreadQueueManager("Lingq")
 
     @Slot(list)
-    def create_lingq_lesson(self, jobs: list[JobItem[LingqLessonPayload]]):
+    def create_lingq_lesson(self, jobs: list[JobRequest[LingqLessonPayload]]):
         ling_thread = LessonLingqLessonThread(jobs=jobs)
         ling_thread.task_complete.connect(self.task_complete)
         ling_thread.finished.connect(

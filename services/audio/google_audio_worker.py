@@ -11,7 +11,6 @@ from utils.files import PathManager
 class GoogleAudioWorker(QWorkerBase):
     success = Signal(object)
     error = Signal()
-    finished = Signal()
 
     def __init__(
         self,
@@ -84,7 +83,7 @@ class GoogleAudioWorker(QWorkerBase):
             self.maybe_try_again(e)
 
     def send_finished(self):
-        self.finished.emit()
+        self.done.emit()
 
     def maybe_try_again(self, e):
         if self.google_tried is False:
@@ -98,7 +97,7 @@ class GoogleAudioWorker(QWorkerBase):
                 f"({self.project_name} - {self.filename}.mp3) - Failed to get Audio From Google",
                 "ERROR",
             )
-            self.logging(f"Error in Google Audio Worker: {e}", "ERROR", False)
+            self.logging(f"{e}", "ERROR", False)
             self.error.emit()
             self.send_finished()
             return False

@@ -8,7 +8,7 @@ from PySide6.QtCore import (
     Slot,
 )
 
-from models.services import CPodLessonPayload, JobItem
+from models.services import CPodLessonPayload, JobRequest
 
 from .lesson_scrape_worker_v2 import LessonScraperWorkerV2
 
@@ -17,9 +17,9 @@ class LessonScraperThread(QThread):
     done = Signal()
     request_token = Signal()
     send_token = Signal(str)
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
 
-    def __init__(self, lesson_list: list[JobItem[CPodLessonPayload]]):
+    def __init__(self, lesson_list: list[JobRequest[CPodLessonPayload]]):
         super().__init__()
         self.lesson_list = lesson_list
         self._mutex = QMutex()
@@ -38,7 +38,7 @@ class LessonScraperThread(QThread):
         )
         self.worker.moveToThread(self)
 
-        self.worker.finished.connect(self.worker_finished)
+        self.worker.done.connect(self.worker_finished)
         self.worker.task_complete.connect(self.task_complete)
         self.worker.request_token.connect(self.request_token)
         self.send_token.connect(self.worker.receive_token)

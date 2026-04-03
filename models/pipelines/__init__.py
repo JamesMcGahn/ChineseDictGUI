@@ -7,6 +7,7 @@ from .action_write_words import WriteWordsAction
 from .lesson_pipeline_payload import LessonPipelinePayload
 from .pipeline_action import PipelineAction
 from .pipeline_request import PipelineRequest
+from .task_policy import TaskPolicy
 
 __all__ = [
     "PipelineRequest",
@@ -18,4 +19,5 @@ __all__ = [
     "WriteWordsAction",
     "WriteLessonPartsAction",
     "WriteGrammarAction",
+    "TaskPolicy",
 ]

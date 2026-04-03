@@ -1,8 +1,7 @@
 import math
 
 from models.dictionary import Word
-from models.services.database import DBResponse
-from models.services.database.read import AnkiExport, Exists, PaginationResponse
+from models.services.database.read import PaginationResponse
 
 from ..dals import WordsDAL
 from .base_read_service import BaseReadService
@@ -32,7 +31,7 @@ class WordsReadService(BaseReadService[Word]):
             )
             for word in rows
         ]
-        return DBResponse(ok=True, data=Exists(data=words))
+        return words
 
     @BaseReadService.catch_sql_error
     def anki_export(self):
@@ -52,7 +51,7 @@ class WordsReadService(BaseReadService[Word]):
             )
             for word in rows
         ]
-        return DBResponse(ok=True, data=AnkiExport(data=words))
+        return words
 
     @BaseReadService.catch_sql_error
     def paginate(self, page, limit=25):
@@ -61,11 +60,7 @@ class WordsReadService(BaseReadService[Word]):
             self.logging(
                 "Words Table has not been created. Cant Get Pagination.", "ERROR"
             )
-            return DBResponse(
-                ok=False,
-                data=None,
-                error="Words Table has not been created. Cant Get Pagination.",
-            )
+            return None
         total_pages = math.ceil(table_count / limit)
         has_next_page = total_pages > page
         has_prev_page = page > 1
@@ -75,14 +70,11 @@ class WordsReadService(BaseReadService[Word]):
             Word(word[1], word[3], word[2], word[4], word[5], word[0]) for word in rows
         ]
 
-        return DBResponse(
-            ok=True,
-            data=PaginationResponse(
-                data=words,
-                table_count=table_count,
-                total_pages=total_pages,
-                page=page,
-                has_prev_page=has_prev_page,
-                has_next_page=has_next_page,
-            ),
+        return PaginationResponse(
+            data=words,
+            table_count=table_count,
+            total_pages=total_pages,
+            page=page,
+            has_prev_page=has_prev_page,
+            has_next_page=has_next_page,
         )

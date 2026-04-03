@@ -1,5 +1,3 @@
-from PySide6.QtCore import Signal
-
 from base import QObjectBase
 
 from ..db_manager import DatabaseManager
@@ -10,8 +8,6 @@ from .words_read_service import WordsReadService
 
 
 class DBReadService(QObjectBase):
-    pagination = Signal(object, int, int, int, bool, bool)
-    result = Signal(list)
 
     def __init__(self, db_name: str = "chineseDict.db"):
         super().__init__()

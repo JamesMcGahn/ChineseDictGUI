@@ -25,7 +25,7 @@ class AppContext(QObjectBase, metaclass=QSingleton):
     check_token = Signal()
     lingq_logged_in = Signal(bool)
     appshutdown = Signal()
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
     add_to_db_write_queue = Signal(object, object)
 
     def __init__(self):
@@ -95,6 +95,11 @@ class AppContext(QObjectBase, metaclass=QSingleton):
             self.lingq_login_thread.started.connect(self.lingq_login_worker.do_work)
             self.lingq_login_worker.lingq_logged_in.connect(
                 self.lingq_logged_in_response
+            )
+            self.lingq_login_worker.done.connect(self.deleteLater)
+            self.lingq_login_worker.done.connect(self.lingq_login_thread.quit)
+            self.lingq_login_thread.finished.connect(
+                self.lingq_login_thread.deleteLater
             )
             self.lingq_login_thread.start()
 

@@ -6,19 +6,24 @@ from PySide6.QtCore import QMutexLocker, QThread, QTimer, Signal, Slot
 
 from base import QWorkerBase, ThreadCleanUpManager
 from base.enums import JOBSTATUS
-from models.services import JobItem, JobRef, LingqLessonPayload, NetworkResponse
+from models.services import (
+    JobRef,
+    JobRequest,
+    JobResponse,
+    LingqLessonPayload,
+    NetworkResponse,
+)
 from services.network import NetworkWorker
 
 from .lingq_login_worker import LingqLoginWorker
 
 
 class LingqLessonWorker(QWorkerBase):
-    finished = Signal()
-    task_complete = Signal(object, object)
+    task_complete = Signal(object)
 
     def __init__(
         self,
-        jobs: list[JobItem[LingqLessonPayload]],
+        jobs: list[JobRequest[LingqLessonPayload]],
         mutex,
         wait_condition,
         parent_thread,
@@ -47,9 +52,7 @@ class LingqLessonWorker(QWorkerBase):
 
     def wait_time(self, range: tuple[int, int], fn):
         random = randint(*range)
-        self.logging(
-            f"LessonWorker: Waiting {random} secs before sending out next request."
-        )
+        self.logging(f"Waiting {random} secs before sending out next request.")
         QTimer.singleShot(random * 1000, fn)
 
     def get_next_lingq(self):
@@ -65,7 +68,8 @@ class LingqLessonWorker(QWorkerBase):
             with QMutexLocker(self._mutex):
                 if self.parent_thread._stop:
                     self._busy = False
-                    self.finished.emit()
+                    self.send_error_all("Stopped by User")
+                    self.done.emit()
                     return
 
                 while self.parent_thread._paused:
@@ -73,18 +77,15 @@ class LingqLessonWorker(QWorkerBase):
 
             self.current_lingq = self.lingq_courses.popleft()
 
-            # TODO JOB ITEM
             self.get_lingq_token()
         else:
             self._busy = False
-            self.finished.emit()
+            self.done.emit()
             self.logging("Completed Submitted Lingq Lessons", "INFO")
 
     def get_lingq_token(self):
         self._busy = True
-        self.logging(
-            f"LingqWorker: Getting Lesson Token for - {self.current_lingq.payload.title}"
-        )
+        self.logging(f"Getting Lesson Token for - {self.current_lingq.payload.title}")
         net_thread = QThread()
         networker = NetworkWorker(
             "GET",
@@ -106,9 +107,7 @@ class LingqLessonWorker(QWorkerBase):
 
     def lingq_token_response(self, res: NetworkResponse):
         self._busy = False
-        self.logging(
-            f"LingqWorker: Received Lesson Token for - {self.current_lingq.payload.title}"
-        )
+        self.logging(f"Received Lesson Token for - {self.current_lingq.payload.title}")
         if res.ok:
             data = res.data
             match = re.search(r"csrfToken:\s*'([^']+)'", data)
@@ -121,12 +120,12 @@ class LingqLessonWorker(QWorkerBase):
                 self.current_api_csrf = api_csrf
                 self.wait_time(self.wait_range_between_steps, self.lingq_post_lesson)
                 self.logging(
-                    f"LingqWorker: Found Lesson Token for - {self.current_lingq.payload.title}"
+                    f"Found Lesson Token for - {self.current_lingq.payload.title}"
                 )
             else:
                 if self.current_lingq:
                     self.logging(
-                        f"LingqWorker: Failed to Get Lesson Token for - {self.current_lingq.payload.title}"
+                        f"Failed to Get Lesson Token for - {self.current_lingq.payload.title}"
                     )
                     self.lingq_courses.appendleft(self.current_lingq)
                 self.wait_time(self.wait_range_between_submissions, self.login_again)
@@ -134,17 +133,15 @@ class LingqLessonWorker(QWorkerBase):
             if self.current_lingq:
                 self.lingq_courses.appendleft(self.current_lingq)
                 self.logging(
-                    f"LingqWorker: Failed to Get Lesson Token for - {self.current_lingq.payload.title}"
+                    f"Failed to Get Lesson Token for - {self.current_lingq.payload.title}"
                 )
             self.wait_time(self.wait_range_between_submissions, self.login_again)
 
     def login_again(self):
         self._busy = True
-        self.logging("LingqWorker: Attempting to Login Again", "WARN")
+        self.logging("Attempting to Login Again", "WARN")
         if self.login_attempted:
-            self.logging(
-                "LingqWorker: Login already attempted. Not trying again", "WARN"
-            )
+            self.logging("Login already attempted. Not trying again", "WARN")
             self.login_failure()
             return
         task_id = f"{self.current_lingq.id}-login"
@@ -156,9 +153,7 @@ class LingqLessonWorker(QWorkerBase):
         self.clean_up_manager.add_task(
             task_id=task_id, thread=login_thread, worker=login_worker
         )
-        login_worker.finished.connect(
-            lambda: self.clean_up_manager.cleanup_task(task_id)
-        )
+        login_worker.done.connect(lambda: self.clean_up_manager.cleanup_task(task_id))
         login_thread.finished.connect(
             lambda: self.clean_up_manager.cleanup_task(task_id, True)
         )
@@ -170,43 +165,30 @@ class LingqLessonWorker(QWorkerBase):
         self._busy = False
         if logged_in:
             self.login_attempted = False
-            self.logging(
-                "LingqWorker: Log in Succeed. Reattempting Ling Submission", "WARN"
-            )
+            self.logging("Log in Succeed. Reattempting Ling Submission", "WARN")
 
             self.wait_time(self.wait_range_between_submissions, self.get_next_lingq)
         else:
-            self.logging("LingqWorker: Login Failed. Reattempting Log in", "WARN")
+            self.logging("Login Failed. Reattempting Log in", "WARN")
             self.wait_time((0, 1), self.login_failure)
 
     def login_failure(self):
         self._busy = False
-        self.logging("LingqWorker: Failed to log in to Lingq", "ERROR")
-        if self.current_lingq and self.current_lingq not in self.lingq_courses:
-            self.lingq_courses.appendleft(self.current_lingq)
-
-        for lingq in self.lingq_courses:
-            self.task_complete.emit(
-                JobRef(
-                    id=lingq.id,
-                    task=lingq.task,
-                    status=JOBSTATUS.ERROR,
-                ),
-                {},
-            )
-        self.finished.emit()
+        self.logging("Failed to log in to Lingq", "ERROR")
+        self.send_error_all("Failed to log in to Lingq")
+        self.done.emit()
 
     def lingq_post_lesson(self):
         self._busy = True
         self.logging(
-            f"LingqWorker: Attempting to Submit Lesson - {self.current_lingq.payload.title}",
+            f"Attempting to Submit Lesson - {self.current_lingq.payload.title}",
             "INFO",
         )
         if self.current_api_csrf is None:
             if self.current_lingq:
                 self.lingq_courses.appendleft(self.current_lingq)
                 self.logging(
-                    "LingqWorker: No Token for Submission. Trying log in Again",
+                    "No Token for Submission. Trying log in Again",
                     "INFO",
                 )
             self.wait_time((20, 60), self.login_again)
@@ -285,41 +267,63 @@ class LingqLessonWorker(QWorkerBase):
 
     def lesson_post_response(self, res: NetworkResponse):
         self.logging(
-            "LingqWorker: Received Response for Lingq Lesson Submission",
+            "Received Response for Lingq Lesson Submission",
             "INFO",
         )
         self._busy = False
         if res.ok:
             self.task_complete.emit(
-                JobRef(
-                    id=self.current_lingq.id,
-                    task=self.current_lingq.task,
-                    status=JOBSTATUS.COMPLETE,
-                ),
-                {},
+                JobResponse(
+                    job_ref=JobRef(
+                        id=self.current_lingq.id,
+                        task=self.current_lingq.task,
+                        status=JOBSTATUS.COMPLETE,
+                    ),
+                    payload=None,
+                )
             )
             self.logging(
-                f"LingqWorker: Submission Succeeded for - {self.current_lingq.payload.title}",
+                f"Submission Succeeded for - {self.current_lingq.payload.title}",
                 "INFO",
             )
         else:
             self.logging(
-                f"LingqWorker: Submission Failed for - {self.current_lingq.payload.title}",
+                f"Submission Failed for - {self.current_lingq.payload.title}",
                 "ERROR",
             )
             self.task_complete.emit(
-                JobRef(
-                    id=self.current_lingq.id,
-                    task=self.current_lingq.task,
-                    status=JOBSTATUS.ERROR,
-                ),
-                {},
+                JobResponse(
+                    job_ref=JobRef(
+                        id=self.current_lingq.id,
+                        task=self.current_lingq.task,
+                        status=JOBSTATUS.ERROR,
+                    ),
+                    payload=None,
+                )
             )
+
         self.logging(
-            "LingqWorker: Attempting to Get Next Lesson for Submission",
+            "Attempting to Get Next Lesson for Submission",
             "INFO",
         )
         if self.lingq_courses:
             self.wait_time(self.wait_range_between_submissions, self.get_next_lingq)
         else:
             self.wait_time((0, 1), self.get_next_lingq)
+
+    def send_error_all(self, error_message):
+        if self.current_lingq and self.current_lingq not in self.lingq_courses:
+            self.lingq_courses.appendleft(self.current_lingq)
+
+        for lingq in self.lingq_courses:
+            self.task_complete.emit(
+                JobResponse(
+                    job_ref=JobRef(
+                        id=lingq.id,
+                        task=lingq.task,
+                        status=JOBSTATUS.ERROR,
+                        error=error_message,
+                    ),
+                    payload=None,
+                )
+            )

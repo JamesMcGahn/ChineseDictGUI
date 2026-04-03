@@ -1,8 +1,7 @@
 import math
 
 from models.dictionary import Lesson
-from models.services.database import DBResponse
-from models.services.database.read import Exists, PaginationResponse
+from models.services.database.read import PaginationResponse
 
 from ..dals import LessonsDAL
 from .base_read_service import BaseReadService
@@ -36,7 +35,7 @@ class LessonReadService(BaseReadService[Lesson]):
             )
             for lesson in rows
         ]
-        return DBResponse(ok=True, data=Exists(data=lessons))
+        return lessons
 
     @BaseReadService.catch_sql_error
     def paginate(self, page, limit=25):
@@ -45,11 +44,7 @@ class LessonReadService(BaseReadService[Lesson]):
             self.logging(
                 "Lesson Table has not been created. Cant Get Pagination.", "ERROR"
             )
-            return DBResponse(
-                ok=False,
-                data=None,
-                error="Lesson Table has not been created. Cant Get Pagination.",
-            )
+            return None
 
         total_pages = math.ceil(table_count / limit)
         has_next_page = total_pages > page
@@ -75,14 +70,11 @@ class LessonReadService(BaseReadService[Lesson]):
             for lesson in rows
         ]
 
-        return DBResponse(
-            ok=True,
-            data=PaginationResponse(
-                data=lessons,
-                table_count=table_count,
-                total_pages=total_pages,
-                page=page,
-                has_prev_page=has_prev_page,
-                has_next_page=has_next_page,
-            ),
+        return PaginationResponse(
+            data=lessons,
+            table_count=table_count,
+            total_pages=total_pages,
+            page=page,
+            has_prev_page=has_prev_page,
+            has_next_page=has_next_page,
         )

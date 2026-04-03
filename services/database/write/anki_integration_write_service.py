@@ -1,11 +1,8 @@
 from typing import Any
 
 from models.dictionary import AnkiIntegration
-from models.services import JobItem
-from models.services.database import DBJobPayload, DBResponse
-from models.services.database.write import (
-    UpdateOneResponse,
-)
+from models.services import JobRequest
+from models.services.database import DBJobPayload
 
 from ..dals import AnkiIntegrationDAL
 from .base_write_service import BaseWriteService
@@ -13,7 +10,7 @@ from .base_write_service import BaseWriteService
 
 class AnkiIntegrationWriteService(BaseWriteService[AnkiIntegration]):
 
-    def __init__(self, job: JobItem[DBJobPayload[Any]]):
+    def __init__(self, job: JobRequest[DBJobPayload[Any]]):
         super().__init__(job=job, dal=AnkiIntegrationDAL)
 
     @BaseWriteService.emit_db_response
@@ -21,7 +18,6 @@ class AnkiIntegrationWriteService(BaseWriteService[AnkiIntegration]):
         update = payload.data.data
         id = payload.data.id
         count, integration = self.dal.update_one(id, update)
-        success = count > 0
         integration = None
 
         if integration:
@@ -31,6 +27,4 @@ class AnkiIntegrationWriteService(BaseWriteService[AnkiIntegration]):
                 local_update=integration[1],
                 initial_import_done=integration[2],
             )
-        return DBResponse(
-            ok=success, data=UpdateOneResponse(data=integration, count=count)
-        )
+        return integration

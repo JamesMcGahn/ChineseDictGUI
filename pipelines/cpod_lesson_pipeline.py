@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .base_pipeline import BaseLessonPipeline
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
         DatabaseServiceManager,
     )
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QTimer, Signal
 
 from base import ThreadQueueManager
 from base.enums import (
@@ -29,13 +29,15 @@ from models.pipelines import (
     FileWriteAction,
     LessonPipelinePayload,
     PipelineAction,
+    TaskPolicy,
 )
 from models.services import (
     AudioDownloadPayload,
     CombineAudioPayload,
     CPodLessonPayload,
-    JobItem,
     JobRef,
+    JobRequest,
+    JobResponse,
     LingqLessonPayload,
     WhisperPayload,
 )
@@ -143,6 +145,13 @@ class CPodLessonPipeline(BaseLessonPipeline):
             EmitUIEventAction: self.handle_ui_event_action,
         }
 
+        self.TASK_POLICY: dict[LESSONTASK, TaskPolicy] = {
+            LESSONTASK.LINGQ_SENTS: TaskPolicy(max_retries=2, retry_delay_ms=5_000),
+            LESSONTASK.LINGQ_DIALOGUE: TaskPolicy(max_retries=2, retry_delay_ms=5_000),
+        }
+
+        self.task_retry_attempts = {}
+
     def process(self):
 
         self.queue_id = self.spec.queue_id
@@ -156,7 +165,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
         )
         self.build_expected_tasks(self.spec)
 
-        job = JobItem(
+        job = JobRequest(
             id=self.queue_id,
             task=LESSONTASK.INFO,
             payload=CPodLessonPayload(url=self.spec.url),
@@ -214,22 +223,25 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
         dispatcher(lesson=lesson)
 
-    def on_task_completed(self, job: JobRef, payload):
-        print("here", job)
-        if job.id != self.queue_id or self.lesson is None:
+    def on_task_completed(self, job: JobResponse[Any]):
+        if job.job_ref.id != self.queue_id or self.lesson is None:
             return
+        self.logging(
+            f"Received response for Task: {job.job_ref.task} - Status: {job.job_ref.status}"
+        )
+        self.update_lesson_status(
+            job.job_ref.task, self.job_to_lesson_status(job.job_ref.status)
+        )
+        if job.job_ref.status == JOBSTATUS.COMPLETE:
 
-        self.update_lesson_status(job.task, self.job_to_lesson_status(job.status))
-        if job.status == JOBSTATUS.COMPLETE:
+            self.handle_success(job.job_ref, job.payload, self.lesson)
 
-            self.handle_success(job, payload, self.lesson)
-
-            next_tasks = self.get_next_tasks(job.task)
+            next_tasks = self.get_next_tasks(job.job_ref.task)
             for task in next_tasks:
                 self.dispatch(task, self.lesson)
 
-        elif job.status == JOBSTATUS.ERROR:
-            self.handle_failure(job, payload, self.lesson)
+        elif job.job_ref.status == JOBSTATUS.ERROR:
+            self.handle_failure(job.job_ref, job.payload, self.lesson)
         else:
             return
         # FEATURE : allow for threshold of number of errors, setting
@@ -262,9 +274,29 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.check_pipeline_completed()
         print("COMPLETED TASKS", self.completed_tasks)
 
-    def handle_failure(self, job, payload, lesson):
+    def handle_failure(self, job: JobRef, payload, lesson: Lesson):
+        policy = self.TASK_POLICY.get(job.task, TaskPolicy())
         self.logging(f"{job.task} failed for {lesson.title}", "ERROR")
-        lesson.status = LESSONSTATUS.ERROR
+
+        attempts = self.task_retry_attempts.get(job.task, 0)
+
+        if policy.max_retries == 0:
+            self.logging(f"No Retry Policy for {job.task} - {lesson.title}", "DEBUG")
+            return
+
+        if attempts < policy.max_retries:
+            attempts += 1
+            self.logging(
+                f"Retrying {job.task} for {lesson.title} - Attempt: {attempts}/{policy.max_retries}",
+                "INFO",
+            )
+            if policy.backoff:
+                delay = policy.retry_delay_ms * (2**attempts)
+            else:
+                delay = policy.retry_delay_ms
+            self.task_retry_attempts[job.task] = attempts
+            QTimer.singleShot(delay, lambda: self.dispatch(job.task, self.lesson))
+            return
 
     def update_lesson_status(
         self, lesson_task: LESSONTASK, lesson_status: LESSONSTATUS
@@ -278,20 +310,21 @@ class CPodLessonPipeline(BaseLessonPipeline):
         # TODO WHISPER SETTINGS From Settings
         if lesson.transcribe_lesson:
             self.ffmpeg_task_manager.whisper_audio(
-                job_ref=JobRef(
-                    lesson.queue_id, LESSONTASK.TRANSCRIBE, JOBSTATUS.CREATED
-                ),
-                payload=WhisperPayload(
-                    provider=WHISPERPROVIDER.WHISPER,
-                    file_filename="lesson.mp3",
-                    file_folder_path=lesson.storage_path,
-                    model_name="tiny",
-                ),
+                JobRequest(
+                    id=lesson.queue_id,
+                    task=LESSONTASK.TRANSCRIBE,
+                    payload=WhisperPayload(
+                        provider=WHISPERPROVIDER.WHISPER,
+                        file_filename="lesson.mp3",
+                        file_folder_path=lesson.storage_path,
+                        model_name="tiny",
+                    ),
+                )
             )
 
     def dispatch_lesson_audio(self, lesson: Lesson):
         self.audio_download_manager.download_audio(
-            job=JobItem(
+            job=JobRequest(
                 id=lesson.queue_id,
                 task=LESSONTASK.LESSON_AUDIO,
                 payload=AudioDownloadPayload(
@@ -304,21 +337,22 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
     def dispatch_combine_audio(self, lesson: Lesson):
         self.ffmpeg_task_manager.combine_audio(
-            job_ref=JobRef(
-                lesson.queue_id, LESSONTASK.COMBINE_AUDIO, JOBSTATUS.CREATED
-            ),
-            payload=CombineAudioPayload(
-                combine_folder_path=f"{lesson.storage_path}audio",
-                export_file_name="sentences.mp3",
-                export_path=lesson.storage_path,
-                delay_between_audio=1500,
-                project_name=lesson.title,
-            ),
+            JobRequest(
+                id=lesson.queue_id,
+                task=LESSONTASK.COMBINE_AUDIO,
+                payload=CombineAudioPayload(
+                    combine_folder_path=f"{lesson.storage_path}audio",
+                    export_file_name="sentences.mp3",
+                    export_path=lesson.storage_path,
+                    delay_between_audio=1500,
+                    project_name=lesson.title,
+                ),
+            )
         )
 
     def dispatch_save_lesson(self, lesson: Lesson):
         self.db.write(
-            JobItem(
+            JobRequest(
                 id=lesson.queue_id,
                 task=LESSONTASK.SAVE_LESSON,
                 payload=DBJobPayload(
@@ -344,7 +378,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
             )
 
             self.audio_download_manager.download_audio(
-                JobItem(
+                JobRequest(
                     id=lesson.queue_id,
                     task=LESSONTASK.AUDIO,
                     payload=AudioDownloadPayload(
@@ -379,7 +413,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
         job_list = []
 
-        lesson = JobItem[LingqLessonPayload](
+        lesson = JobRequest[LingqLessonPayload](
             id=lesson.queue_id,
             task=LESSONTASK.LINGQ_LESSON,
             payload=LingqLessonPayload(
@@ -416,7 +450,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
         )
 
         if sents_audio_exists and sents_txt_exists:
-            lingq_sent = JobItem[LingqLessonPayload](
+            lingq_sent = JobRequest[LingqLessonPayload](
                 id=lesson.queue_id,
                 task=LESSONTASK.LINGQ_SENTS,
                 payload=LingqLessonPayload(
@@ -453,7 +487,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
         job_list = []
 
         if dialogue_audio_exists and dialogue_txt_exists:
-            dialogue = JobItem[LingqLessonPayload](
+            dialogue = JobRequest[LingqLessonPayload](
                 id=lesson.queue_id,
                 task=LESSONTASK.LINGQ_DIALOGUE,
                 payload=LingqLessonPayload(

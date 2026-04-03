@@ -1,26 +1,19 @@
-import sqlite3
 from functools import wraps
 from typing import Any, Callable, Generic, ParamSpec, TypeVar
 
 from PySide6.QtCore import Signal, Slot
 
-from base import QObjectBase
+from base import QWorkerBase
 from base.enums import DBOPERATION, JOBSTATUS
-from models.services import JobItem, JobRef
-from models.services.database import DBJobPayload, DBResponse
+from models.services import JobRef, JobRequest, JobResponse
+from models.services.database import DBJobPayload
 from models.services.database.write import (
     DeleteManyPayload,
-    DeleteManyResponse,
     DeleteOnePayload,
-    DeleteOneResponse,
     InsertManyPayload,
-    InsertManyResponse,
     InsertOnePayload,
-    InsertOneResponse,
     UpdateManyPayload,
-    UpdateManyResponse,
     UpdateOnePayload,
-    UpdateOneResponse,
 )
 
 from ..dals.base_DAL import BaseDAL
@@ -30,11 +23,10 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-class BaseWriteService(Generic[T], QObjectBase):
-    finished = Signal()
-    task_complete = Signal(object, object)
+class BaseWriteService(Generic[T], QWorkerBase):
+    task_complete = Signal(object)
 
-    def __init__(self, job: JobItem[DBJobPayload[Any]], dal: BaseDAL):
+    def __init__(self, job: JobRequest[DBJobPayload[Any]], dal: BaseDAL):
         super().__init__()
         self.db_manager: DatabaseManager | None = None
         self.job = job
@@ -71,37 +63,41 @@ class BaseWriteService(Generic[T], QObjectBase):
     @staticmethod
     def emit_db_response(
         fn: Callable[P, T],
-    ) -> Callable[[Callable[P, T]], Callable[P, "DBResponse[T]"]]:
+    ) -> Callable[
+        [Callable[P, T]],
+        Callable[P, JobResponse[T]],
+    ]:
         @wraps(fn)
         def wrapper(self, *args: P.args, **kwargs: P.kwargs):
             try:
-                response = fn(self, *args, **kwargs)
+                payload = fn(self, *args, **kwargs)
 
-                self.task_complete.emit(
-                    JobRef(
-                        id=self.job.id, task=self.job.task, status=JOBSTATUS.COMPLETE
+                response = JobResponse(
+                    job_ref=JobRef(
+                        id=self.job.id,
+                        task=self.job.task,
+                        status=JOBSTATUS.COMPLETE,
                     ),
-                    response,
+                    payload=payload,
                 )
-            except (
-                sqlite3.Error,
-                sqlite3.IntegrityError,
-                sqlite3.OperationalError,
-                sqlite3.DatabaseError,
-                Exception,
-            ) as e:
-                msg = f"{self.__class__.__name__}: {fn.__name__} - {type(e).__name__} - {e}"
-                response = DBResponse(
-                    ok=False,
-                    data=None,
-                    error=msg,
-                )
+
+            except Exception as e:
+                msg = f"{fn.__name__} - {type(e).__name__} - {e}"
+
                 self.logging(msg, "ERROR")
-                self.task_complete.emit(
-                    JobRef(id=self.job.id, task=self.job.task, status=JOBSTATUS.ERROR),
-                    response,
+
+                response = JobResponse(
+                    job_ref=JobRef(
+                        id=self.job.id,
+                        task=self.job.task,
+                        status=JOBSTATUS.ERROR,
+                        error=msg,
+                    ),
+                    payload=None,
                 )
-            self.finished.emit()
+
+            self.task_complete.emit(response)
+            self.done.emit()
             return response
 
         return wrapper
@@ -141,9 +137,7 @@ class BaseWriteService(Generic[T], QObjectBase):
     def setup_dal(self, dal) -> None:
         self.dal = dal(self.db_manager)
 
-    def insert_one(
-        self, payload: DBJobPayload[InsertOnePayload[T]]
-    ) -> DBResponse[InsertOneResponse[T]]:
+    def insert_one(self, payload: DBJobPayload[InsertOnePayload[T]]) -> T:
         self.logging(
             f"insert_one has not been implemented by {self.__class__.__name__}", "ERROR"
         )
@@ -151,9 +145,7 @@ class BaseWriteService(Generic[T], QObjectBase):
             f"insert_one has not need implemented by {self.__class__.__name__}"
         )
 
-    def insert_many(
-        self, payload: DBJobPayload[InsertManyPayload[T]]
-    ) -> DBResponse[InsertManyResponse[T]]:
+    def insert_many(self, payload: DBJobPayload[InsertManyPayload[T]]) -> list[T]:
         self.logging(
             f"insert_many has not been implemented by {self.__class__.__name__}",
             "ERROR",
@@ -162,9 +154,7 @@ class BaseWriteService(Generic[T], QObjectBase):
             f"insert_many has not need implemented by {self.__class__.__name__}"
         )
 
-    def update_one(
-        self, payload: DBJobPayload[UpdateOnePayload[T]]
-    ) -> DBResponse[UpdateOneResponse[T]]:
+    def update_one(self, payload: DBJobPayload[UpdateOnePayload[T]]) -> T:
         self.logging(
             f"update_one has not been implemented by {self.__class__.__name__}", "ERROR"
         )
@@ -172,9 +162,7 @@ class BaseWriteService(Generic[T], QObjectBase):
             f"update_one has not need implemented by {self.__class__.__name__}"
         )
 
-    def update_many(
-        self, payload: DBJobPayload[UpdateManyPayload[T]]
-    ) -> DBResponse[UpdateManyResponse[UpdateOneResponse[T]]]:
+    def update_many(self, payload: DBJobPayload[UpdateManyPayload[T]]) -> list[T]:
         self.logging(
             f"update_many has not been implemented by {self.__class__.__name__}",
             "ERROR",
@@ -183,9 +171,7 @@ class BaseWriteService(Generic[T], QObjectBase):
             f"update_many has not need implemented by {self.__class__.__name__}"
         )
 
-    def delete_one(
-        self, payload: DBJobPayload[DeleteOnePayload[T]]
-    ) -> DBResponse[DeleteOneResponse[T]]:
+    def delete_one(self, payload: DBJobPayload[DeleteOnePayload[T]]) -> T:
         self.logging(
             f"delete_one has not been implemented by {self.__class__.__name__}", "ERROR"
         )
@@ -193,9 +179,7 @@ class BaseWriteService(Generic[T], QObjectBase):
             f"delete_one has not need implemented by {self.__class__.__name__}"
         )
 
-    def delete_many(
-        self, payload: DBJobPayload[DeleteManyPayload[T]]
-    ) -> DBResponse[DeleteManyResponse[DeleteOneResponse[T]]]:
+    def delete_many(self, payload: DBJobPayload[DeleteManyPayload[T]]) -> list[T]:
         self.logging(
             f"delete_many has not been implemented by {self.__class__.__name__}",
             "ERROR",
