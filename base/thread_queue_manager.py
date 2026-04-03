@@ -7,7 +7,7 @@ from .qthread_base import QThreadBase
 class ThreadQueueManager(QObjectBase):
     thread_running = Signal(bool)
 
-    def __init__(self, thread_type):
+    def __init__(self, thread_type: str):
         super().__init__()
         self.threads_queue = []
         self.thread_type = thread_type
@@ -17,6 +17,7 @@ class ThreadQueueManager(QObjectBase):
         thread.done.connect(thread.quit, Qt.QueuedConnection)
         thread.finished.connect(lambda: self.on_finished_thread(thread))
         self.threads_queue.append(thread)
+        self.logging(f"Added {self.thread_type} thread {thread} to thread queue")
         self.maybe_start_next_thread()
 
     def on_finished_thread(self, thread: QThreadBase):

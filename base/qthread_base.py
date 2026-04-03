@@ -34,6 +34,7 @@ class QThreadBase(QThread):
             level (str): The log level (e.g., "INFO","WARN", "ERROR"). Defaults to "INFO".
             print_msg (bool): Whether to print the message. Defaults to True.
         """
+        msg = f"{self.__class__.__name__}: {msg}"
         self.send_logs.emit(msg, level, print_msg)
 
     def log_thread(self) -> None:

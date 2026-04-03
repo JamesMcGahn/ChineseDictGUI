@@ -54,6 +54,7 @@ class QWidgetBase(QWidget):
         Returns:
             None
         """
+        msg = f"{self.__class__.__name__}: {msg}"
         self.send_logs.emit(msg, level, print_msg)
 
     @Slot()

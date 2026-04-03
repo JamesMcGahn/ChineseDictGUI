@@ -1,7 +1,9 @@
-from PySide6.QtCore import QObject, Slot
+from PySide6.QtCore import Slot
+
+from .qobject_base import QObjectBase
 
 
-class ThreadCleanUpManager(QObject):
+class ThreadCleanUpManager(QObjectBase):
 
     def __init__(self):
         super().__init__()
@@ -16,12 +18,12 @@ class ThreadCleanUpManager(QObject):
 
         if not thread_finished:
             if w_thread and w_thread.isRunning():
-                print(f"Task {task_id} - Thread Quitting.")
+                self.logging(f"Task {task_id} - Thread Quitting.")
                 w_thread.quit()
             return
 
         w_thread, worker = self.running_tasks.pop(task_id)
-        print(f"Task {task_id} - Thread & Worker Deleting.")
+        self.logging(f"Task {task_id} - Thread & Worker Deleting.")
         if worker:
             worker.deleteLater()
 
@@ -30,4 +32,4 @@ class ThreadCleanUpManager(QObject):
 
     def add_task(self, task_id, thread, worker):
         self.running_tasks[task_id] = (thread, worker)
-        print(self.running_tasks)
+        self.logging(f"Added {task_id} to running tasks.")
