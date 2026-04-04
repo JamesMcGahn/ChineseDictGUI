@@ -10,12 +10,13 @@ class NetworkThread(QThreadBase):
     response = Signal(object)
     error_sig = Signal(str, str, int)
 
-    def __init__(self, operation, url, data=None, json=None):
+    def __init__(self, operation, url, data=None, json=None, session_provider=None):
         super().__init__()
         self.url = url
         self.data = data
         self.operation = operation
         self.json = json
+        self.session_provider = session_provider
 
     def run(self):
         self.worker = NetworkWorker(self.operation, self.url, self.data, self.json)

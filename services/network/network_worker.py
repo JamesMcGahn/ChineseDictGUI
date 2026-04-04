@@ -4,6 +4,7 @@ from PySide6.QtCore import Signal, Slot
 from base import QObjectBase
 from models.services import NetworkResponse
 
+from .provider_session import ProviderSession
 from .session_manager import SessionManager
 
 
@@ -25,8 +26,11 @@ class NetworkWorker(QObjectBase):
         retry=0,
         headers=None,
         files=None,
+        session_provider: ProviderSession = None,
     ):
         super().__init__()
+        # TODO remove session manager when fully moved over to session providerser
+        self.session_provider = session_provider
         self.session_manager = SessionManager()
         self.url = url
         self.data = data
@@ -48,6 +52,7 @@ class NetworkWorker(QObjectBase):
                     res = self.operation_post()
 
                     if res.status_code in (200, 201, 202, 203):
+                        self.session_provider.update_cookies_from_res(res)
                         self.logging(
                             f"Received {res.status_code} response for POST to {self.url}",
                             "INFO",
@@ -89,6 +94,7 @@ class NetworkWorker(QObjectBase):
                 for attempt in range(self.retry + 1):
                     res = self.operation_get()
                     if res.status_code in (200, 201):
+                        self.session_provider.update_cookies_from_res(res)
                         self.logging(
                             f"Received {res.status_code} response for GET to {self.url}",
                             "INFO",
@@ -163,22 +169,43 @@ class NetworkWorker(QObjectBase):
         finally:
             self.finished.emit()
 
+    # TODO remove session manager when fully moved over to session provider
     def operation_post(self):
-        return self.session_manager.post(
-            self.url,
-            data=self.data,
-            json=self.json,
-            timeout=self.timeout,
-            headers=self.headers,
-            files=self.files,
-        )
+        if self.session_provider:
+            session = self.session_provider.build_session()
+            return session.post(
+                self.url,
+                data=self.data,
+                json=self.json,
+                timeout=self.timeout,
+                headers=self.headers,
+                files=self.files,
+            )
+        else:
+            return self.session_manager.post(
+                self.url,
+                data=self.data,
+                json=self.json,
+                timeout=self.timeout,
+                headers=self.headers,
+                files=self.files,
+            )
 
+    # TODO remove session manager when fully moved over to session provider
     def operation_get(self):
-        return self.session_manager.get(
-            self.url,
-            timeout=self.timeout,
-            headers=self.headers,
-        )
+        if self.session_provider:
+            session = self.session_provider.build_session()
+            return session.get(
+                self.url,
+                timeout=self.timeout,
+                headers=self.headers,
+            )
+        else:
+            return self.session_manager.get(
+                self.url,
+                timeout=self.timeout,
+                headers=self.headers,
+            )
 
     def extract_payload(self, response):
         if not response:

@@ -6,6 +6,7 @@ import requests
 from PySide6.QtCore import QThread, QTimer, Signal, Slot
 
 from base import QObjectBase, QSingleton
+from base.enums import PROVIDERS
 from core.lingq import LingqLoginWorker
 from keys import keys
 from services.logger import Logger
@@ -16,7 +17,7 @@ from services.managers import (
     LessonPipelineManager,
     LingqWorkFlowManager,
 )
-from services.network import SessionManager, TokenManager
+from services.network import SessionManager, SessionRegistry, TokenManager
 from services.settings import AppSettings
 from utils.files import PathManager
 
@@ -38,6 +39,7 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.session_manager.load_session()
         self.db = DatabaseServiceManager()
 
+        self.session_registry = SessionRegistry()
         self.ffmpeg_task_manager = FFmpegTaskManager()
         self.audio_download_manager = AudioDownloadManager()
         self.lingq_workflow_manager = LingqWorkFlowManager()
@@ -51,6 +53,8 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         folder = PathManager.create_folder_in_app_data("playwright")
         self.ensure_playwright_browsers(folder)
 
+        self.session_registry.pre_load_providers([PROVIDERS.CPOD])
+
         self.token_manager = TokenManager()
         self.token_manager.send_cookies.connect(
             self.session_manager.receive_playwright_cookies
@@ -60,6 +64,7 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.check_token.emit()
 
         self.appshutdown.connect(self.db.appshutdown)
+        self.appshutdown.connect(self.session_registry.save_all)
 
         # CONNECTIONS
         ## TASK COMPLETE
