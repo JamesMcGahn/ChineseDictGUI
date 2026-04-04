@@ -1,14 +1,4 @@
-from typing import TYPE_CHECKING, Any
-
-from .base_pipeline import BaseLessonPipeline
-
-if TYPE_CHECKING:
-    from services.managers import (
-        AudioDownloadManager,
-        FFmpegTaskManager,
-        LingqWorkFlowManager,
-        DatabaseServiceManager,
-    )
+from typing import Any
 
 from PySide6.QtCore import QTimer, Signal
 
@@ -20,6 +10,7 @@ from base.enums import (
     LESSONLEVEL,
     LESSONSTATUS,
     LESSONTASK,
+    PROVIDERS,
     WHISPERPROVIDER,
 )
 from core.scrapers.cpod.lessons import LessonScraperThread
@@ -29,6 +20,7 @@ from models.pipelines import (
     FileWriteAction,
     LessonPipelinePayload,
     PipelineAction,
+    PipelineServiceContainer,
     TaskPolicy,
 )
 from models.services import (
@@ -45,8 +37,9 @@ from models.services.database import DBJobPayload
 from models.services.database.write import InsertOnePayload
 from services.lessons import LessonFileService
 from services.lessons.processors.cpod import CpodLessonProcessor
-from services.network import TokenManager
 from utils.files import PathManager
+
+from .base_pipeline import BaseLessonPipeline
 
 # TODO ADD STEP ERROR HANDLING
 
@@ -56,21 +49,17 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
     # TODO SERVICE CONTAINER?
     def __init__(
-        self,
-        spec: LessonPipelinePayload,
-        audio_download_manager: "AudioDownloadManager",
-        ffmpeg_task_manager: "FFmpegTaskManager",
-        lingq_workflow_manager: "LingqWorkFlowManager",
-        db: "DatabaseServiceManager",
+        self, spec: LessonPipelinePayload, service_cont: PipelineServiceContainer
     ):
         super().__init__()
         self.spec = spec
-        self.ffmpeg_task_manager = ffmpeg_task_manager
-        self.audio_download_manager = audio_download_manager
-        self.lingq_workflow_manager = lingq_workflow_manager
-        self.db = db
+        self.ffmpeg_task_manager = service_cont.ffmpeg
+        self.audio_download_manager = service_cont.audio
+        self.lingq_workflow_manager = service_cont.lingq
+        self.db = service_cont.db
+        self.session_registry = service_cont.session
 
-        self.token_manager = TokenManager()
+        self.token_manager = service_cont.token
         self.thread_queue_manager = ThreadQueueManager("Lesson")
         self.base_path = "./test/"
 
@@ -125,8 +114,11 @@ class CPodLessonPipeline(BaseLessonPipeline):
             LESSONTASK.CHECK: [LESSONTASK.SAVE_LESSON, LESSONTASK.AUDIO],
             LESSONTASK.AUDIO: [LESSONTASK.COMBINE_AUDIO],
             LESSONTASK.TRANSCRIBE: [LESSONTASK.LINGQ_LESSON],
-            LESSONTASK.LESSON_AUDIO: [LESSONTASK.TRANSCRIBE, LESSONTASK.LINGQ_DIALOGUE],
-            LESSONTASK.COMBINE_AUDIO: [LESSONTASK.LINGQ_SENTS],
+            LESSONTASK.LESSON_AUDIO: [LESSONTASK.TRANSCRIBE],
+            LESSONTASK.COMBINE_AUDIO: [
+                LESSONTASK.LINGQ_DIALOGUE,
+                LESSONTASK.LINGQ_SENTS,
+            ],
         }
 
         self.dispatchers = {
@@ -170,8 +162,8 @@ class CPodLessonPipeline(BaseLessonPipeline):
             task=LESSONTASK.INFO,
             payload=CPodLessonPayload(url=self.spec.url),
         )
-
-        lesson_thread = LessonScraperThread([job])
+        session = self.session_registry.for_provider(PROVIDERS.CPOD)
+        lesson_thread = LessonScraperThread([job], session=session)
         lesson_thread.request_token.connect(self.token_manager.request_token)
         lesson_thread.task_complete.connect(self.on_task_completed)
         self.token_manager.send_token.connect(lesson_thread.receive_token)

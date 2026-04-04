@@ -21,7 +21,7 @@ from models.services import (
     JobResponse,
     NetworkResponse,
 )
-from services.network import NetworkWorker
+from services.network import NetworkWorker, ProviderSession
 
 from .lesson_parsers import (
     extract_slug,
@@ -44,13 +44,14 @@ class LessonScraperWorkerV2(QWorkerBase):
         mutex,
         wait_condition,
         parent_thread,
+        session: ProviderSession,
     ):
         super().__init__()
         self.lesson_list = deque(lesson_list)
         self._mutex = mutex
         self._wait_condition = wait_condition
         self.parent_thread = parent_thread
-
+        self.session = session
         self.host_url = keys["url"]
 
         self.token = None
@@ -226,6 +227,7 @@ class LessonScraperWorkerV2(QWorkerBase):
             url=url,
             headers=self.headers,
             json=json,
+            session_provider=self.session,
         )
         task_id = f"{task_id}-{uuid.uuid4()}"
         networker.moveToThread(net_thread)

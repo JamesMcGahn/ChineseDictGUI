@@ -9,6 +9,7 @@ from base import QObjectBase, QSingleton
 from base.enums import PROVIDERS
 from core.lingq import LingqLoginWorker
 from keys import keys
+from models.pipelines import PipelineServiceContainer
 from services.logger import Logger
 from services.managers import (
     AudioDownloadManager,
@@ -40,14 +41,19 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.db = DatabaseServiceManager()
 
         self.session_registry = SessionRegistry()
+        self.token_manager = TokenManager()
         self.ffmpeg_task_manager = FFmpegTaskManager()
         self.audio_download_manager = AudioDownloadManager()
         self.lingq_workflow_manager = LingqWorkFlowManager()
         self.lesson_pipeline_manager = LessonPipelineManager(
-            self.audio_download_manager,
-            self.ffmpeg_task_manager,
-            self.lingq_workflow_manager,
-            self.db,
+            service_cont=PipelineServiceContainer(
+                db=self.db,
+                audio=self.audio_download_manager,
+                ffmpeg=self.ffmpeg_task_manager,
+                lingq=self.lingq_workflow_manager,
+                session=self.session_registry,
+                token=self.token_manager,
+            )
         )
 
         folder = PathManager.create_folder_in_app_data("playwright")
@@ -55,7 +61,6 @@ class AppContext(QObjectBase, metaclass=QSingleton):
 
         self.session_registry.pre_load_providers([PROVIDERS.CPOD])
 
-        self.token_manager = TokenManager()
         self.token_manager.send_cookies.connect(
             self.session_manager.receive_playwright_cookies
         )

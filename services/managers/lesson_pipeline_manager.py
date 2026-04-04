@@ -8,17 +8,13 @@ from base.enums import (
     LESSONPROVIDERS,
     PIPELINEJOBTYPE,
 )
-from models.pipelines import LessonPipelinePayload, PipelineRequest
-from models.services import (
-    LessonWorkFlowRequest,
+from models.pipelines import (
+    LessonPipelinePayload,
+    PipelineRequest,
+    PipelineServiceContainer,
 )
+from models.services import LessonWorkFlowRequest
 from pipelines import BaseLessonPipeline, PipelineFactory
-from services.network import TokenManager
-
-from .audio_download_manager import AudioDownloadManager
-from .database_service_manager import DatabaseServiceManager
-from .ffmpeg_task_manager import FFmpegTaskManager
-from .lingq_workflow_manager import LingqWorkFlowManager
 
 
 # TODO move logic to pipeline
@@ -26,19 +22,9 @@ class LessonPipelineManager(QObjectBase):
     scraping_active = Signal(bool)
     ui_event = Signal(object)
 
-    def __init__(
-        self,
-        audio_download_manager: AudioDownloadManager,
-        ffmpeg_task_manager: FFmpegTaskManager,
-        lingq_workflow_manager: LingqWorkFlowManager,
-        db: DatabaseServiceManager,
-    ):
+    def __init__(self, service_cont: PipelineServiceContainer):
         super().__init__()
-        self.ffmpeg_task_manager = ffmpeg_task_manager
-        self.audio_download_manager = audio_download_manager
-        self.lingq_workflow_manager = lingq_workflow_manager
-        self.db = db
-        self.token_manager = TokenManager()
+        self.service_cont = service_cont
 
         self.pipeline_queue: deque[PipelineRequest] = deque()
         self.current_pipeline: None | BaseLessonPipeline = None
@@ -83,11 +69,7 @@ class LessonPipelineManager(QObjectBase):
         new_request = self.pipeline_queue.popleft()
 
         self.current_pipeline = PipelineFactory.get_pipeline(
-            pipe_request=new_request,
-            audio_download_manager=self.audio_download_manager,
-            ffmpeg_task_manager=self.ffmpeg_task_manager,
-            lingq_workflow_manager=self.lingq_workflow_manager,
-            db=self.db,
+            pipe_request=new_request, service_cont=self.service_cont
         )
 
         self.current_pipeline.ui_event.connect(self.ui_event)

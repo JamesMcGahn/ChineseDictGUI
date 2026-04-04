@@ -52,7 +52,8 @@ class NetworkWorker(QObjectBase):
                     res = self.operation_post()
 
                     if res.status_code in (200, 201, 202, 203):
-                        self.session_provider.update_cookies_from_res(res)
+                        if self.session_provider:
+                            self.session_provider.update_cookies_from_res(res)
                         self.logging(
                             f"Received {res.status_code} response for POST to {self.url}",
                             "INFO",
@@ -94,7 +95,8 @@ class NetworkWorker(QObjectBase):
                 for attempt in range(self.retry + 1):
                     res = self.operation_get()
                     if res.status_code in (200, 201):
-                        self.session_provider.update_cookies_from_res(res)
+                        if self.session_provider:
+                            self.session_provider.update_cookies_from_res(res)
                         self.logging(
                             f"Received {res.status_code} response for GET to {self.url}",
                             "INFO",

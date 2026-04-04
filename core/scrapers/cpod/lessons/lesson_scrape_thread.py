@@ -9,6 +9,7 @@ from PySide6.QtCore import (
 )
 
 from models.services import CPodLessonPayload, JobRequest
+from services.network import ProviderSession
 
 from .lesson_scrape_worker_v2 import LessonScraperWorkerV2
 
@@ -19,13 +20,16 @@ class LessonScraperThread(QThread):
     send_token = Signal(str)
     task_complete = Signal(object)
 
-    def __init__(self, lesson_list: list[JobRequest[CPodLessonPayload]]):
+    def __init__(
+        self, lesson_list: list[JobRequest[CPodLessonPayload]], session: ProviderSession
+    ):
         super().__init__()
         self.lesson_list = lesson_list
         self._mutex = QMutex()
         self._wait_condition = QWaitCondition()
         self._stop = False
         self._paused = False
+        self.session = session
 
     @Slot()
     def run(self):
@@ -35,6 +39,7 @@ class LessonScraperThread(QThread):
             self._mutex,
             self._wait_condition,
             self,
+            self.session,
         )
         self.worker.moveToThread(self)
 
