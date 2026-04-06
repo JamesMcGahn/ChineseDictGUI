@@ -387,6 +387,9 @@ class LessonScraperWorkerV2(QWorkerBase):
         self.logging("Received Grammar Response for Lesson")
         if res.ok:
             payload = parse_grammar(lesson=self.current_lesson, res_data=res.data)
+            if not payload.success:
+                self.on_task_complete(LESSONTASK.GRAMMAR, False)
+
             if not payload.sentences:
                 self.logging(
                     f"Lesson - {self.current_lesson.title} doesnt have a Grammar Section",

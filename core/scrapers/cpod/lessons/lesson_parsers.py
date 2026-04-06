@@ -131,31 +131,33 @@ def parse_expansion(lesson: Lesson, res_data) -> LessonTaskPayload:
 def parse_grammar(lesson: Lesson, res_data) -> LessonTaskPayload:
     grammar_points = []
     sentences = []
-    if res_data:
-        for section in res_data:
-            if "grammar" not in section:
-                continue
+    if not res_data:
+        return LessonTaskPayload(success=True)
 
-            grammar_point = GrammarPoint(
-                name=section["grammar"]["name"],
-                explanation=section["grammar"]["introduction"],
+    for section in res_data:
+        if not isinstance(section, dict) or "grammar" not in section:
+            return LessonTaskPayload(success=False)
+        grammar_point = GrammarPoint(
+            name=section["grammar"]["name"],
+            explanation=section["grammar"]["introduction"],
+        )
+        for sentence in section["examples"]:
+
+            audio_path = sentence["audio"]
+            audio = build_audio_url(lesson=lesson, path=audio_path)
+            new_sent = Sentence(
+                chinese=sentence["s"],
+                english=sentence["en"],
+                pinyin=sentence["p"],
+                audio=audio,
+                level=lesson.level,
+                sent_type="grammar",
+                lesson=(lesson.title if lesson.title else ""),
             )
-            for sentence in section["examples"]:
+            sentences.append(new_sent)
+            grammar_point.examples.append(new_sent)
+        grammar_points.append(grammar_point)
 
-                audio_path = sentence["audio"]
-                audio = build_audio_url(lesson=lesson, path=audio_path)
-                new_sent = Sentence(
-                    chinese=sentence["s"],
-                    english=sentence["en"],
-                    pinyin=sentence["p"],
-                    audio=audio,
-                    level=lesson.level,
-                    sent_type="grammar",
-                    lesson=(lesson.title if lesson.title else ""),
-                )
-                sentences.append(new_sent)
-                grammar_point.examples.append(new_sent)
-            grammar_points.append(grammar_point)
     return LessonTaskPayload(success=True, sentences=sentences, grammar=grammar_points)
 
 
