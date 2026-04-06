@@ -44,7 +44,9 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.token_manager = TokenManager()
         self.ffmpeg_task_manager = FFmpegTaskManager()
         self.audio_download_manager = AudioDownloadManager()
-        self.lingq_workflow_manager = LingqWorkFlowManager()
+        self.lingq_workflow_manager = LingqWorkFlowManager(
+            session_registry=self.session_registry
+        )
         self.lesson_pipeline_manager = LessonPipelineManager(
             service_cont=PipelineServiceContainer(
                 db=self.db,
@@ -98,20 +100,20 @@ class AppContext(QObjectBase, metaclass=QSingleton):
             #         print("session expired, getting new session")
             #         # TODO: remove py email and password dict - use keyring
             #         # TODO: check for keyring - if it doesnt exist -> notify user -> send them to settings page
-
-            self.lingq_login_thread = QThread()
-            self.lingq_login_worker = LingqLoginWorker()
-            self.lingq_login_worker.moveToThread(self.lingq_login_thread)
-            self.lingq_login_thread.started.connect(self.lingq_login_worker.do_work)
-            self.lingq_login_worker.lingq_logged_in.connect(
-                self.lingq_logged_in_response
-            )
-            self.lingq_login_worker.done.connect(self.deleteLater)
-            self.lingq_login_worker.done.connect(self.lingq_login_thread.quit)
-            self.lingq_login_thread.finished.connect(
-                self.lingq_login_thread.deleteLater
-            )
-            self.lingq_login_thread.start()
+            pass
+            # self.lingq_login_thread = QThread()
+            # self.lingq_login_worker = LingqLoginWorker()
+            # self.lingq_login_worker.moveToThread(self.lingq_login_thread)
+            # self.lingq_login_thread.started.connect(self.lingq_login_worker.do_work)
+            # self.lingq_login_worker.lingq_logged_in.connect(
+            #     self.lingq_logged_in_response
+            # )
+            # self.lingq_login_worker.done.connect(self.deleteLater)
+            # self.lingq_login_worker.done.connect(self.lingq_login_thread.quit)
+            # self.lingq_login_thread.finished.connect(
+            #     self.lingq_login_thread.deleteLater
+            # )
+            # self.lingq_login_thread.start()
 
     def lingq_logged_in_response(self, logged_in: bool):
         print(f"logged in lingq: {logged_in}")

@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.network import ProviderSession
+
 import re
 from collections import deque
 from random import randint
@@ -27,6 +34,7 @@ class LingqLessonWorker(QWorkerBase):
         mutex,
         wait_condition,
         parent_thread,
+        session: ProviderSession,
     ):
         super().__init__()
         self._mutex = mutex
@@ -35,6 +43,7 @@ class LingqLessonWorker(QWorkerBase):
         self.lingq_courses = deque(jobs)
         self.running_tasks = {}
         self.clean_up_manager = ThreadCleanUpManager()
+        self.session = session
 
         self.current_lingq = None
 
@@ -91,6 +100,7 @@ class LingqLessonWorker(QWorkerBase):
             "GET",
             "https://www.lingq.com/en/learn/zh/web/editor/",
             retry=1,
+            session_provider=self.session,
         )
         task_id = f"{self.current_lingq.id}-token-{self.current_lingq.payload.title}"
         networker.moveToThread(net_thread)
@@ -145,7 +155,7 @@ class LingqLessonWorker(QWorkerBase):
             self.login_failure()
             return
         task_id = f"{self.current_lingq.id}-login"
-        login_worker = LingqLoginWorker()
+        login_worker = LingqLoginWorker(session=self.session)
         login_thread = QThread()
         login_worker.moveToThread(login_thread)
         login_worker.lingq_logged_in.connect(self.receive_login)
@@ -244,6 +254,7 @@ class LingqLessonWorker(QWorkerBase):
             files=files,
             data=payload,
             retry=1,
+            session_provider=self.session,
         )
         networker.moveToThread(net_thread)
         task_id = f"{self.current_lingq.id}-lingq-{self.current_lingq.payload.title}"

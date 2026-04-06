@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.network import ProviderSession
+
 import re
 
 from PySide6.QtCore import QThread, QTimer, Signal, Slot
@@ -12,7 +19,8 @@ class LingqLoginWorker(QWorkerBase):
     error = Signal()
     lingq_logged_in = Signal(bool)
 
-    def __init__(self):
+    def __init__(self, session: ProviderSession):
+        self.session = session
         super().__init__()
         self.clean_up_manager = ThreadCleanUpManager()
 
@@ -32,6 +40,7 @@ class LingqLoginWorker(QWorkerBase):
                 "remember-me": "on",
             },
             retry=1,
+            session_provider=self.session,
         )
         networker.moveToThread(net_thread)
         networker.response.connect(self.lingq_login_response)

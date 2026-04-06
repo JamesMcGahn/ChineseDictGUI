@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.network import ProviderSession
+
 from PySide6.QtCore import (
     QMutex,
     QMutexLocker,
@@ -16,9 +23,13 @@ from .lingq_lesson_worker import LingqLessonWorker
 class LessonLingqLessonThread(QThreadBase):
     task_complete = Signal(object)
 
-    def __init__(self, jobs: list[JobRequest[LingqLessonPayload]]):
+    def __init__(
+        self, jobs: list[JobRequest[LingqLessonPayload]], session: ProviderSession
+    ):
         super().__init__()
+
         self.jobs = jobs
+        self.session = session
         self._mutex = QMutex()
         self._wait_condition = QWaitCondition()
         self._stop = False
@@ -29,10 +40,7 @@ class LessonLingqLessonThread(QThreadBase):
         self.log_thread()
 
         self.worker = LingqLessonWorker(
-            self.jobs,
-            self._mutex,
-            self._wait_condition,
-            self,
+            self.jobs, self._mutex, self._wait_condition, self, self.session
         )
         self.worker.moveToThread(self)
         self.worker.done.connect(self.worker_finished)
