@@ -1,0 +1,70 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..session.session_registry import SessionRegistry
+    from base.enums import PROVIDERS
+
+from PySide6.QtCore import QThread, Slot
+
+from base import ThreadCleanUpManager
+from base.enums import AUTHVALIDATIONSTATUS
+from core.lingq import LingqLoginWorker
+
+from .base_auth_service import BaseAuthService
+
+
+class LingqAuthService(BaseAuthService):
+
+    def __init__(self, session_registry: SessionRegistry, provider: PROVIDERS):
+        super().__init__(session_registry=session_registry, provider=provider)
+        self.login_attempted = False
+        self.clean_up_manager = ThreadCleanUpManager()
+        self._busy = False
+
+    def validate(self):
+        self.logging("Validating auth session credentials...")
+        if not self.session.has_valid_auth_cookies():
+            self.logging(
+                f"{self.provider_name.upper()} Cookies expired. Getting new cookies."
+            )
+            self.login()
+            return self.send_validation_status(AUTHVALIDATIONSTATUS.STARTED)
+        self.logging(f"{self.provider_name.upper()} auth credentials valid")
+        return self.send_validation_status(AUTHVALIDATIONSTATUS.VALID)
+
+    def login(self):
+
+        self.logging("Attempting log in.", "WARN")
+        if self.login_attempted:
+            self.logging("Login already attempted. Not trying again", "WARN")
+            return self.send_validation_status(AUTHVALIDATIONSTATUS.FAILED)
+        self._busy = True
+        self.validation_status.emit(self.provider_name, AUTHVALIDATIONSTATUS.BUSY)
+        task_id = f"{self.provider_name}-login"
+        login_worker = LingqLoginWorker(session=self.session)
+        login_thread = QThread()
+        login_worker.moveToThread(login_thread)
+        login_worker.lingq_logged_in.connect(self.receive_login)
+        login_thread.started.connect(login_worker.do_work)
+        self.clean_up_manager.add_task(
+            task_id=task_id, thread=login_thread, worker=login_worker
+        )
+        login_worker.done.connect(lambda: self.clean_up_manager.cleanup_task(task_id))
+        login_thread.finished.connect(
+            lambda: self.clean_up_manager.cleanup_task(task_id, True)
+        )
+        login_thread.start()
+        self.login_attempted = True
+
+    @Slot(bool)
+    def receive_login(self, logged_in: bool):
+        self._busy = False
+        if logged_in:
+            self.login_attempted = False
+            self.logging("Log in Succeed", "INFO")
+            return self.send_validation_status(AUTHVALIDATIONSTATUS.VALID)
+        else:
+            self.logging("Log in Failed", "WARN")
+            return self.send_validation_status(AUTHVALIDATIONSTATUS.FAILED)
