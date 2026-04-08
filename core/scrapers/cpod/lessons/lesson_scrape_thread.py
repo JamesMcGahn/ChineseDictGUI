@@ -9,19 +9,19 @@ from PySide6.QtCore import (
 )
 
 from models.services import CPodLessonPayload, JobRequest
-from services.network import ProviderSession
+from services.network.session import BaseProviderSession
 
 from .lesson_scrape_worker_v2 import LessonScraperWorkerV2
 
 
 class LessonScraperThread(QThread):
     done = Signal()
-    request_token = Signal()
-    send_token = Signal(str)
     task_complete = Signal(object)
 
     def __init__(
-        self, lesson_list: list[JobRequest[CPodLessonPayload]], session: ProviderSession
+        self,
+        lesson_list: list[JobRequest[CPodLessonPayload]],
+        session: BaseProviderSession,
     ):
         super().__init__()
         self.lesson_list = lesson_list
@@ -45,14 +45,8 @@ class LessonScraperThread(QThread):
 
         self.worker.done.connect(self.worker_finished)
         self.worker.task_complete.connect(self.task_complete)
-        self.worker.request_token.connect(self.request_token)
-        self.send_token.connect(self.worker.receive_token)
         QTimer.singleShot(0, self.worker.do_work)
         self.exec()
-
-    @Slot(str)
-    def receive_token(self, token):
-        self.send_token.emit(token)
 
     def worker_finished(self):
         self.worker.deleteLater()

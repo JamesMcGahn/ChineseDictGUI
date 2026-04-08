@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from services.network import ProviderSession
+    from services.network.session import BaseProviderSession
 
 import re
 from collections import deque
@@ -34,7 +34,7 @@ class LingqLessonWorker(QWorkerBase):
         mutex,
         wait_condition,
         parent_thread,
-        session: ProviderSession,
+        session: BaseProviderSession,
     ):
         super().__init__()
         self._mutex = mutex

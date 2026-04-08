@@ -4,7 +4,7 @@ from PySide6.QtCore import Signal, Slot
 from base import QObjectBase
 from models.services import NetworkResponse
 
-from .provider_session import ProviderSession
+from .session.base_provider_session import BaseProviderSession
 from .session_manager import SessionManager
 
 
@@ -26,7 +26,7 @@ class NetworkWorker(QObjectBase):
         retry=0,
         headers=None,
         files=None,
-        session_provider: ProviderSession = None,
+        session_provider: BaseProviderSession = None,
     ):
         super().__init__()
         # TODO remove session manager when fully moved over to session providerser

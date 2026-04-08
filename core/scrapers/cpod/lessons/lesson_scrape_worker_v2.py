@@ -21,7 +21,8 @@ from models.services import (
     JobResponse,
     NetworkResponse,
 )
-from services.network import NetworkWorker, ProviderSession
+from services.network import NetworkWorker
+from services.network.session import BaseProviderSession
 
 from .lesson_parsers import (
     extract_slug,
@@ -34,7 +35,6 @@ from .lesson_parsers import (
 
 
 class LessonScraperWorkerV2(QWorkerBase):
-    request_token = Signal()
     lesson_status = Signal(object)
     task_complete = Signal(object)
 
@@ -44,7 +44,7 @@ class LessonScraperWorkerV2(QWorkerBase):
         mutex,
         wait_condition,
         parent_thread,
-        session: ProviderSession,
+        session: BaseProviderSession,
     ):
         super().__init__()
         self.lesson_list = deque(lesson_list)
@@ -84,14 +84,6 @@ class LessonScraperWorkerV2(QWorkerBase):
     @Slot()
     def do_work(self):
         self.log_thread()
-        if self.token:
-            self.get_next_lesson()
-        else:
-            self.request_token.emit()
-
-    @Slot()
-    def receive_token(self, token):
-        self.token = token
         self.get_next_lesson()
 
     def wait_time(self, range, fn):
@@ -129,10 +121,8 @@ class LessonScraperWorkerV2(QWorkerBase):
     def get_next_lesson(self):
         self.current_lesson = None
         self.current_lesson_checked = False
+        self.token = self.session.token
         self.logging(f"Total Lessons to Scrape: {len(self.lesson_list)} Lessons")
-        if not self.token:
-            self.request_token.emit()
-            return
 
         self.headers = {"Authorization": f"Bearer {self.token}"}
 
@@ -145,6 +135,11 @@ class LessonScraperWorkerV2(QWorkerBase):
                     self._wait_condition.wait(self._mutex)
 
             spec = self.lesson_list.popleft()
+
+            if not self.token:
+                self.logging("No Token found", "ERROR")
+                self.lesson_completed(error=True)
+                return
 
             self.current_lesson = Lesson(
                 provider="cpod",

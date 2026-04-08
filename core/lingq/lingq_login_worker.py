@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from services.network import ProviderSession
+    from services.network.session import BaseProviderSession
 
 import re
 
@@ -19,7 +19,7 @@ class LingqLoginWorker(QWorkerBase):
     error = Signal()
     lingq_logged_in = Signal(bool)
 
-    def __init__(self, session: ProviderSession):
+    def __init__(self, session: BaseProviderSession):
         self.session = session
         super().__init__()
         self.clean_up_manager = ThreadCleanUpManager()

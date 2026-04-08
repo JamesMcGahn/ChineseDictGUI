@@ -8,7 +8,7 @@ if TYPE_CHECKING:
         FFmpegTaskManager,
         LingqWorkFlowManager,
     )
-    from services.network import SessionRegistry, TokenManager
+    from services.network.session import SessionRegistry
 
 from dataclasses import dataclass
 
@@ -19,4 +19,3 @@ class PipelineServiceContainer(ServiceContainer):
     ffmpeg: "FFmpegTaskManager"
     lingq: "LingqWorkFlowManager"
     session: "SessionRegistry"
-    token: "TokenManager"

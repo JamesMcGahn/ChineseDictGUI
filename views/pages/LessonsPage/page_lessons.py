@@ -18,7 +18,6 @@ from models.core import UIEvent
 from models.dictionary import Lesson, Sentence, Word
 from models.table import SentenceTableModel, WordTableModel
 from services.audio import AudioThread, CombineAudioThread, WhisperThread
-from services.network import TokenManager
 from utils.files import PathManager
 
 from .page_lessons_ui import PageLessonsView
@@ -76,8 +75,6 @@ class PageLessons(QWidgetBase):
         self.appshutdown.connect(lambda: print("app shutdown lesson"))
         self.dbw = DatabaseManager("chineseDict.db")
         self.dbs = DatabaseManager("chineseDict.db")
-
-        self.token_manager = TokenManager()
 
     def select_all_words(self):
         self.ui.table_view_w.selectAll()

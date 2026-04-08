@@ -8,7 +8,7 @@ if TYPE_CHECKING:
         FFmpegTaskManager,
         LingqWorkFlowManager,
     )
-    from services.network import SessionRegistry
+    from services.network.session import SessionRegistry
 
 from dataclasses import dataclass
 

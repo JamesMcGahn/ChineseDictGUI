@@ -18,7 +18,9 @@ from services.managers import (
     LessonPipelineManager,
     LingqWorkFlowManager,
 )
-from services.network import SessionManager, SessionRegistry, TokenManager
+from services.network import SessionManager
+from services.network.auth import AuthService
+from services.network.session import SessionRegistry
 from services.settings import AppSettings
 from utils.files import PathManager
 
@@ -41,7 +43,7 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.db = DatabaseServiceManager()
 
         self.session_registry = SessionRegistry()
-        self.token_manager = TokenManager()
+        self.auth_service = AuthService(session_registry=self.session_registry)
         self.ffmpeg_task_manager = FFmpegTaskManager()
         self.audio_download_manager = AudioDownloadManager()
         self.lingq_workflow_manager = LingqWorkFlowManager(
@@ -54,7 +56,6 @@ class AppContext(QObjectBase, metaclass=QSingleton):
                 ffmpeg=self.ffmpeg_task_manager,
                 lingq=self.lingq_workflow_manager,
                 session=self.session_registry,
-                token=self.token_manager,
             )
         )
 
@@ -62,13 +63,9 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.ensure_playwright_browsers(folder)
 
         self.session_registry.pre_load_providers([PROVIDERS.CPOD])
-
-        self.token_manager.send_cookies.connect(
-            self.session_manager.receive_playwright_cookies
-        )
-        self.check_token.connect(self.token_manager.check_token)
-        self.setup_session()
-        self.check_token.emit()
+        self.auth_service.validation_status.connect(self.validate_status_result)
+        self.auth_service.validate(PROVIDERS.CPOD)
+        self.auth_service.validate(PROVIDERS.LINGQ)
 
         self.appshutdown.connect(self.db.appshutdown)
         self.appshutdown.connect(self.session_registry.save_all)
@@ -92,6 +89,9 @@ class AppContext(QObjectBase, metaclass=QSingleton):
             env=env,
             check=True,
         )
+
+    def validate_status_result(self, provider, status):
+        print(provider, status)
 
     # TODO Move to own Manager or Token Manager
     def setup_session(self):

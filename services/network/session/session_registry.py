@@ -3,22 +3,25 @@ from PySide6.QtCore import Slot
 from base import QObjectBase
 from base.enums import PROVIDERS
 
-from .provider_session import ProviderSession
+from .base_provider_session import BaseProviderSession
+from .provider_session_cpod import CpodProviderSession
+from .provider_session_lingq import LingqProviderSession
 
 
 class SessionRegistry(QObjectBase):
     def __init__(self):
-        self._sessions: dict[PROVIDERS, ProviderSession] = {}
+        super().__init__()
+        self._sessions: dict[PROVIDERS, BaseProviderSession] = {}
 
-        self.PRE_LOAD = {
-            PROVIDERS.CPOD: True,
-            PROVIDERS.LINGQ: True,
-            PROVIDERS.DEFAULT: True,
+        self.providers = {
+            PROVIDERS.CPOD: CpodProviderSession,
+            PROVIDERS.LINGQ: LingqProviderSession,
         }
 
-    def for_provider(self, provider: PROVIDERS) -> ProviderSession:
+    def for_provider(self, provider: PROVIDERS) -> BaseProviderSession:
         if provider not in self._sessions:
-            session = ProviderSession(provider=provider)
+            provider_session = self.providers.get(provider, BaseProviderSession)
+            session = provider_session()
             session.load_session()
             self._sessions[provider] = session
         return self._sessions[provider]

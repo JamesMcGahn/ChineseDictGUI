@@ -59,7 +59,6 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.db = service_cont.db
         self.session_registry = service_cont.session
 
-        self.token_manager = service_cont.token
         self.thread_queue_manager = ThreadQueueManager("Lesson")
         self.base_path = "./test/"
 
@@ -164,9 +163,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
         )
         session = self.session_registry.for_provider(PROVIDERS.CPOD)
         lesson_thread = LessonScraperThread([job], session=session)
-        lesson_thread.request_token.connect(self.token_manager.request_token)
         lesson_thread.task_complete.connect(self.on_task_completed)
-        self.token_manager.send_token.connect(lesson_thread.receive_token)
 
         lesson_thread.finished.connect(
             lambda: self.thread_queue_manager.on_finished_thread(lesson_thread)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from services.network import ProviderSession
+    from services.network.session import BaseProviderSession
 
 from PySide6.QtCore import (
     QMutex,
@@ -24,7 +24,7 @@ class LessonLingqLessonThread(QThreadBase):
     task_complete = Signal(object)
 
     def __init__(
-        self, jobs: list[JobRequest[LingqLessonPayload]], session: ProviderSession
+        self, jobs: list[JobRequest[LingqLessonPayload]], session: BaseProviderSession
     ):
         super().__init__()
 

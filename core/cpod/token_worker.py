@@ -5,14 +5,15 @@ from PySide6.QtCore import Signal
 
 from base.play_wright import PlaywrightBase
 from keys import keys
+from services.network.session import BaseProviderSession
 
 
 class TokenWorker(PlaywrightBase):
     send_cookies = Signal(list)
     send_token = Signal(str, bool)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, session: BaseProviderSession):
+        super().__init__(session=session)
         self.bearer = None
 
     def log_in(self, page):

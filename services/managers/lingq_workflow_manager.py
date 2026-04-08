@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..network import SessionRegistry
+    from ..network.session import SessionRegistry
 
 from PySide6.QtCore import QThread, Signal, Slot
 
