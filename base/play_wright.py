@@ -42,7 +42,8 @@ class PlaywrightBase(QObjectBase):
                 self.do_work(page)
                 cookies = self.context.cookies()
                 self.provider_session.update_cookies_from_list(cookies)
-                self.close()
+                if self.should_auto_close():
+                    self.close()
 
         except Exception as e:
             self.on_error(e)
@@ -51,6 +52,9 @@ class PlaywrightBase(QObjectBase):
 
     def do_work(self, page):
         raise NotImplementedError
+
+    def should_auto_close(self):
+        return True
 
     def on_error(self, e):
         self.logging(f"Playwright - {e}", "ERROR")
