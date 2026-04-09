@@ -3,7 +3,7 @@ from models.core import LessonTaskPayload
 from models.dictionary import Lesson, LessonAudio
 from models.services import ProcessorResponse
 
-from ..base_lesson_processor import BaseLessonProcessor
+from ...base_lesson_processor import BaseLessonProcessor
 
 
 class CPodLessonInfoProcessor(BaseLessonProcessor):

@@ -35,8 +35,8 @@ from models.services import (
 )
 from models.services.database import DBJobPayload
 from models.services.database.write import InsertOnePayload
-from services.lessons import LessonFileService
-from services.lessons.processors.cpod import CpodLessonProcessor
+from services.processors import LessonFileService
+from services.processors.cpod.lessons import CpodLessonProcessor
 from utils.files import PathManager
 
 from .base_pipeline import BaseLessonPipeline

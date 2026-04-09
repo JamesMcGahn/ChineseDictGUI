@@ -3,7 +3,7 @@ from models.dictionary import Lesson
 from models.pipelines import WriteLessonPartsAction
 from models.services import ProcessorResponse
 
-from ..base_lesson_processor import BaseLessonProcessor
+from ...base_lesson_processor import BaseLessonProcessor
 
 
 class CPodLessonCheckProcessor(BaseLessonProcessor):

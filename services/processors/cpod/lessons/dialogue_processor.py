@@ -1,32 +1,32 @@
 from base.enums import UIEVENTTYPE
 from models.core import LessonTaskPayload, UIEvent
 from models.dictionary import Lesson
-from models.pipelines import EmitUIEventAction, WriteGrammarAction
+from models.pipelines import EmitUIEventAction, WriteSentencesAction
 from models.services import ProcessorResponse
 
-from ..base_lesson_processor import BaseLessonProcessor
+from ...base_lesson_processor import BaseLessonProcessor
 
 
-class CPodLessonGrammarProcessor(BaseLessonProcessor):
+class CPodLessonDialogueProcessor(BaseLessonProcessor):
     def apply(self, lesson: Lesson, payload: LessonTaskPayload):
-        grammar_points = payload.grammar
-        sentences = payload.sentences
-        lesson.lesson_parts.grammar = grammar_points
-        lesson.lesson_parts.all_sentences.extend(sentences)
+        dialogue = payload.sentences
+        lesson.lesson_parts.dialogue = dialogue
+        lesson.lesson_parts.all_sentences.extend(dialogue)
+
         return ProcessorResponse(
             actions=[
                 EmitUIEventAction(
                     event=UIEvent(
                         event_type=UIEVENTTYPE.SENTENCES,
-                        data=sentences,
+                        data=dialogue,
                         check_duplicates=lesson.check_dup_sents,
                     )
                 ),
-                WriteGrammarAction(
+                WriteSentencesAction(
                     write_path=lesson.storage_path,
-                    file_name="grammar.txt",
-                    header="语法:",
-                    data=grammar_points,
+                    file_name="dialogue.txt",
+                    header="对话:",
+                    data=dialogue,
                 ),
             ]
         )
