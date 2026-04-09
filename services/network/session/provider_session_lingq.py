@@ -14,3 +14,4 @@ class LingqProviderSession(BaseProviderSession):
         has_cookies = True
         has_auth_cookies = True
         auth_cookies = {"wwwlingqcomsa", "csrftoken"}
+        domains = {"lingq.com"}

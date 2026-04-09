@@ -14,3 +14,4 @@ class CpodProviderSession(BaseProviderSession):
         has_cookies = True
         has_auth_cookies = True
         auth_cookies = {"connect.sid", "cpod.sid", "CPODSESSID"}
+        domains = {"chinesepod.com"}

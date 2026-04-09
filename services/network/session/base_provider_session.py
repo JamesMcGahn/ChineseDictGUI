@@ -26,6 +26,11 @@ class BaseProviderSession(QObjectBase):
         has_cookies = False
         has_auth_cookies = False
         auth_cookies = set()
+        domains = set()
+
+    @property
+    def has_domains(self) -> set:
+        return getattr(self.Config, "domains", False)
 
     @property
     def has_token(self) -> bool:
@@ -127,6 +132,21 @@ class BaseProviderSession(QObjectBase):
                 )
         self.logging(f"{self.provider_name.upper()} updated session.")
 
+    def filter_cookies_by_domain(self, cookies, domains: set[str] | None = None):
+        domain_filter = domains or self.has_domains
+        if not domain_filter:
+            return cookies
+
+        filtered_cookies = []
+        for cookie in cookies:
+            domain = cookie.get("domain")
+            if not domain:
+                continue
+            domain = domain.removeprefix(".").removeprefix("www.")
+            if any(domain == d or domain.endswith(f".{d}") for d in domain_filter):
+                filtered_cookies.append(cookie)
+        return filtered_cookies
+
     def _delete_cookie_from_jar(self, cookie):
         try:
             self.cookie_jar.clear(
@@ -186,7 +206,7 @@ class BaseProviderSession(QObjectBase):
             with open(file, "r") as file:
                 cookie_json = file.read()
                 cookies = json.loads(cookie_json)
-
+        cookies = self.filter_cookies_by_domain(cookies)
         jar = self.convert_cookies_to_jar(cookies)
         self._update_cookie_jar(jar)
 
@@ -200,11 +220,13 @@ class BaseProviderSession(QObjectBase):
             return
         self.logging(f"{self.provider_name.upper()} saving cookies...", "INFO")
         path = PathManager.create_folder_in_app_data(f"session/{self.provider_name}")
+        cookies = self.convert_jar_to_cookie_list()
+        cookies = self.filter_cookies_by_domain(cookies)
 
         with open(f"{path}/session.json", "w") as f:
             f.write(
                 json.dumps(
-                    self.convert_jar_to_cookie_list(),
+                    cookies,
                     indent=2,
                 )
             )

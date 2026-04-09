@@ -45,6 +45,13 @@ Priorities:
   - [ ] Replace exception handling → `result.message`
   - [ ] Remove `if response is None` checks
 
+### Session & Auth
+
+- [x] Session Provider Registry
+- [x] Split Session State and Validation from Session
+- [x] Auth Service
+- [x] Auth Validation by provider
+
 ## Database System Refactor 🔥
 
 - [x] Create two services Read & Write
@@ -75,17 +82,16 @@ Priorities:
 
 ## Worker + QThread Improvements 🔥
 
-- [ ] Replace implicit logger usage in workers with **logger signals**
-- [ ] Implement a unified `WorkerBase`:
-  - [ ] `start_work()` slot
-  - [ ] `finished` signal
-  - [ ] `error` signal
-  - [ ] DB cleanup in thread teardown
+- [x] Implement a unified `QWorkerBase`:
+  - [ ] `do_work()` slot
+  - [x] `done` signal
+  - [x] `error` signal
+  - [x] ~~DB cleanup in thread teardown~~ (moved to service)
 - [/] Create a **WorkerManager** to handle:
   - [x] Audio workers
   - [x] Whisper/Faster-Whisper workers
   - [/] Scraper workers
-  - [ ] Database workers
+  - [x] Database workers
 - [/] Remove direct worker ownership from UI pages
 - [ ] UI should only receive signals from WorkerManager
 
@@ -101,10 +107,10 @@ Priorities:
 
 ## Logging System Improvements ⭐
 
-- [ ] move enum to base enum module
+- [x] move enum to base enum module
 - [ ] Replace string log levels with `LOGLEVEL` Enum
-- [ ] Improve formatting of log events
-- [ ] Ensure logger thread writes during shutdown reliably
+- [x] Improve formatting of log events
+- [x] Ensure logger thread writes during shutdown reliably
 
 # Audio & Transcription Pipeline
 
@@ -115,11 +121,24 @@ Priorities:
 
 ## PIPELINES
 
-- [X] Create BasePipeline
-- [X] Create PipelineFactory
+- [x] Create BasePipeline
+- [x] Create PipelineFactory
 - [x] Move Chinesepod Lesson Specific Logic to ChinesePodLesson Pipeline
 - [ ] Move Chinesepod Word Specific Logic to ChinesepodWord Pipeline
 - [ ] Move MGDB Word Specific Logic to MGDB Word Pipeline
+- [ ] Move Core Methods to Base class
+
+### Transformers & Processors
+
+- [ ] Restructure Processor folder root -> provider -> domain
+- [ ] Transformers Global Registry Class
+- [ ] Processors Global Registry Class
+- [ ] Provider Registry Class
+- [ ] Domain Registry Class (e.g. Lessons, Words etc)
+  - [ ] Base Class - Transformer
+  - [ ] Base Class - Processor
+- [ ] Section Transformers
+- [ ] Section Processors
 
 ## Lesson Workflow Pipeline
 
@@ -134,7 +153,14 @@ Priorities:
   - [ ] add progress fn / signal for lesson overall status
 - [ ] Queue Feature
   - [ ] pick up progress from any part of the process
-- [ ] handle errors from any part of the process
+- [/] handle errors from any part of the process
+- [ ] handle partial errors
+
+### CPOD Lesson Fallback
+
+- [ ] migrate old LessonScraperV1 selenium scraping to playwright
+- [ ] implement transformers for each section
+- [ ] implement fallback processes in CPOD Pipeline on API failure
 
 ## Word Workflow Pipeline
 
@@ -161,6 +187,14 @@ Priorities:
 - [x] create fn to obtain crsf token
 - [x] create fn to submit lesson
 - [x] design and implement new job service structure
+
+## Pipeline Queue Feature ⭐
+
+- [ ] Create Queue Model
+- [ ] Create Queue Table
+- [ ] Create Queue DB Services
+- [ ] Remove Queue State from Lesson Model
+- [ ] Pipeline check current Queue on load
 
 # Lesson Search & Scraping
 
@@ -226,7 +260,7 @@ Create a **generic progress pipeline** for all slow operations:
 ## Architecture Cleanup ⭐
 
 - [x] Move service initialization from `MainWindow` → `Context`
-- [ ] Improve folder structure (e.g., `core/`, `services/`, `workers/`, `ui/components/`)
+- [x] Improve folder structure (e.g., `core/`, `services/`, `workers/`, `ui/components/`)
 - [ ] Remove unused imports
 - [ ] Add error dialogs for network/login failures
 - [ ] Expand README with a clear **architecture overview**
