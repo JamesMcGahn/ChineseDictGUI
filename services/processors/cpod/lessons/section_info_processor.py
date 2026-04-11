@@ -3,22 +3,24 @@ from models.core import LessonTaskPayload
 from models.dictionary import Lesson, LessonAudio
 from models.services import ProcessorResponse
 
-from ...base_lesson_processor import BaseLessonProcessor
+from ...base_section_processor import BaseSectionProcessor
 
 
-class CPodLessonInfoProcessor(BaseLessonProcessor):
+class InfoProcessor(BaseSectionProcessor):
     def __init__(self):
+        super().__init__()
         # TODO set app data base path
         self.base_path = "./test/"
 
     def apply(self, lesson: Lesson, payload: LessonTaskPayload):
+        self.logging("Processing Lesson info...")
         lesson_info = payload.lesson_info
 
         lesson.hash_code = lesson_info.hash_code
         lesson.level = lesson_info.level
         lesson.lesson_id = lesson_info.lesson_id
         lesson.title = lesson_info.title
-        lesson.slug = lesson_info.slug
+        lesson.slug = lesson.slug or lesson_info.slug
 
         path = f"{self.base_path}{lesson.level}/{lesson.title}/"
         lesson.storage_path = path

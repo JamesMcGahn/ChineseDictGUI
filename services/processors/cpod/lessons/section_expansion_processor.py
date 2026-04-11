@@ -4,11 +4,15 @@ from models.dictionary import Lesson
 from models.pipelines import EmitUIEventAction
 from models.services import ProcessorResponse
 
-from ...base_lesson_processor import BaseLessonProcessor
+from ...base_section_processor import BaseSectionProcessor
 
 
-class CPodLessonExpansionProcessor(BaseLessonProcessor):
+class ExpansionProcessor(BaseSectionProcessor):
+    def __init__(self):
+        super().__init__()
+
     def apply(self, lesson: Lesson, payload: LessonTaskPayload):
+        self.logging("Processing Expansion...")
         expansion = payload.sentences
         lesson.lesson_parts.expansion = expansion
         lesson.lesson_parts.all_sentences.extend(expansion)

@@ -3,12 +3,16 @@ from models.dictionary import Lesson
 from models.pipelines import WriteLessonPartsAction
 from models.services import ProcessorResponse
 
-from ...base_lesson_processor import BaseLessonProcessor
+from ...base_section_processor import BaseSectionProcessor
 
 
-class CPodLessonCheckProcessor(BaseLessonProcessor):
+class CheckProcessor(BaseSectionProcessor):
+    def __init__(self):
+        super().__init__()
+
     def apply(self, lesson: Lesson, payload: LessonTaskPayload):
         lesson_parts = lesson.lesson_parts
+        self.logging("Processing Lesson check...")
         return ProcessorResponse(
             actions=[
                 WriteLessonPartsAction(

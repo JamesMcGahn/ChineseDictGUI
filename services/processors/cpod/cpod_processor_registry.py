@@ -1,7 +1,7 @@
 from base import QObjectBase
 from base.enums import PIPELINEJOBTYPE
 
-from .lessons import CpodLessonProcessor
+from .lessons.lesson_processor import LessonProcessor
 
 
 class CpodProcessorRegistry(QObjectBase):
@@ -9,7 +9,7 @@ class CpodProcessorRegistry(QObjectBase):
     def __init__(self):
         super().__init__()
 
-    def get_transformer(self, job_type: PIPELINEJOBTYPE):
+    def get_processor(self, job_type: PIPELINEJOBTYPE):
         if PIPELINEJOBTYPE.LESSONS:
-            return CpodLessonProcessor()
+            return LessonProcessor()
         raise NotImplementedError

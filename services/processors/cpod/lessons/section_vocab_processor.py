@@ -4,11 +4,16 @@ from models.dictionary import Lesson
 from models.pipelines import EmitUIEventAction, WriteWordsAction
 from models.services import ProcessorResponse
 
-from ...base_lesson_processor import BaseLessonProcessor
+from ...base_section_processor import BaseSectionProcessor
 
 
-class CPodLessonVocabProcessor(BaseLessonProcessor):
+class VocabProcessor(BaseSectionProcessor):
+
+    def __init__(self):
+        super().__init__()
+
     def apply(self, lesson: Lesson, payload: LessonTaskPayload):
+        self.logging("Processing Vocab...")
         words = payload.words
         lesson.lesson_parts.vocab = words
 

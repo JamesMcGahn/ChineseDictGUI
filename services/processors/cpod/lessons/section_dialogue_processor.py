@@ -4,11 +4,15 @@ from models.dictionary import Lesson
 from models.pipelines import EmitUIEventAction, WriteSentencesAction
 from models.services import ProcessorResponse
 
-from ...base_lesson_processor import BaseLessonProcessor
+from ...base_section_processor import BaseSectionProcessor
 
 
-class CPodLessonDialogueProcessor(BaseLessonProcessor):
+class DialogueProcessor(BaseSectionProcessor):
+    def __init__(self):
+        super().__init__()
+
     def apply(self, lesson: Lesson, payload: LessonTaskPayload):
+        self.logging("Processing Dialogue...")
         dialogue = payload.sentences
         lesson.lesson_parts.dialogue = dialogue
         lesson.lesson_parts.all_sentences.extend(dialogue)

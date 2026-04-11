@@ -4,11 +4,15 @@ from models.dictionary import Lesson
 from models.pipelines import EmitUIEventAction, WriteGrammarAction
 from models.services import ProcessorResponse
 
-from ...base_lesson_processor import BaseLessonProcessor
+from ...base_section_processor import BaseSectionProcessor
 
 
-class CPodLessonGrammarProcessor(BaseLessonProcessor):
+class GrammarProcessor(BaseSectionProcessor):
+    def __init__(self):
+        super().__init__()
+
     def apply(self, lesson: Lesson, payload: LessonTaskPayload):
+        self.logging("Processing Grammar...")
         grammar_points = payload.grammar
         sentences = payload.sentences
         lesson.lesson_parts.grammar = grammar_points
