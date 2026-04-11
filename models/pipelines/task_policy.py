@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from base.enums import FAILURESTRATEGY
+
 
 @dataclass(frozen=True)
 class TaskPolicy:
@@ -7,3 +9,5 @@ class TaskPolicy:
     retry_delay_ms: int = 2_000
     backoff: bool = True
     partial_threshold: int | None = None
+    failure_strategy: FAILURESTRATEGY = FAILURESTRATEGY.FAIL
+    is_criticial: bool = False

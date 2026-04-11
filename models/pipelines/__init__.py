@@ -9,6 +9,7 @@ from .pipeline_action import PipelineAction
 from .pipeline_request import PipelineRequest
 from .service_container_pipeline import PipelineServiceContainer
 from .task_capabilities import TaskCapability
+from .task_execution import TaskExecution
 from .task_policy import TaskPolicy
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "TaskPolicy",
     "PipelineServiceContainer",
     "TaskCapability",
+    "TaskExecution",
 ]
