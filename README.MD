@@ -130,15 +130,37 @@ Priorities:
 
 ### Transformers & Processors
 
-- [ ] Restructure Processor folder root -> provider -> domain
+- [x] Restructure Processor folder root -> provider -> domain
 - [ ] Transformers Global Registry Class
 - [ ] Processors Global Registry Class
 - [ ] Provider Registry Class
+  - [x] Transformer
+  - [ ] Processor
 - [ ] Domain Registry Class (e.g. Lessons, Words etc)
-  - [ ] Base Class - Transformer
+  - [x] Base Class - Transformer
   - [ ] Base Class - Processor
-- [ ] Section Transformers
+- [x] Section Transformers
 - [ ] Section Processors
+
+## CPOD Scrape Refactor
+
+- [ ] move cpod from core to services
+- [ ] Create tasks for steps handled in CPOD Scrape in Pipeline
+- [ ] refactor scraper to just handle network calls and return payloads
+- [ ] Move out transformation handling to pipeline
+
+## CPOD Scrape Refactor
+
+- [ ] Move cpod from core → services
+- [x] Move parse\_\* → transformers/cpod/lesson/
+- [ ] Define LESSONTASK flow for scraping in pipeline
+- [ ] Remove task flow logic from scraper
+- [ ] Remove lesson lifecycle handling from scraper
+- [ ] Refactor scraper → CPodLessonService
+  - [ ] Only handle network calls + emit raw payload
+- [ ] Apply transformers in pipeline
+- [ ] Pass to processor
+- [ ] Dispatch next tasks from pipeline
 
 ## Lesson Workflow Pipeline
 
@@ -282,4 +304,3 @@ Create a **generic progress pipeline** for all slow operations:
 - [ ] Add granular progress signals for:
   - [ ] Lesson Workflow
   - [ ] Whisper transcription
-  - [ ]

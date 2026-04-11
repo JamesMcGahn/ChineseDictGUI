@@ -1,2 +1,2 @@
-def strip_string(string):
-        return string.replace("\n", "").replace("\t", "").strip()
+def strip_string(string: str) -> str:
+    return string.replace("\n", "").replace("\t", "").strip()
