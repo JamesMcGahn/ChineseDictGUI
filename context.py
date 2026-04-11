@@ -13,6 +13,7 @@ from models.pipelines import PipelineServiceContainer
 from services.logger import Logger
 from services.managers import (
     AudioDownloadManager,
+    CpodServiceManager,
     DatabaseServiceManager,
     FFmpegTaskManager,
     LessonPipelineManager,
@@ -23,6 +24,9 @@ from services.network.auth import AuthService
 from services.network.session import SessionRegistry
 from services.settings import AppSettings
 from utils.files import PathManager
+
+# TODO Remove after Testing
+# from services.cpod.cpod_lesson_service_fallback import LessonScrapeFallbackWorker
 
 
 class AppContext(QObjectBase, metaclass=QSingleton):
@@ -49,6 +53,9 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.lingq_workflow_manager = LingqWorkFlowManager(
             session_registry=self.session_registry
         )
+        self.cpod_lesson_manager = CpodServiceManager(
+            session_registry=self.session_registry
+        )
         self.lesson_pipeline_manager = LessonPipelineManager(
             service_cont=PipelineServiceContainer(
                 db=self.db,
@@ -56,6 +63,7 @@ class AppContext(QObjectBase, metaclass=QSingleton):
                 ffmpeg=self.ffmpeg_task_manager,
                 lingq=self.lingq_workflow_manager,
                 session=self.session_registry,
+                cpod_lesson=self.cpod_lesson_manager,
             )
         )
 
@@ -80,6 +88,12 @@ class AppContext(QObjectBase, metaclass=QSingleton):
 
         self.add_to_db_write_queue.connect(self.db.write)
 
+        # TODO REMOVE AFTER TESTING
+        # lesson = LessonScrapeFallbackWorker(
+        #     session=self.session_registry.for_provider(PROVIDERS.CPOD)
+        # )
+        # lesson.run()
+
     def ensure_playwright_browsers(self, app_data_path):
         env = os.environ.copy()
         env["PLAYWRIGHT_BROWSERS_PATH"] = app_data_path
@@ -92,28 +106,3 @@ class AppContext(QObjectBase, metaclass=QSingleton):
 
     def validate_status_result(self, provider, status):
         print(provider, status)
-
-    # TODO Move to own Manager or Token Manager
-    def setup_session(self):
-        domains = self.session_manager.check_cookies()
-        if "lingq.com" not in domains or domains["lingq.com"]:
-            #         print("session expired, getting new session")
-            #         # TODO: remove py email and password dict - use keyring
-            #         # TODO: check for keyring - if it doesnt exist -> notify user -> send them to settings page
-            pass
-            # self.lingq_login_thread = QThread()
-            # self.lingq_login_worker = LingqLoginWorker()
-            # self.lingq_login_worker.moveToThread(self.lingq_login_thread)
-            # self.lingq_login_thread.started.connect(self.lingq_login_worker.do_work)
-            # self.lingq_login_worker.lingq_logged_in.connect(
-            #     self.lingq_logged_in_response
-            # )
-            # self.lingq_login_worker.done.connect(self.deleteLater)
-            # self.lingq_login_worker.done.connect(self.lingq_login_thread.quit)
-            # self.lingq_login_thread.finished.connect(
-            #     self.lingq_login_thread.deleteLater
-            # )
-            # self.lingq_login_thread.start()
-
-    def lingq_logged_in_response(self, logged_in: bool):
-        print(f"logged in lingq: {logged_in}")

@@ -7,6 +7,7 @@ if TYPE_CHECKING:
         AudioDownloadManager,
         FFmpegTaskManager,
         LingqWorkFlowManager,
+        CpodServiceManager,
     )
     from services.network.session import SessionRegistry
 
@@ -19,3 +20,4 @@ class PipelineServiceContainer(ServiceContainer):
     ffmpeg: "FFmpegTaskManager"
     lingq: "LingqWorkFlowManager"
     session: "SessionRegistry"
+    cpod_lesson: "CpodServiceManager"

@@ -10,10 +10,9 @@ from base.enums import (
     LESSONLEVEL,
     LESSONSTATUS,
     LESSONTASK,
-    PROVIDERS,
+    PIPELINEJOBTYPE,
     WHISPERPROVIDER,
 )
-from core.scrapers.cpod.lessons import LessonScraperThread
 from models.dictionary import Lesson
 from models.pipelines import (
     EmitUIEventAction,
@@ -21,6 +20,7 @@ from models.pipelines import (
     LessonPipelinePayload,
     PipelineAction,
     PipelineServiceContainer,
+    TaskCapability,
     TaskPolicy,
 )
 from models.services import (
@@ -36,7 +36,11 @@ from models.services import (
 from models.services.database import DBJobPayload
 from models.services.database.write import InsertOnePayload
 from services.processors import LessonFileService
-from services.processors.cpod.lessons import CpodLessonProcessor
+from services.processors.cpod.cpod_processor_registry import CpodProcessorRegistry
+
+# TODO - global registry for processors and transformers
+from services.transformers.cpod.cpod_transformer_registry import CpodTransformerRegistry
+from services.transformers.cpod.utils.lesson_helpers import extract_slug
 from utils.files import PathManager
 
 from .base_pipeline import BaseLessonPipeline
@@ -58,6 +62,11 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.lingq_workflow_manager = service_cont.lingq
         self.db = service_cont.db
         self.session_registry = service_cont.session
+        self.cpod_lesson_manager = service_cont.cpod_lesson
+
+        self.transformer = CpodTransformerRegistry().get_transformer(
+            PIPELINEJOBTYPE.LESSONS
+        )
 
         self.thread_queue_manager = ThreadQueueManager("Lesson")
         self.base_path = "./test/"
@@ -66,13 +75,14 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.completed_tasks = set()
         self.queue_id = None
         self.lesson = None
-        self.processor = CpodLessonProcessor()
+        self.processor = CpodProcessorRegistry().get_processor(PIPELINEJOBTYPE.LESSONS)
         self.writer = LessonFileService()
 
         self.ffmpeg_task_manager.task_complete.connect(self.on_task_completed)
         self.audio_download_manager.task_complete.connect(self.on_task_completed)
         self.db.task_complete.connect(self.on_task_completed)
         self.lingq_workflow_manager.task_complete.connect(self.on_task_completed)
+        self.cpod_lesson_manager.task_complete.connect(self.on_task_completed)
 
         # TODO get from settings
         self.collections = {
@@ -109,7 +119,14 @@ class CPodLessonPipeline(BaseLessonPipeline):
         }
 
         self.flow_map = {
-            LESSONTASK.INFO: [LESSONTASK.LESSON_AUDIO],
+            LESSONTASK.INFO: [
+                LESSONTASK.LESSON_AUDIO,
+                LESSONTASK.DIALOGUE,
+                LESSONTASK.EXPANSION,
+                LESSONTASK.GRAMMAR,
+                LESSONTASK.VOCAB,
+                LESSONTASK.CHECK,
+            ],
             LESSONTASK.CHECK: [LESSONTASK.SAVE_LESSON, LESSONTASK.AUDIO],
             LESSONTASK.AUDIO: [LESSONTASK.COMBINE_AUDIO],
             LESSONTASK.TRANSCRIBE: [LESSONTASK.LINGQ_LESSON],
@@ -129,6 +146,11 @@ class CPodLessonPipeline(BaseLessonPipeline):
             LESSONTASK.TRANSCRIBE: self.dispatch_transcribe_lesson,
             LESSONTASK.LINGQ_SENTS: self.dispatch_lingq_sents,
             LESSONTASK.LINGQ_DIALOGUE: self.dispatch_lingq_dialogue,
+            LESSONTASK.DIALOGUE: self.dispatch_dialogue,
+            LESSONTASK.EXPANSION: self.dispatch_expansion,
+            LESSONTASK.GRAMMAR: self.dispatch_grammar,
+            LESSONTASK.VOCAB: self.dispatch_vocab,
+            LESSONTASK.CHECK: self.dispatch_check,
         }
 
         self.action_map = {
@@ -141,34 +163,47 @@ class CPodLessonPipeline(BaseLessonPipeline):
             LESSONTASK.LINGQ_DIALOGUE: TaskPolicy(max_retries=2, retry_delay_ms=5_000),
         }
 
+        self.TASK_CAPABILITIES: dict[LESSONTASK, TaskCapability] = {
+            LESSONTASK.INFO: TaskCapability(transform=True, process=True),
+            LESSONTASK.DIALOGUE: TaskCapability(transform=True, process=True),
+            LESSONTASK.EXPANSION: TaskCapability(transform=True, process=True),
+            LESSONTASK.GRAMMAR: TaskCapability(transform=True, process=True),
+            LESSONTASK.VOCAB: TaskCapability(transform=True, process=True),
+            LESSONTASK.CHECK: TaskCapability(transform=False, process=True),
+        }
+
         self.task_retry_attempts = {}
 
     def process(self):
 
         self.queue_id = self.spec.queue_id
+
+        slug = extract_slug(self.spec.url)
         self.lesson = Lesson(
             provider=self.spec.provider,
             url=self.spec.url,
             check_dup_sents=self.spec.check_dup_sents,
             transcribe_lesson=self.spec.transcribe_lesson,
             queue_id=self.queue_id,
-            slug="",
+            slug=slug,
         )
         self.build_expected_tasks(self.spec)
 
         job = JobRequest(
             id=self.queue_id,
             task=LESSONTASK.INFO,
-            payload=CPodLessonPayload(url=self.spec.url),
+            payload=CPodLessonPayload(url=self.spec.url, slug=slug),
         )
-        session = self.session_registry.for_provider(PROVIDERS.CPOD)
-        lesson_thread = LessonScraperThread([job], session=session)
-        lesson_thread.task_complete.connect(self.on_task_completed)
 
-        lesson_thread.finished.connect(
-            lambda: self.thread_queue_manager.on_finished_thread(lesson_thread)
-        )
-        self.thread_queue_manager.add_thread(lesson_thread)
+        self.cpod_lesson_manager.get_lesson_part(job)
+        # session = self.session_registry.for_provider(PROVIDERS.CPOD)
+        # lesson_thread = LessonScraperThread([job], session=session)
+        # lesson_thread.task_complete.connect(self.on_task_completed)
+
+        # lesson_thread.finished.connect(
+        #     lambda: self.thread_queue_manager.on_finished_thread(lesson_thread)
+        # )
+        # self.thread_queue_manager.add_thread(lesson_thread)
 
     def job_to_lesson_status(self, job_status: JOBSTATUS):
         try:
@@ -223,7 +258,17 @@ class CPodLessonPipeline(BaseLessonPipeline):
         )
         if job.job_ref.status == JOBSTATUS.COMPLETE:
 
-            self.handle_success(job.job_ref, job.payload, self.lesson)
+            capability = self.TASK_CAPABILITIES.get(job.job_ref.task)
+            if capability and capability.transform:
+                payload = self.transformer.process(
+                    job.job_ref.task, self.lesson, job.payload
+                )
+                if payload.success:
+                    self.handle_success(job.job_ref, payload, self.lesson)
+                else:
+                    self.handle_failure(job.job_ref, payload, self.lesson)
+            else:
+                self.handle_success(job.job_ref, job.payload, self.lesson)
 
             next_tasks = self.get_next_tasks(job.job_ref.task)
             for task in next_tasks:
@@ -237,10 +282,13 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
     def handle_success(self, job: JobRef, payload, lesson: Lesson):
         self.update_completed_tasks(job.task)
-        processor_response = self.processor.apply(
-            task=job.task, lesson=self.lesson, payload=payload
-        )
-        self.execute_actions(actions=processor_response.actions)
+
+        capability = self.TASK_CAPABILITIES.get(job.task)
+        if capability and capability.process:
+            processor_response = self.processor.apply(
+                task=job.task, lesson=self.lesson, payload=payload
+            )
+            self.execute_actions(actions=processor_response.actions)
 
     def execute_actions(self, actions: list[PipelineAction]):
         for action in actions:
@@ -294,6 +342,58 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.lesson.status = lesson_status
 
     ## DISPATCH HANDLERS
+
+    def dispatch_dialogue(self, lesson: Lesson):
+        job = JobRequest(
+            id=self.queue_id,
+            task=LESSONTASK.DIALOGUE,
+            payload=CPodLessonPayload(
+                url=lesson.url,
+                slug=lesson.slug,
+                lesson_id=lesson.lesson_id,
+            ),
+        )
+
+        self.cpod_lesson_manager.get_lesson_part(job)
+
+    def dispatch_grammar(self, lesson: Lesson):
+        job = JobRequest(
+            id=self.queue_id,
+            task=LESSONTASK.GRAMMAR,
+            payload=CPodLessonPayload(
+                url=lesson.url,
+                slug=lesson.slug,
+                lesson_id=lesson.lesson_id,
+            ),
+        )
+
+        self.cpod_lesson_manager.get_lesson_part(job)
+
+    def dispatch_vocab(self, lesson: Lesson):
+        job = JobRequest(
+            id=self.queue_id,
+            task=LESSONTASK.VOCAB,
+            payload=CPodLessonPayload(
+                url=lesson.url,
+                slug=lesson.slug,
+                lesson_id=lesson.lesson_id,
+            ),
+        )
+
+        self.cpod_lesson_manager.get_lesson_part(job)
+
+    def dispatch_expansion(self, lesson: Lesson):
+        job = JobRequest(
+            id=self.queue_id,
+            task=LESSONTASK.EXPANSION,
+            payload=CPodLessonPayload(
+                url=lesson.url,
+                slug=lesson.slug,
+                lesson_id=lesson.lesson_id,
+            ),
+        )
+
+        self.cpod_lesson_manager.get_lesson_part(job)
 
     def dispatch_transcribe_lesson(self, lesson: Lesson):
         # TODO WHISPER SETTINGS From Settings
@@ -351,6 +451,19 @@ class CPodLessonPipeline(BaseLessonPipeline):
                 ),
             )
         )
+
+    def dispatch_check(self, lesson: Lesson):
+        job = JobRequest(
+            id=self.queue_id,
+            task=LESSONTASK.CHECK,
+            payload=CPodLessonPayload(
+                url=lesson.url,
+                slug=lesson.slug,
+                lesson_id=lesson.lesson_id,
+            ),
+        )
+
+        self.cpod_lesson_manager.get_lesson_part(job)
 
     def dispatch_lesson_parts_audio(self, lesson: Lesson):
         all_sents = lesson.lesson_parts.all_sentences
