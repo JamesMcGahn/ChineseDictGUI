@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.network.session import BaseProviderSession
+
 import uuid
 from random import randint
 
@@ -16,7 +23,6 @@ from models.services import (
     NetworkResponse,
 )
 from services.network import NetworkWorker
-from services.network.session import BaseProviderSession
 
 
 class CpodLessonServiceAPI(QWorkerBase):

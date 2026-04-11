@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..session import BaseProviderSession
+    from ..network.session import BaseProviderSession
 
 import time
 
@@ -122,7 +122,7 @@ class CpodTokenManager(QObjectBase):
         if wasReceived and self.check_token(token):
             self.logging("Cpod Token was Recieved.")
             self.session.token = token
-
+            self.token_status.emit(AUTHVALIDATIONSTATUS.VALID)
         else:
             self.logging("Failed to Receive Cpod Token.", "ERROR")
             self.session.token = None

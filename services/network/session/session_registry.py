@@ -3,9 +3,9 @@ from PySide6.QtCore import Slot
 from base import QObjectBase
 from base.enums import PROVIDERS
 
+from ...cpod.cpod_provider_session import CpodProviderSession
+from ...lingq.lingq_provider_session import LingqProviderSession
 from .base_provider_session import BaseProviderSession
-from .provider_session_cpod import CpodProviderSession
-from .provider_session_lingq import LingqProviderSession
 
 
 class SessionRegistry(QObjectBase):

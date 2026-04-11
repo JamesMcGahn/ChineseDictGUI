@@ -1,6 +1,6 @@
 from base.enums import PROVIDERS
 
-from .base_provider_session import BaseProviderSession
+from ..network.session.base_provider_session import BaseProviderSession
 
 
 class CpodProviderSession(BaseProviderSession):
@@ -10,7 +10,7 @@ class CpodProviderSession(BaseProviderSession):
 
     class Config:
         provider_name = PROVIDERS.CPOD
-        has_token = True
+        has_token = False
         has_cookies = True
         has_auth_cookies = True
         auth_cookies = {"connect.sid", "cpod.sid", "CPODSESSID"}

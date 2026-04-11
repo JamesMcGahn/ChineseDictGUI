@@ -1,10 +1,16 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.network.session import BaseProviderSession
+
 import requests
 from PySide6.QtCore import Signal, Slot
 
 from base import QObjectBase
 from models.services import NetworkResponse
 
-from .session.base_provider_session import BaseProviderSession
 from .session_manager import SessionManager
 
 

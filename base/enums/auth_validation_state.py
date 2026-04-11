@@ -6,4 +6,5 @@ class AUTHVALIDATIONSTATUS(StrEnum):
     STARTED = "started"
     BUSY = "busy"
     FAILED = "failed"
+    COOLDOWN = "cool_down"
     UNSUPPORTED = "unsupported"

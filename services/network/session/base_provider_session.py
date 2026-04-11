@@ -27,6 +27,11 @@ class BaseProviderSession(QObjectBase):
         has_auth_cookies = False
         auth_cookies = set()
         domains = set()
+        login_cool_down_secs = 300
+
+    @property
+    def login_cool_down(self) -> int:
+        return getattr(self.Config, "login_cool_down_secs", 300)
 
     @property
     def has_domains(self) -> set:
@@ -240,6 +245,7 @@ class BaseProviderSession(QObjectBase):
         return session
 
     def update_cookies_from_list(self, cookie_list):
+        cookie_list = self.filter_cookies_by_domain(cookie_list)
         jar = self.convert_cookies_to_jar(cookie_list)
         self._update_cookie_jar(jar)
 

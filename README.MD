@@ -135,7 +135,7 @@ Priorities:
 - [ ] Processors Global Registry Class
 - [ ] Provider Registry Class
   - [x] Transformer
-  - [ ] Processor
+  - [x] Processor
 - [ ] Domain Registry Class (e.g. Lessons, Words etc)
   - [x] Base Class - Transformer
   - [ ] Base Class - Processor

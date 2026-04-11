@@ -3,16 +3,19 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..session.session_registry import SessionRegistry
+    from ..network.session.session_registry import SessionRegistry
     from base.enums import PROVIDERS
+
+import time
 
 from PySide6.QtCore import QThread, Slot
 
 from base import ThreadCleanUpManager
 from base.enums import AUTHVALIDATIONSTATUS
 from core.lingq import LingqLoginWorker
+from models.services.network import AuthValidationResponse
 
-from .base_auth_service import BaseAuthService
+from ..network.auth.base_auth_service import BaseAuthService
 
 
 class LingqAuthService(BaseAuthService):
@@ -25,23 +28,33 @@ class LingqAuthService(BaseAuthService):
 
     def validate(self):
         self.logging("Validating auth session credentials...")
-        if not self.session.has_valid_auth_cookies():
-            self.logging(
-                f"{self.provider_name.upper()} Cookies expired. Getting new cookies."
-            )
-            self.login()
-            return self.send_validation_status(AUTHVALIDATIONSTATUS.STARTED)
-        self.logging(f"{self.provider_name.upper()} auth credentials valid")
-        return self.send_validation_status(AUTHVALIDATIONSTATUS.VALID)
+        has_valid_cookies = self.session.has_valid_auth_cookies()
+        return AuthValidationResponse(
+            cookies_valid=has_valid_cookies, token_valid=False
+        )
+
+    def ensure_authenticated(self):
+        if self._busy:
+            self.logging("Auth already in progress")
+            self.send_validation_status(AUTHVALIDATIONSTATUS.BUSY)
+            return
+
+        result = self.validate()
+        if result.cookies_valid:
+            self.logging("Cookies valid")
+            self.send_validation_status(AUTHVALIDATIONSTATUS.VALID)
+            return
+
+        self.logging("Cookies invalid. Logging in")
+        self.login()
+        self.send_validation_status(AUTHVALIDATIONSTATUS.STARTED)
 
     def login(self):
+        if not self.can_attempt_login():
+            self.logging("Login already attempted. Wait to try again", "WARN")
+            self.send_validation_status(AUTHVALIDATIONSTATUS.COOLDOWN)
+            return
 
-        self.logging("Attempting log in.", "WARN")
-        if self.login_attempted:
-            self.logging("Login already attempted. Not trying again", "WARN")
-            return self.send_validation_status(AUTHVALIDATIONSTATUS.FAILED)
-        self._busy = True
-        self.validation_status.emit(self.provider_name, AUTHVALIDATIONSTATUS.BUSY)
         task_id = f"{self.provider_name}-login"
         login_worker = LingqLoginWorker(session=self.session)
         login_thread = QThread()
@@ -55,16 +68,19 @@ class LingqAuthService(BaseAuthService):
         login_thread.finished.connect(
             lambda: self.clean_up_manager.cleanup_task(task_id, True)
         )
+        self.last_login_attempt = time.time()
+        self._busy = True
+        self.send_validation_status(AUTHVALIDATIONSTATUS.BUSY)
         login_thread.start()
-        self.login_attempted = True
 
     @Slot(bool)
     def receive_login(self, logged_in: bool):
         self._busy = False
         if logged_in:
-            self.login_attempted = False
             self.logging("Log in Succeed", "INFO")
-            return self.send_validation_status(AUTHVALIDATIONSTATUS.VALID)
+            self.send_validation_status(AUTHVALIDATIONSTATUS.VALID)
+            return
         else:
             self.logging("Log in Failed", "WARN")
-            return self.send_validation_status(AUTHVALIDATIONSTATUS.FAILED)
+            self.send_validation_status(AUTHVALIDATIONSTATUS.FAILED)
+            return

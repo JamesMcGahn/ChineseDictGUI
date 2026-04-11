@@ -1,6 +1,6 @@
 from base.enums import PROVIDERS
 
-from .base_provider_session import BaseProviderSession
+from ..network.session.base_provider_session import BaseProviderSession
 
 
 class LingqProviderSession(BaseProviderSession):

@@ -2,6 +2,7 @@ from enum import StrEnum
 
 
 class LESSONTASK(StrEnum):
+    AUTH = "auth"
     INFO = "info"
     DIALOGUE = "dialogue"
     VOCAB = "vocab"

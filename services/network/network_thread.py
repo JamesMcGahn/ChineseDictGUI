@@ -5,6 +5,7 @@ from base import QThreadBase
 from .network_worker import NetworkWorker
 
 
+# TODO -> REMOVE
 class NetworkThread(QThreadBase):
     response_sig = Signal(str, object)
     response = Signal(object)
