@@ -1,4 +1,5 @@
 from .audio_download_manager import AudioDownloadManager
+from .cpod_service_manager import CpodServiceManager
 from .database_service_manager import DatabaseServiceManager
 from .ffmpeg_task_manager import FFmpegTaskManager
 from .lesson_pipeline_manager import LessonPipelineManager
@@ -11,4 +12,5 @@ __all__ = [
     "LessonPipelineManager",
     "DatabaseServiceManager",
     "LingqWorkFlowManager",
+    "CpodServiceManager",
 ]
