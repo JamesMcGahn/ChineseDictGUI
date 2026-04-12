@@ -35,7 +35,9 @@ class CpodLessonServiceScrape(PlaywrightBase):
         }
 
     def do_work(self, page):
-        self.logging("TokenWorker: Going to https://www.chinesepod.com/")
+        if not self.job.payload.slug:
+            self.on_error("Job does not have lesson slug.")
+        self.logging(f"Going to https://www.chinesepod.com/{self.job.payload.slug}")
         self.get_handler(page, self.job.task)
 
     def get_handler(self, page, task: LESSONTASK):
@@ -46,7 +48,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
 
     def get_info(self, page):
         page.goto(
-            "https://chinesepod.com/lessons/a-joke-about-noodles",
+            f"https://chinesepod.com/lessons/{self.job.payload.slug}",
             wait_until="domcontentloaded",
             timeout=60_000,
         )
@@ -57,7 +59,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
 
     def get_dialogue(self, page):
         page.goto(
-            "https://www.chinesepod.com/lessons/some-food-clarifications#dialogue-tab",
+            f"https://www.chinesepod.com/lessons/{self.job.payload.slug}#dialogue-tab",
             wait_until="domcontentloaded",
             timeout=60_000,
         )
@@ -71,7 +73,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
 
     def get_expansion(self, page):
         page.goto(
-            "https://www.chinesepod.com/lessons/some-food-clarifications#expansion-tab",
+            f"https://www.chinesepod.com/lessons/{self.job.payload.slug}#expansion-tab",
             wait_until="domcontentloaded",
             timeout=60_000,
         )
@@ -83,7 +85,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
 
     def get_vocab(self, page):
         page.goto(
-            "https://www.chinesepod.com/lessons/some-food-clarifications#vocabulary-tab",
+            f"https://www.chinesepod.com/lessons/{self.job.payload.slug}#vocabulary-tab",
             wait_until="domcontentloaded",
             timeout=60_000,
         )
@@ -97,7 +99,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
 
     def get_grammar(self, page):
         page.goto(
-            "https://www.chinesepod.com/lessons/some-food-clarifications",
+            f"https://www.chinesepod.com/lessons/{self.job.payload.slug}",
             wait_until="domcontentloaded",
             timeout=60_000,
         )

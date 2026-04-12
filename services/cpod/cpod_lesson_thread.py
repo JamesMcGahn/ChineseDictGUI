@@ -12,12 +12,11 @@ from PySide6.QtCore import (
 )
 
 from base import QThreadBase
-
-# from .cpod_lesson_service_scrape import CpodLessonServiceScrape
 from base.enums import EXTRACTDATASOURCE
 from models.services import CPodLessonPayload, JobRequest
 
 from .cpod_lesson_service_api import CpodLessonServiceAPI
+from .cpod_lesson_service_scrape import CpodLessonServiceScrape
 
 
 class CpodLessonThread(QThreadBase):
@@ -40,12 +39,15 @@ class CpodLessonThread(QThreadBase):
         self.log_thread()
         if self.source == EXTRACTDATASOURCE.API:
             self.worker = CpodLessonServiceAPI(self.job, self.session)
-        # else:
-        #     self.worker = CpodLessonServiceScrape(self.job, self.session)
+        else:
+            self.worker = CpodLessonServiceScrape(self.job, self.session)
         self.worker.moveToThread(self)
         self.worker.done.connect(self.worker_finished)
         self.worker.task_complete.connect(self.task_complete)
-        QTimer.singleShot(0, self.worker.do_work)
+        if self.source == EXTRACTDATASOURCE.API:
+            QTimer.singleShot(0, self.worker.do_work)
+        else:
+            QTimer.singleShot(0, self.worker.run)
         self.exec()
 
     def worker_finished(self):

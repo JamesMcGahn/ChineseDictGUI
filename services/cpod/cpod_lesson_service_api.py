@@ -42,7 +42,7 @@ class CpodLessonServiceAPI(QWorkerBase):
 
         self.token = None
         self.wait_time_between_reqs = (5, 15)
-
+        self.headers = None
         self.clean_up_manager = ThreadCleanUpManager()
 
         self.handlers = {
