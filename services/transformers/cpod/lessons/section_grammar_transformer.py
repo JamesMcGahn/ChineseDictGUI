@@ -62,6 +62,8 @@ class GrammarTransformer(BaseSectionTransformer):
                         pinyin=pinyin,
                         audio="",
                         level=lesson.level,
+                        sent_type="grammar",
+                        lesson=(lesson.title if lesson.title else ""),
                     )
                     sentences.append(sentence)
                     current.examples.append(sentence)
