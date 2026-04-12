@@ -6,6 +6,8 @@ from base import ThreadQueueManager
 from base.enums import (
     DBJOBTYPE,
     DBOPERATION,
+    EXTRACTDATASOURCE,
+    FAILURESTRATEGY,
     JOBSTATUS,
     LESSONLEVEL,
     LESSONSTATUS,
@@ -20,8 +22,8 @@ from models.pipelines import (
     LessonPipelinePayload,
     PipelineAction,
     PipelineServiceContainer,
-    TaskCapability,
-    TaskPolicy,
+    TaskDefinition,
+    TaskRuntimeState,
 )
 from models.services import (
     AudioDownloadPayload,
@@ -44,6 +46,7 @@ from services.transformers.cpod.utils.lesson_helpers import extract_slug
 from utils.files import PathManager
 
 from .base_pipeline import BaseLessonPipeline
+from .cpod_task_config import TASK_GRAPH
 
 # TODO ADD STEP ERROR HANDLING
 
@@ -118,25 +121,6 @@ class CPodLessonPipeline(BaseLessonPipeline):
             },
         }
 
-        self.flow_map = {
-            LESSONTASK.INFO: [
-                LESSONTASK.LESSON_AUDIO,
-                LESSONTASK.DIALOGUE,
-                LESSONTASK.EXPANSION,
-                LESSONTASK.GRAMMAR,
-                LESSONTASK.VOCAB,
-                LESSONTASK.CHECK,
-            ],
-            LESSONTASK.CHECK: [LESSONTASK.SAVE_LESSON, LESSONTASK.AUDIO],
-            LESSONTASK.AUDIO: [LESSONTASK.COMBINE_AUDIO],
-            LESSONTASK.TRANSCRIBE: [LESSONTASK.LINGQ_LESSON],
-            LESSONTASK.LESSON_AUDIO: [LESSONTASK.TRANSCRIBE],
-            LESSONTASK.COMBINE_AUDIO: [
-                LESSONTASK.LINGQ_DIALOGUE,
-                LESSONTASK.LINGQ_SENTS,
-            ],
-        }
-
         self.dispatchers = {
             LESSONTASK.LESSON_AUDIO: self.dispatch_lesson_audio,
             LESSONTASK.COMBINE_AUDIO: self.dispatch_combine_audio,
@@ -146,11 +130,12 @@ class CPodLessonPipeline(BaseLessonPipeline):
             LESSONTASK.TRANSCRIBE: self.dispatch_transcribe_lesson,
             LESSONTASK.LINGQ_SENTS: self.dispatch_lingq_sents,
             LESSONTASK.LINGQ_DIALOGUE: self.dispatch_lingq_dialogue,
-            LESSONTASK.DIALOGUE: self.dispatch_dialogue,
-            LESSONTASK.EXPANSION: self.dispatch_expansion,
-            LESSONTASK.GRAMMAR: self.dispatch_grammar,
-            LESSONTASK.VOCAB: self.dispatch_vocab,
-            LESSONTASK.CHECK: self.dispatch_check,
+            LESSONTASK.INFO: self.dispatch_cpod_lesson_part,
+            LESSONTASK.DIALOGUE: self.dispatch_cpod_lesson_part,
+            LESSONTASK.EXPANSION: self.dispatch_cpod_lesson_part,
+            LESSONTASK.GRAMMAR: self.dispatch_cpod_lesson_part,
+            LESSONTASK.VOCAB: self.dispatch_cpod_lesson_part,
+            LESSONTASK.CHECK: self.dispatch_cpod_lesson_part,
         }
 
         self.action_map = {
@@ -158,21 +143,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
             EmitUIEventAction: self.handle_ui_event_action,
         }
 
-        self.TASK_POLICY: dict[LESSONTASK, TaskPolicy] = {
-            LESSONTASK.LINGQ_SENTS: TaskPolicy(max_retries=2, retry_delay_ms=5_000),
-            LESSONTASK.LINGQ_DIALOGUE: TaskPolicy(max_retries=2, retry_delay_ms=5_000),
-        }
-
-        self.TASK_CAPABILITIES: dict[LESSONTASK, TaskCapability] = {
-            LESSONTASK.INFO: TaskCapability(transform=True, process=True),
-            LESSONTASK.DIALOGUE: TaskCapability(transform=True, process=True),
-            LESSONTASK.EXPANSION: TaskCapability(transform=True, process=True),
-            LESSONTASK.GRAMMAR: TaskCapability(transform=True, process=True),
-            LESSONTASK.VOCAB: TaskCapability(transform=True, process=True),
-            LESSONTASK.CHECK: TaskCapability(transform=False, process=True),
-        }
-
-        self.task_retry_attempts = {}
+        self.TASK_STATE: dict[LESSONTASK, TaskRuntimeState] = {}
 
     def process(self):
 
@@ -195,7 +166,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
             payload=CPodLessonPayload(url=self.spec.url, slug=slug),
         )
 
-        self.cpod_lesson_manager.get_lesson_part(job)
+        self.cpod_lesson_manager.get_lesson_part(job, EXTRACTDATASOURCE.SCRAPE)
         # session = self.session_registry.for_provider(PROVIDERS.CPOD)
         # lesson_thread = LessonScraperThread([job], session=session)
         # lesson_thread.task_complete.connect(self.on_task_completed)
@@ -237,15 +208,15 @@ class CPodLessonPipeline(BaseLessonPipeline):
                 self.expected_tasks.add(LESSONTASK.LINGQ_LESSON)
 
     def get_next_tasks(self, task):
-        return self.flow_map.get(task, [])
+        task_def = self._get_task_def(task)
+        return task_def.next_tasks
 
     def dispatch(self, task: LESSONTASK, lesson: Lesson):
         dispatcher = self.dispatchers.get(task, None)
-
         if dispatcher is None:
             raise ValueError(f"No dispatcher defined for task: {task}")
 
-        dispatcher(lesson=lesson)
+        dispatcher(task=task, lesson=lesson)
 
     def on_task_completed(self, job: JobResponse[Any]):
         if job.job_ref.id != self.queue_id or self.lesson is None:
@@ -256,9 +227,10 @@ class CPodLessonPipeline(BaseLessonPipeline):
         self.update_lesson_status(
             job.job_ref.task, self.job_to_lesson_status(job.job_ref.status)
         )
-        if job.job_ref.status == JOBSTATUS.COMPLETE:
 
-            capability = self.TASK_CAPABILITIES.get(job.job_ref.task)
+        if job.job_ref.status == JOBSTATUS.COMPLETE:
+            task_def = self._get_task_def(job.job_ref.task)
+            capability = task_def.capability
             if capability and capability.transform:
                 payload = self.transformer.process(
                     job.job_ref.task, self.lesson, job.payload
@@ -282,8 +254,12 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
     def handle_success(self, job: JobRef, payload, lesson: Lesson):
         self.update_completed_tasks(job.task)
+        task_def = self._get_task_def(job.task)
+        capability = task_def.capability
 
-        capability = self.TASK_CAPABILITIES.get(job.task)
+        state = self._get_task_state(job.task)
+        state.retry_attempts = 0
+        state.source_index = 0
         if capability and capability.process:
             processor_response = self.processor.apply(
                 task=job.task, lesson=self.lesson, payload=payload
@@ -312,28 +288,44 @@ class CPodLessonPipeline(BaseLessonPipeline):
         print("COMPLETED TASKS", self.completed_tasks)
 
     def handle_failure(self, job: JobRef, payload, lesson: Lesson):
-        policy = self.TASK_POLICY.get(job.task, TaskPolicy())
+        task_def = self._get_task_def(job.task)
+        policy = task_def.policy
         self.logging(f"{job.task} failed for {lesson.title}", "ERROR")
+        state = self._get_task_state(job.task)
+        attempts = state.retry_attempts
 
-        attempts = self.task_retry_attempts.get(job.task, 0)
-
-        if policy.max_retries == 0:
-            self.logging(f"No Retry Policy for {job.task} - {lesson.title}", "DEBUG")
+        if policy.failure_strategy == FAILURESTRATEGY.IGNORE:
+            self.update_completed_tasks(job.task)
+            next_tasks = self.get_next_tasks(job.task)
+            for task in next_tasks:
+                self.dispatch(task, self.lesson)
             return
 
-        if attempts < policy.max_retries:
-            attempts += 1
-            self.logging(
-                f"Retrying {job.task} for {lesson.title} - Attempt: {attempts}/{policy.max_retries}",
-                "INFO",
-            )
-            if policy.backoff:
-                delay = policy.retry_delay_ms * (2**attempts)
-            else:
-                delay = policy.retry_delay_ms
-            self.task_retry_attempts[job.task] = attempts
-            QTimer.singleShot(delay, lambda: self.dispatch(job.task, self.lesson))
-            return
+        if policy.failure_strategy == FAILURESTRATEGY.FALLBACK:
+            sources = task_def.sources or []
+            if state.source_index < len(sources) - 1:
+                state.source_index += 1
+                self.dispatch(job.task, lesson)
+                return
+        if policy.failure_strategy == FAILURESTRATEGY.RETRY:
+            if attempts < policy.max_retries:
+                state.retry_attempts += 1
+                attempts = state.retry_attempts
+                if policy.backoff:
+                    delay = policy.retry_delay_ms * (2**attempts)
+                else:
+                    delay = policy.retry_delay_ms
+
+                self.logging(
+                    f"Retrying {job.task} for {lesson.title} - Attempt: {attempts}/{policy.max_retries}"
+                )
+                QTimer.singleShot(delay, lambda: self.dispatch(job.task, lesson))
+                return
+        self.logging(f"{job.task} failed completely", "ERROR")
+        if policy.is_criticial:
+            # TODO complete failure
+            pass
+        return
 
     def update_lesson_status(
         self, lesson_task: LESSONTASK, lesson_status: LESSONSTATUS
@@ -343,65 +335,41 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
     ## DISPATCH HANDLERS
 
-    def dispatch_dialogue(self, lesson: Lesson):
+    def _get_task_def(self, task: LESSONTASK) -> TaskDefinition:
+        return TASK_GRAPH.get(task, TaskDefinition())
+
+    def _get_task_state(self, task: LESSONTASK) -> TaskRuntimeState:
+        return self.TASK_STATE.setdefault(task, TaskRuntimeState())
+
+    def _get_current_source(self, task: LESSONTASK):
+        state = self._get_task_state(task)
+        task_def = self._get_task_def(task)
+        sources = task_def.sources
+
+        if state.source_index >= len(sources):
+            raise RuntimeError(f"Invalid source index for {task}")
+        return sources[state.source_index]
+
+    def dispatch_cpod_lesson_part(self, task: LESSONTASK, lesson: Lesson):
+        source = self._get_current_source(task)
         job = JobRequest(
             id=self.queue_id,
-            task=LESSONTASK.DIALOGUE,
+            task=task,
             payload=CPodLessonPayload(
                 url=lesson.url,
                 slug=lesson.slug,
                 lesson_id=lesson.lesson_id,
             ),
         )
+        self.cpod_lesson_manager.get_lesson_part(job, source)
 
-        self.cpod_lesson_manager.get_lesson_part(job)
-
-    def dispatch_grammar(self, lesson: Lesson):
-        job = JobRequest(
-            id=self.queue_id,
-            task=LESSONTASK.GRAMMAR,
-            payload=CPodLessonPayload(
-                url=lesson.url,
-                slug=lesson.slug,
-                lesson_id=lesson.lesson_id,
-            ),
-        )
-
-        self.cpod_lesson_manager.get_lesson_part(job)
-
-    def dispatch_vocab(self, lesson: Lesson):
-        job = JobRequest(
-            id=self.queue_id,
-            task=LESSONTASK.VOCAB,
-            payload=CPodLessonPayload(
-                url=lesson.url,
-                slug=lesson.slug,
-                lesson_id=lesson.lesson_id,
-            ),
-        )
-
-        self.cpod_lesson_manager.get_lesson_part(job)
-
-    def dispatch_expansion(self, lesson: Lesson):
-        job = JobRequest(
-            id=self.queue_id,
-            task=LESSONTASK.EXPANSION,
-            payload=CPodLessonPayload(
-                url=lesson.url,
-                slug=lesson.slug,
-                lesson_id=lesson.lesson_id,
-            ),
-        )
-
-        self.cpod_lesson_manager.get_lesson_part(job)
-
-    def dispatch_transcribe_lesson(self, lesson: Lesson):
+    def dispatch_transcribe_lesson(self, task: LESSONTASK, lesson: Lesson):
         # TODO WHISPER SETTINGS From Settings
         if lesson.transcribe_lesson:
             self.ffmpeg_task_manager.whisper_audio(
                 JobRequest(
                     id=lesson.queue_id,
-                    task=LESSONTASK.TRANSCRIBE,
+                    task=task,
                     payload=WhisperPayload(
                         provider=WHISPERPROVIDER.WHISPER,
                         file_filename="lesson.mp3",
@@ -411,11 +379,11 @@ class CPodLessonPipeline(BaseLessonPipeline):
                 )
             )
 
-    def dispatch_lesson_audio(self, lesson: Lesson):
+    def dispatch_lesson_audio(self, task: LESSONTASK, lesson: Lesson):
         self.audio_download_manager.download_audio(
             job=JobRequest(
                 id=lesson.queue_id,
-                task=LESSONTASK.LESSON_AUDIO,
+                task=task,
                 payload=AudioDownloadPayload(
                     audio_urls=lesson.lesson_parts.lesson_audios,
                     export_path=lesson.storage_path,
@@ -424,11 +392,11 @@ class CPodLessonPipeline(BaseLessonPipeline):
             )
         )
 
-    def dispatch_combine_audio(self, lesson: Lesson):
+    def dispatch_combine_audio(self, task: LESSONTASK, lesson: Lesson):
         self.ffmpeg_task_manager.combine_audio(
             JobRequest(
                 id=lesson.queue_id,
-                task=LESSONTASK.COMBINE_AUDIO,
+                task=task,
                 payload=CombineAudioPayload(
                     combine_folder_path=f"{lesson.storage_path}audio",
                     export_file_name="sentences.mp3",
@@ -439,11 +407,11 @@ class CPodLessonPipeline(BaseLessonPipeline):
             )
         )
 
-    def dispatch_save_lesson(self, lesson: Lesson):
+    def dispatch_save_lesson(self, task: LESSONTASK, lesson: Lesson):
         self.db.write(
             JobRequest(
                 id=lesson.queue_id,
-                task=LESSONTASK.SAVE_LESSON,
+                task=task,
                 payload=DBJobPayload(
                     kind=DBJOBTYPE.LESSONS,
                     operation=DBOPERATION.INSERT_ONE,
@@ -452,20 +420,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
             )
         )
 
-    def dispatch_check(self, lesson: Lesson):
-        job = JobRequest(
-            id=self.queue_id,
-            task=LESSONTASK.CHECK,
-            payload=CPodLessonPayload(
-                url=lesson.url,
-                slug=lesson.slug,
-                lesson_id=lesson.lesson_id,
-            ),
-        )
-
-        self.cpod_lesson_manager.get_lesson_part(job)
-
-    def dispatch_lesson_parts_audio(self, lesson: Lesson):
+    def dispatch_lesson_parts_audio(self, task: LESSONTASK, lesson: Lesson):
         all_sents = lesson.lesson_parts.all_sentences
         words = lesson.lesson_parts.vocab
 
@@ -482,7 +437,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
             self.audio_download_manager.download_audio(
                 JobRequest(
                     id=lesson.queue_id,
-                    task=LESSONTASK.AUDIO,
+                    task=task,
                     payload=AudioDownloadPayload(
                         audio_urls=sents_words_with_in_order,
                         export_path=f"{lesson.storage_path}audio",
@@ -491,7 +446,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
                 )
             )
 
-    def dispatch_lingq_lesson(self, lesson: Lesson):
+    def dispatch_lingq_lesson(self, task: LESSONTASK, lesson: Lesson):
         if not lesson.transcribe_lesson:
             return
         lesson_txt = f"{lesson.storage_path}lesson.txt"
@@ -517,7 +472,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
         lesson = JobRequest[LingqLessonPayload](
             id=lesson.queue_id,
-            task=LESSONTASK.LINGQ_LESSON,
+            task=task,
             payload=LingqLessonPayload(
                 title=f"{lesson.title} - Lesson",
                 collection=collection["lesson"],
@@ -532,7 +487,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
         job_list.append(lesson)
         self.lingq_workflow_manager.create_lingq_lesson(jobs=job_list)
 
-    def dispatch_lingq_sents(self, lesson: Lesson):
+    def dispatch_lingq_sents(self, task: LESSONTASK, lesson: Lesson):
         sents_text = f"{lesson.storage_path}sentences.txt"
         sents_audio = f"{lesson.storage_path}sentences.mp3"
 
@@ -554,7 +509,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
         if sents_audio_exists and sents_txt_exists:
             lingq_sent = JobRequest[LingqLessonPayload](
                 id=lesson.queue_id,
-                task=LESSONTASK.LINGQ_SENTS,
+                task=task,
                 payload=LingqLessonPayload(
                     title=f"{lesson.title} - Sents",
                     collection=collection["sents"],
@@ -568,7 +523,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
             self.lingq_workflow_manager.create_lingq_lesson(jobs=[lingq_sent])
 
-    def dispatch_lingq_dialogue(self, lesson: Lesson):
+    def dispatch_lingq_dialogue(self, task: LESSONTASK, lesson: Lesson):
 
         dialogue_text = f"{lesson.storage_path}dialogue.txt"
         dialogue_audio = f"{lesson.storage_path}dialogue.mp3"
@@ -591,7 +546,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
         if dialogue_audio_exists and dialogue_txt_exists:
             dialogue = JobRequest[LingqLessonPayload](
                 id=lesson.queue_id,
-                task=LESSONTASK.LINGQ_DIALOGUE,
+                task=task,
                 payload=LingqLessonPayload(
                     title=f"{lesson.title} - Dialogue",
                     collection=collection["dialogue"],
