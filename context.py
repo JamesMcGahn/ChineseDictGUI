@@ -72,8 +72,9 @@ class AppContext(QObjectBase, metaclass=QSingleton):
 
         self.session_registry.pre_load_providers([PROVIDERS.CPOD])
         self.auth_service.validation_status.connect(self.validate_status_result)
-        self.auth_service.validate(PROVIDERS.CPOD)
-        self.auth_service.validate(PROVIDERS.LINGQ)
+        # TODO remove from here
+        self.auth_service.ensure_authenticated(PROVIDERS.CPOD)
+        self.auth_service.ensure_authenticated(PROVIDERS.LINGQ)
 
         self.appshutdown.connect(self.db.appshutdown)
         self.appshutdown.connect(self.session_registry.save_all)

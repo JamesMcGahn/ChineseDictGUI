@@ -15,7 +15,7 @@ class BaseSectionTransformer(QObjectBase):
         }
 
     def detect_source(self, raw_data) -> str:
-        print(raw_data)
+        self.logging(f"raw data: {raw_data}", "DEBUG", False)
 
         if isinstance(raw_data, str) and raw_data.strip().startswith("<"):
             return EXTRACTDATASOURCE.SCRAPE

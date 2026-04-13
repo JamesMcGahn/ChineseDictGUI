@@ -136,6 +136,8 @@ class LogWorker(QThread):
                         self.logger.info(msg)
                     elif level == LOGLEVEL.ERROR:
                         self.logger.error(msg)
+                    elif level == LOGLEVEL.DEBUG:
+                        self.logger.debug(msg)
                     elif level == LOGLEVEL.WARN:
                         self.logger.warning(msg)
                     self.log_signal.emit(f"{current_time_str} - {level} - {msg}")
