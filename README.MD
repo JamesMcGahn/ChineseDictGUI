@@ -22,6 +22,14 @@ Priorities:
 
 # Core Architecture Refactor
 
+## Settings Service / Validation Service
+
+- [ ] Settings Service Class
+- [ ] Settings Validation Service Class
+- [ ] field validators
+- [ ] Settings config dc
+- [ ] Remove direct connections to UI
+
 ## Network Refactor – Unified Response
 
 - [x] Define unified network result shape:

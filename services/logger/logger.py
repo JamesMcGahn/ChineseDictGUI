@@ -11,6 +11,7 @@ from utils.files import PathManager
 from .log_worker import LogWorker
 
 
+# TODO MOVE TO Settings Service -> once service is created
 class Logger(QObject, metaclass=QSingleton):
     """
     Logger class responsible for managing log file creation, rotation, and cleanup.
@@ -46,6 +47,7 @@ class Logger(QObject, metaclass=QSingleton):
         self.log_backup_count = 5
         self.log_keep_files_days = 30
         self.log_turn_off_print = False
+        self.log_level = "INFO"
         self.settings = LogSettingsModel()
         self.init_logging_settings()
 
@@ -74,6 +76,7 @@ class Logger(QObject, metaclass=QSingleton):
             self.log_backup_count,
             self.log_keep_files_days,
             self.log_turn_off_print,
+            self.log_level,
         )
         self.log_worker.log_signal.connect(self.send_logs_out)
         self.submit_log.connect(self.log_worker.insert_log)
@@ -96,6 +99,7 @@ class Logger(QObject, metaclass=QSingleton):
             log_backup_count,
             log_keep_files_days,
             log_turn_off_print,
+            log_level,
         ) = self.settings.get_log_settings()
 
         self.log_file_path = log_file_path
@@ -104,6 +108,7 @@ class Logger(QObject, metaclass=QSingleton):
         self.log_backup_count = log_backup_count
         self.log_keep_files_days = log_keep_files_days
         self.log_turn_off_print = log_turn_off_print
+        self.log_level = log_level
 
     @Slot(tuple)
     def log_settings_changed(self, settings: tuple) -> None:

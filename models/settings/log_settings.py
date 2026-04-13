@@ -6,6 +6,7 @@ from base import QSingleton
 from services.settings import AppSettings
 
 
+# TODO: REMOVE MODEL class -> move to settings service
 class LogSettingsModel(QObject, metaclass=QSingleton):
     """
     Manages the log settings for the application, handling initialization, saving,
@@ -25,7 +26,7 @@ class LogSettingsModel(QObject, metaclass=QSingleton):
         success (Signal): Emitted after log settings are saved successfully.
     """
 
-    log_setting_changed = Signal(str, str, int, int, int, bool)
+    log_setting_changed = Signal(str, str, int, int, int, bool, str)
     success = Signal()
 
     def __init__(self):
@@ -41,11 +42,12 @@ class LogSettingsModel(QObject, metaclass=QSingleton):
         self.log_backup_count = 5
         self.log_keep_files_days = 30
         self.log_turn_off_print = False
+        self.log_level = "INFO"
 
         self.settings = AppSettings()
         self.init_logs_settings()
 
-    def get_log_settings(self) -> Tuple[str, str, int, int, int, bool]:
+    def get_log_settings(self) -> Tuple[str, str, int, int, int, bool, str]:
         """
         Retrieves the current log settings as a tuple.
 
@@ -60,9 +62,10 @@ class LogSettingsModel(QObject, metaclass=QSingleton):
             self.log_backup_count,
             self.log_keep_files_days,
             self.log_turn_off_print,
+            self.log_level,
         )
 
-    @Slot(str, str, int, int, int, bool)
+    @Slot(str, str, int, int, int, bool, str)
     def save_log_settings(
         self,
         log_file_path: str,
@@ -71,6 +74,7 @@ class LogSettingsModel(QObject, metaclass=QSingleton):
         log_backup_count: int,
         log_keep_files_days: int,
         log_turn_off_print: bool,
+        log_level: str,
     ):
         """
         Saves the provided log settings to persistent storage and updates the model's state.
@@ -94,14 +98,16 @@ class LogSettingsModel(QObject, metaclass=QSingleton):
         self.log_backup_count = log_backup_count
         self.log_keep_files_days = log_keep_files_days
         self.log_turn_off_print = log_turn_off_print
+        self.log_level = log_level
 
-        self.settings.begin_group("logs_settings")
-        self.settings.set_value("log_file_path", log_file_path)
-        self.settings.set_value("log_file_name", log_file_name)
-        self.settings.set_value("log_backup_count", log_backup_count)
-        self.settings.set_value("log_file_max_mbs", log_file_max_mbs)
-        self.settings.set_value("log_keep_files_days", log_keep_files_days)
-        self.settings.set_value("log_turn_off_print", log_turn_off_print)
+        self.settings.begin_group("settings")
+        self.settings.set_value("log_settings/log_file_path", log_file_path)
+        self.settings.set_value("log_settings/log_file_name", log_file_name)
+        self.settings.set_value("log_settings/log_backup_count", log_backup_count)
+        self.settings.set_value("log_settings/log_file_max_mbs", log_file_max_mbs)
+        self.settings.set_value("log_settings/log_keep_files_days", log_keep_files_days)
+        self.settings.set_value("log_settings/log_turn_off_print", log_turn_off_print)
+        self.settings.set_value("log_settings/log_level", log_level)
         self.settings.end_group()
 
         self.log_setting_changed.emit(
@@ -111,6 +117,7 @@ class LogSettingsModel(QObject, metaclass=QSingleton):
             log_backup_count,
             log_keep_files_days,
             log_turn_off_print,
+            log_level,
         )
         self.success.emit()
 
@@ -126,6 +133,7 @@ class LogSettingsModel(QObject, metaclass=QSingleton):
         default_file_max_mbs = 5
         default_keep_files_days = 30
         default_turn_off_print = False
+        default_log_level = "INFO"
 
         settings = [
             ("log_file_path", self.log_file_path, default_log_file_path),
@@ -134,15 +142,19 @@ class LogSettingsModel(QObject, metaclass=QSingleton):
             ("log_file_max_mbs", self.log_file_max_mbs, default_file_max_mbs),
             ("log_keep_files_days", self.log_keep_files_days, default_keep_files_days),
             ("log_turn_off_print", self.log_turn_off_print, default_turn_off_print),
+            ("log_level", self.log_level, default_log_level),
         ]
         self.settings.begin_group("settings")
         for setting in settings:
             key, self_setting, default = setting
-            verified = self.settings.get_value(f"{key}-verified", False)
+            verified = self.settings.get_value(f"log_settings/{key}-verified", False)
             # trunk-ignore(ruff/F841)
-            self_setting = (
-                self.settings.get_value(key, default) if verified else default
+            value = (
+                self.settings.get_value(f"log_settings/{key}", default)
+                if verified
+                else default
             )
+            setattr(self, key, value)
         self.settings.end_group()
         self.log_file_path = (
             "./logs/" if self.log_file_path == "/" else self.log_file_path
@@ -158,4 +170,5 @@ class LogSettingsModel(QObject, metaclass=QSingleton):
             ("log_file_max_mbs", self.log_file_max_mbs, default_file_max_mbs),
             ("log_keep_files_days", self.log_keep_files_days, default_keep_files_days),
             ("log_turn_off_print", self.log_turn_off_print, default_turn_off_print),
+            ("log_level", self.log_level, default_log_level),
         )

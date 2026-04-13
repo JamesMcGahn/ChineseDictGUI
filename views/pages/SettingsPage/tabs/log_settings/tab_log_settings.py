@@ -11,7 +11,7 @@ from .tab_log_settings_ui import TabLogSettingsUI
 class TabLogSettings(QWidgetBase):
 
     log_page_settings = Signal(str, bool, str, bool)
-    save_log_settings_model = Signal(str, str, int, int, int, bool)
+    save_log_settings_model = Signal(str, str, int, int, int, bool, str)
 
     def __init__(self):
         super().__init__()
@@ -45,6 +45,7 @@ class TabLogSettings(QWidgetBase):
             "log_backup_count",
             "log_file_max_mbs",
             "log_keep_files_days",
+            "log_level",
         ]:
             self.send_logs_page_setting()
 
@@ -64,6 +65,7 @@ class TabLogSettings(QWidgetBase):
         log_keep_files_days, _ = self.settings_model.get_setting(
             self.tab_id, "log_keep_files_days"
         )
+        log_level, _ = self.settings_model.get_setting(self.tab_id, "log_level")
 
         self.log_page_settings.emit(
             log_file_path,
@@ -78,4 +80,5 @@ class TabLogSettings(QWidgetBase):
             log_backup_count,
             log_keep_files_days,
             False,
+            log_level,
         )

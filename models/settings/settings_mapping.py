@@ -43,6 +43,15 @@ settings_mapping = {
             "verify_btn": "Save Log Backup Count",
             "verify": "_verify_no_check_save",
         },
+        "log_level": {
+            "default": "INFO",
+            "type": "str",
+            "widget": "combo_box",
+            "label": "Log Level:",
+            "combo_box": ["INFO", "WARN", "DEBUG", "ERROR"],
+            "verify_btn": "Save Log Level",
+            "verify": "_verify_no_check_save",
+        },
     },
     "app_settings": {
         "apple_note_name": {
@@ -60,6 +69,7 @@ settings_mapping = {
             "label": "Dictionary Source:",
             "verify_btn": "Save Dictionary Source",
             "combo_box": ["cpod", "mgdb"],
+            "verify": "_verify_no_check_save",
         },
         "auto_save_on_close": {
             "default": True,

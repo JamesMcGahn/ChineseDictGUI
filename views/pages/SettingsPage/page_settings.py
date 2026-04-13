@@ -11,6 +11,7 @@ from .settings_ui_helper import SettingsUIHelper
 from .verify_settings import VerifySettings
 
 
+# TODO: Move all Settings logic to a Settings Service
 class PageSettings(QWidgetBase):
     main_app_settings = Signal(bool, bool)
     import_page_settings = Signal(str, bool)
@@ -18,7 +19,7 @@ class PageSettings(QWidgetBase):
     sync_page_settings = Signal(str, bool, str, bool)
     log_page_settings = Signal(str, bool, str, bool)
     define_page_settings = Signal(str, bool)
-    save_log_settings_model = Signal(str, str, int, int, int, bool)
+    save_log_settings_model = Signal(str, str, int, int, int, bool, str)
 
     def __init__(self):
         super().__init__()
@@ -124,6 +125,7 @@ class PageSettings(QWidgetBase):
         log_file_max_mbs, _ = self.settings_model.get_setting("log_file_max_mbs")
         log_backup_count, _ = self.settings_model.get_setting("log_backup_count")
         log_keep_files_days, _ = self.settings_model.get_setting("log_keep_files_days")
+        log_level, _ = self.settings_model.get_setting("log_level")
 
         self.log_page_settings.emit(
             log_file_path,
@@ -138,6 +140,7 @@ class PageSettings(QWidgetBase):
             log_backup_count,
             log_keep_files_days,
             False,
+            log_level,
         )
 
     @Slot()

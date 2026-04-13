@@ -40,6 +40,7 @@ class LogWorker(QThread):
         log_backup_count: int,
         log_keep_files_days: int,
         log_turn_off_print: bool,
+        log_level: str,
     ):
         """
         Initializes the LogWorker with the provided logging parameters.
@@ -60,9 +61,18 @@ class LogWorker(QThread):
         self.log_backup_count = log_backup_count
         self.log_keep_files_days = log_keep_files_days
         self.log_turn_off_print = log_turn_off_print
+        self.log_level = log_level
 
         self.stop_event = False
         self.mutex = QMutex()
+
+        self.LOGLEVEL_PRIORITY = {
+            LOGLEVEL.DEBUG: 10,
+            LOGLEVEL.INFO: 20,
+            LOGLEVEL.WARN: 30,
+            LOGLEVEL.ERROR: 40,
+        }
+
         self.setup_logging()
 
     def setup_logging(self) -> None:
@@ -72,6 +82,7 @@ class LogWorker(QThread):
         Returns:
             None: This function does not return a value.
         """
+        print(f"log level: {self.log_level} ")
         complete_path = self.log_file_path + self.log_file_name
         self.logger = logging.getLogger(complete_path)
         self.logger.setLevel(logging.INFO)
@@ -113,11 +124,15 @@ class LogWorker(QThread):
 
         if level not in LOGLEVEL:
             level = LOGLEVEL.INFO
+        if self.should_log(level):
+            if print_msg and not self.log_turn_off_print:
+                print(f"{level} - {msg}")
 
-        if print_msg and not self.log_turn_off_print:
-            print(f"{level} - {msg}")
+            self.log_queue.put((level, msg))
+        return
 
-        self.log_queue.put((level, msg))
+    def should_log(self, level: LOGLEVEL) -> bool:
+        return self.LOGLEVEL_PRIORITY[level] >= self.LOGLEVEL_PRIORITY[self.log_level]
 
     def run(self) -> None:
         """
