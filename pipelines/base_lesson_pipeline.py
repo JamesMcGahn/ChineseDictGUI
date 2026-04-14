@@ -9,6 +9,7 @@ from base.enums import (
     LESSONLEVEL,
     LESSONSTATUS,
     LESSONTASK,
+    TASKSTATESTATUS,
 )
 from models.dictionary import Lesson
 from models.pipelines import (
@@ -199,11 +200,14 @@ class BaseLessonPipeline(QObjectBase):
 
     def dispatch(self, task: LESSONTASK, lesson: Lesson):
         dispatcher = self.dispatchers.get(task, None)
+        state = self._get_task_state(task)
+        if state.status in (TASKSTATESTATUS.RUNNING, TASKSTATESTATUS.COMPLETE):
+            return
         if dispatcher is None:
             msg = f"No dispatcher defined for task: {task}"
             self.logging(msg, "ERROR")
             raise ValueError(msg)
-
+        state.status = TASKSTATESTATUS.RUNNING
         dispatcher(task=task, lesson=lesson)
 
     def _get_task_def(self, task: LESSONTASK) -> TaskDefinition:
@@ -251,9 +255,7 @@ class BaseLessonPipeline(QObjectBase):
             else:
                 self.handle_success(job.job_ref, job.payload, self.lesson)
 
-            next_tasks = self.get_next_tasks(job.job_ref.task)
-            for task in next_tasks:
-                self.dispatch(task, self.lesson)
+            self.propagate_tasks(job.job_ref.task)
 
         elif job.job_ref.status == JOBSTATUS.ERROR:
             self.handle_failure(job.job_ref, job.payload, self.lesson)
@@ -261,8 +263,19 @@ class BaseLessonPipeline(QObjectBase):
             return
         # FEATURE : allow for threshold of number of errors, setting
 
+    def propagate_tasks(self, task: LESSONTASK):
+        state = self._get_task_state(task)
+        if state.downstream_dispatched:
+            return
+        next_tasks = self.get_next_tasks(task)
+        for task in next_tasks:
+            self.dispatch(task, self.lesson)
+        state.downstream_dispatched = True
+
     def handle_success(self, job: JobRef, payload, lesson: Lesson):
         self.update_completed_tasks(job.task)
+        state = self._get_task_state(job.task)
+        state.status = TASKSTATESTATUS.COMPLETE
         task_def = self._get_task_def(job.task)
         capability = task_def.capability
 
@@ -307,15 +320,14 @@ class BaseLessonPipeline(QObjectBase):
 
         if policy.failure_strategy == FAILURESTRATEGY.IGNORE:
             self.update_completed_tasks(job.task)
-            next_tasks = self.get_next_tasks(job.task)
-            for task in next_tasks:
-                self.dispatch(task, self.lesson)
-            return
+            state.status = TASKSTATESTATUS.ERROR
+            self.propagate_tasks(job.task)
 
         if policy.failure_strategy == FAILURESTRATEGY.FALLBACK:
             sources = task_def.sources or []
             if state.source_index < len(sources) - 1:
                 state.source_index += 1
+                state.status = TASKSTATESTATUS.PENDING
                 self.logging(
                     f"Retrying {job.task} for {lesson.title} - Falling back to next task source."
                 )
@@ -329,13 +341,15 @@ class BaseLessonPipeline(QObjectBase):
                     delay = policy.retry_delay_ms * (2**attempts)
                 else:
                     delay = policy.retry_delay_ms
-
+                state.status = TASKSTATESTATUS.PENDING
                 self.logging(
                     f"Retrying {job.task} for {lesson.title} - Attempt: {attempts}/{policy.max_retries}"
                 )
                 QTimer.singleShot(delay, lambda: self.dispatch(job.task, lesson))
                 return
         self.logging(f"{job.task} failed completely", "ERROR")
+
+        state.status = TASKSTATESTATUS.ERROR
         if policy.is_criticial:
             # TODO complete failure
             pass

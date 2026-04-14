@@ -168,8 +168,8 @@ TASK_GRAPH: dict[LESSONTASK, TaskDefinition] = {
     ),
     LESSONTASK.COMBINE_AUDIO: TaskDefinition(
         next_tasks=[
-            LESSONTASK.LINGQ_DIALOGUE,
             LESSONTASK.LINGQ_SENTS,
+            LESSONTASK.LINGQ_DIALOGUE,
         ],
         sources=[],
         policy=TaskPolicy(
