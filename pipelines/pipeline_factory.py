@@ -1,7 +1,7 @@
 from base.enums import LESSONPROVIDERS, PIPELINEJOBTYPE
 from models.pipelines import PipelineRequest, PipelineServiceContainer
 
-from .base_pipeline import BaseLessonPipeline
+from .base_lesson_pipeline import BaseLessonPipeline
 from .cpod_lesson_pipeline import CPodLessonPipeline
 
 
