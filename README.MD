@@ -24,10 +24,11 @@ Priorities:
 
 ## Settings Service / Validation Service
 
+- [x] Settings Repository
 - [ ] Settings Service Class
 - [ ] Settings Validation Service Class
 - [ ] field validators
-- [ ] Settings config dc
+- [x] Settings Meta dc
 - [ ] Remove direct connections to UI
 
 ## Network Refactor – Unified Response
@@ -52,13 +53,6 @@ Priorities:
   - [ ] Replace `response.json()` → `result.data`
   - [ ] Replace exception handling → `result.message`
   - [ ] Remove `if response is None` checks
-
-### Session & Auth
-
-- [x] Session Provider Registry
-- [x] Split Session State and Validation from Session
-- [x] Auth Service
-- [x] Auth Validation by provider
 
 ## Database System Refactor 🔥
 
@@ -157,19 +151,6 @@ Priorities:
 - [ ] refactor scraper to just handle network calls and return payloads
 - [ ] Move out transformation handling to pipeline
 
-## CPOD Scrape Refactor
-
-- [ ] Move cpod from core → services
-- [x] Move parse\_\* → transformers/cpod/lesson/
-- [ ] Define LESSONTASK flow for scraping in pipeline
-- [ ] Remove task flow logic from scraper
-- [ ] Remove lesson lifecycle handling from scraper
-- [ ] Refactor scraper → CPodLessonService
-  - [ ] Only handle network calls + emit raw payload
-- [ ] Apply transformers in pipeline
-- [ ] Pass to processor
-- [ ] Dispatch next tasks from pipeline
-
 ## Lesson Workflow Pipeline
 
 - [x] Remove Lesson thread logic from lesson page
@@ -186,12 +167,6 @@ Priorities:
 - [/] handle errors from any part of the process
 - [ ] handle partial errors
 
-### CPOD Lesson Fallback
-
-- [ ] migrate old LessonScraperV1 selenium scraping to playwright
-- [ ] implement transformers for each section
-- [ ] implement fallback processes in CPOD Pipeline on API failure
-
 ## Word Workflow Pipeline
 
 - Remove Word logic from page
@@ -207,16 +182,6 @@ Priorities:
   - [ ] add example sentences to word model
   - [ ] add source to word model?
 - [ ] add progress for word status
-
-## Lingqq Lesson Auto Submission
-
-- [x] Create login worker
-  - [x] extract cookies / auth token
-- [x] Create worker to obtain collection ids
-- [x] Lesson Submission Worker
-- [x] create fn to obtain crsf token
-- [x] create fn to submit lesson
-- [x] design and implement new job service structure
 
 ## Pipeline Queue Feature ⭐
 
@@ -312,3 +277,41 @@ Create a **generic progress pipeline** for all slow operations:
 - [ ] Add granular progress signals for:
   - [ ] Lesson Workflow
   - [ ] Whisper transcription
+
+# COMPLETED ✅
+
+## Lingqq Lesson Auto Submission
+
+- [x] Create login worker
+  - [x] extract cookies / auth token
+- [x] Create worker to obtain collection ids
+- [x] Lesson Submission Worker
+- [x] create fn to obtain crsf token
+- [x] create fn to submit lesson
+- [x] design and implement new job service structure
+
+## CPOD Lesson Scrape Refactor
+
+- [x] Move cpod from core → services
+- [x] Move parse\_\* → transformers/cpod/lesson/
+- [x] Define LESSONTASK flow for scraping in pipeline
+- [x] Remove task flow logic from scraper
+- [x] Remove lesson lifecycle handling from scraper
+- [x] Refactor scraper → CPodLessonService
+  - [x] Only handle network calls + emit raw payload
+- [x] Apply transformers in pipeline
+- [x] Pass to processor
+- [x] Dispatch next tasks from pipeline
+
+## CPOD Lesson Fallback
+
+- [x] migrate old LessonScraperV1 selenium scraping to playwright
+- [x] implement transformers for each section
+- [x] implement fallback processes in CPOD Pipeline on API failure
+
+## Session & Auth
+
+- [x] Session Provider Registry
+- [x] Split Session State and Validation from Session
+- [x] Auth Service
+- [x] Auth Validation by provider
