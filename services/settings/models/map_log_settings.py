@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from .settings_helper import setting
+from ..enums import SETTINGSCATEGORIES
+from .settings_field_helper import setting
 
 
 @dataclass
@@ -8,7 +9,7 @@ class LogSettings:
     log_file_path: str = setting(
         key="log_file_path",
         default="./logs/",
-        category="log_settings",
+        category=SETTINGSCATEGORIES.LOG,
         widget_type="line_edit",
         label_text="Log File path:",
         verify_btn_text="Verify Log Path",
@@ -19,7 +20,7 @@ class LogSettings:
     log_file_name: str = setting(
         key="log_file_name",
         default="application.log",
-        category="log_settings",
+        category=SETTINGSCATEGORIES.LOG,
         widget_type="line_edit",
         label_text="Log File Name:",
         verify_btn_text="Save Log File Name",
@@ -30,7 +31,7 @@ class LogSettings:
     log_file_max_mbs: int = setting(
         key="log_file_max_mbs",
         default=5,
-        category="log_settings",
+        category=SETTINGSCATEGORIES.LOG,
         widget_type="line_edit",
         label_text="Log File Max Mbs:",
         verify_btn_text="Save Log File Max Mbs",
@@ -41,7 +42,7 @@ class LogSettings:
     log_keep_files_days: int = setting(
         key="log_keep_files_days",
         default=5,
-        category="log_settings",
+        category=SETTINGSCATEGORIES.LOG,
         widget_type="line_edit",
         label_text="Keep Log File Days:",
         verify_btn_text="Save Log File Days",
@@ -52,7 +53,7 @@ class LogSettings:
     log_backup_count: int = setting(
         key="log_backup_count",
         default=5,
-        category="log_settings",
+        category=SETTINGSCATEGORIES.LOG,
         widget_type="line_edit",
         label_text="Log Backup Count:",
         verify_btn_text="Save Log Backup Count",
@@ -63,7 +64,7 @@ class LogSettings:
     log_level: str = setting(
         key="log_level",
         default="INFO",
-        category="log_settings",
+        category=SETTINGSCATEGORIES.LOG,
         widget_type="combo_box",
         label_text="Log Level:",
         verify_btn_text="Save Log Level",

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .settings import AppSettings
     from .secure_settings import SecureCredentials
-    from models.settings.settings_field_meta import SettingsFieldMeta
+    from .models.settings_field_meta import SettingsFieldMeta
 
 
 from dataclasses import fields
@@ -23,28 +23,33 @@ class SettingsRepository:
 
         values = {}
         validated = {}
+        self.settings.begin_group("settings")
+        try:
+            for field in fields(section_dc):
+                meta: SettingsFieldMeta = field.metadata["meta"]
 
-        for field in fields(section_dc):
-            meta: SettingsFieldMeta = field.metadata["meta"]
+                key = f"{meta.category}/{meta.key}"
+                validated_key = f"{meta.category}/{meta.key}-validated"
 
-            key = f"{meta.category}/{meta.key}"
-            validated_key = f"{meta.category}/{meta.key}-validated"
-            if meta.secure:
-                value = self.secure_settings.get_creds(
-                    "chinese-dict-secure-settings", key
+                if meta.secure:
+                    value = self.secure_settings.get_creds(
+                        "chinese-dict-secure-settings", key
+                    )
+                else:
+                    value = self.settings.get_value(
+                        key, default=field.default, type=field.type
+                    )
+                is_validated = self.settings.get_value(
+                    validated_key, default=False, type=bool
                 )
-            else:
-                value = self.settings.get_value(
-                    key, default=field.default, type=field.type
-                )
-            is_validated = self.settings.get_value(
-                validated_key, default=False, type=bool
-            )
-            if value is None:
-                value = field.default
 
-            validated[field.name] = is_validated
-            values[field.name] = value
+                if value is None:
+                    value = field.default
+
+                validated[field.name] = is_validated
+                values[field.name] = value
+        finally:
+            self.settings.end_group()
 
         return section_dc(**values), validated
 

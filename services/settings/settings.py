@@ -5,6 +5,7 @@ from PySide6.QtCore import QSettings
 from base import Singleton
 
 
+# TODO: Rename
 class AppSettings(Singleton):
     """
     A singleton class for managing application settings using QSettings. It provides methods for storing,

@@ -31,6 +31,16 @@ Priorities:
 - [x] Settings Meta dc
 - [ ] Remove direct connections to UI
 
+## Controller Infrastructure
+
+- [ ] separate logic from forms/pages into controllers
+- [ ] introduce controller factory (used only in composition layer)
+- [ ] create page-specific controller containers (LessonPageControllers, etc.)
+- [ ] inject controllers into pages at creation (no runtime lookup)
+- [ ] pipelines emit domain events (rename UIEvent → Event)
+- [ ] controllers translate pipeline events → UI updates
+- [ ] define UI composition layer (MainScreen/CentralWidget) for wiring
+
 ## Network Refactor – Unified Response
 
 - [x] Define unified network result shape:
@@ -253,6 +263,9 @@ Create a **generic progress pipeline** for all slow operations:
 # General Cleanup
 
 ## Architecture Cleanup ⭐
+
+- [ ] Move enums for domain to domain folder
+- [ ] Move models for domain to domain folder
 
 - [x] Move service initialization from `MainWindow` → `Context`
 - [x] Improve folder structure (e.g., `core/`, `services/`, `workers/`, `ui/components/`)
