@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from context import AppContext
 
 
+# TODO: Delete Session Manager after migration to PRoviderSession
 class SessionManager(QObjectBase, metaclass=QSingleton):
     _ctx: AppContext | None = None
 

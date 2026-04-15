@@ -22,7 +22,12 @@ from services.managers import (
 from services.network import SessionManager
 from services.network.auth import AuthService
 from services.network.session import SessionRegistry
-from services.settings import AppSettings
+from services.settings import (
+    AppSettings,
+    SecureCredentials,
+    SettingsRepository,
+    SettingsService,
+)
 from utils.files import PathManager
 
 # TODO Remove after Testing
@@ -40,12 +45,18 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         super().__init__()
         self.cookie_jar = requests.cookies.RequestsCookieJar()
         self.logger = Logger()
+
+        # TODO: Remove when Migration is Completed
         self.session_manager = SessionManager()
         self.session_manager.bind_context(self)
+
         self.settings = AppSettings()
+        self.secure_settings = SecureCredentials()
         self.session_manager.load_session()
         self.db = DatabaseServiceManager()
 
+        self.settings_repo = SettingsRepository(self.settings, self.secure_settings)
+        self.settings_manager = SettingsService(repo=self.settings_repo)
         self.session_registry = SessionRegistry()
         self.auth_service = AuthService(session_registry=self.session_registry)
         self.ffmpeg_task_manager = FFmpegTaskManager()
@@ -78,6 +89,7 @@ class AppContext(QObjectBase, metaclass=QSingleton):
 
         self.appshutdown.connect(self.db.appshutdown)
         self.appshutdown.connect(self.session_registry.save_all)
+        self.appshutdown.connect(self.settings_manager.save_settings)
 
         # CONNECTIONS
         ## TASK COMPLETE

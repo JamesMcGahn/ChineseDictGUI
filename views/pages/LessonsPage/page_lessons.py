@@ -23,6 +23,8 @@ from utils.files import PathManager
 from .page_lessons_ui import PageLessonsView
 
 # TODO: CLEAN UP : Remove OLD DB ACCESS
+# TODO: Remove AppContext
+# TODO Remove Logic -> Implement Controller
 
 
 class PageLessons(QWidgetBase):
