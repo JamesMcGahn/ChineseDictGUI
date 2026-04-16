@@ -1,5 +1,6 @@
 from base.enums import UIEVENTTYPE
-from models.core import LessonTaskPayload, UIEvent
+from base.events import UIEvent, WordsEvent
+from models.core import LessonTaskPayload
 from models.dictionary import Lesson
 from models.pipelines import EmitUIEventAction, WriteWordsAction
 from models.services import ProcessorResponse
@@ -21,9 +22,10 @@ class VocabProcessor(BaseSectionProcessor):
             actions=[
                 EmitUIEventAction(
                     event=UIEvent(
-                        event_type=UIEVENTTYPE.WORDS,
-                        data=words,
-                        check_duplicates=lesson.check_dup_sents,
+                        event_type=UIEVENTTYPE.DISPLAY,
+                        payload=WordsEvent(
+                            words=words, check_duplicates=lesson.check_dup_words
+                        ),
                     )
                 ),
                 WriteWordsAction(

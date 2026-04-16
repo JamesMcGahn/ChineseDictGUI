@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from ..core import UIEvent
+from base.events import UIEvent
+
 from .pipeline_action import PipelineAction
 
 

@@ -27,6 +27,7 @@ class Lesson:
 
     # NOT SAVED TO DB
     check_dup_sents: bool = False
+    check_dup_words: bool = False
     transcribe_lesson: bool = True
     lesson_parts: LessonParts = field(default_factory=LessonParts)
     queue_id: str | None = field(default=None, kw_only=True)

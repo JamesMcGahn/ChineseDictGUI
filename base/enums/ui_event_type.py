@@ -2,5 +2,7 @@ from enum import StrEnum
 
 
 class UIEVENTTYPE(StrEnum):
-    SENTENCES = "sentences"
-    WORDS = "words"
+    DISPLAY = "display"
+    UPDATE = "update"
+    ERROR = "error"
+    LOADING = "loading"

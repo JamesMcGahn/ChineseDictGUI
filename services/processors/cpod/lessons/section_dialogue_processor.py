@@ -1,5 +1,6 @@
 from base.enums import UIEVENTTYPE
-from models.core import LessonTaskPayload, UIEvent
+from base.events import SentencesEvent, UIEvent
+from models.core import LessonTaskPayload
 from models.dictionary import Lesson
 from models.pipelines import EmitUIEventAction, WriteSentencesAction
 from models.services import ProcessorResponse
@@ -21,9 +22,10 @@ class DialogueProcessor(BaseSectionProcessor):
             actions=[
                 EmitUIEventAction(
                     event=UIEvent(
-                        event_type=UIEVENTTYPE.SENTENCES,
-                        data=dialogue,
-                        check_duplicates=lesson.check_dup_sents,
+                        event_type=UIEVENTTYPE.DISPLAY,
+                        payload=SentencesEvent(
+                            sentences=dialogue, check_duplicates=lesson.check_dup_sents
+                        ),
                     )
                 ),
                 WriteSentencesAction(

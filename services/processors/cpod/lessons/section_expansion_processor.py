@@ -1,5 +1,6 @@
 from base.enums import UIEVENTTYPE
-from models.core import LessonTaskPayload, UIEvent
+from base.events import SentencesEvent, UIEvent
+from models.core import LessonTaskPayload
 from models.dictionary import Lesson
 from models.pipelines import EmitUIEventAction
 from models.services import ProcessorResponse
@@ -21,10 +22,11 @@ class ExpansionProcessor(BaseSectionProcessor):
             actions=[
                 EmitUIEventAction(
                     event=UIEvent(
-                        event_type=UIEVENTTYPE.SENTENCES,
-                        data=expansion,
-                        check_duplicates=lesson.check_dup_sents,
+                        event_type=UIEVENTTYPE.DISPLAY,
+                        payload=SentencesEvent(
+                            sentences=expansion, check_duplicates=lesson.check_dup_sents
+                        ),
                     )
-                )
+                ),
             ]
         )
