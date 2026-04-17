@@ -88,13 +88,13 @@ TASK_GRAPH: dict[LESSONTASK, TaskDefinition] = {
     ),
     LESSONTASK.CHECK: TaskDefinition(
         next_tasks=[LESSONTASK.SAVE_LESSON, LESSONTASK.AUDIO],
-        sources=[EXTRACTDATASOURCE.API],
+        sources=[EXTRACTDATASOURCE.SCRAPE],
         policy=TaskPolicy(
             max_retries=2,
             retry_delay_ms=5000,
             backoff=True,
             partial_threshold=None,
-            failure_strategy=FAILURESTRATEGY.IGNORE,
+            failure_strategy=FAILURESTRATEGY.RETRY,
             is_criticial=False,
         ),
         capability=TaskCapability(

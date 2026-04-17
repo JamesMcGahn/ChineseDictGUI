@@ -175,7 +175,7 @@ class PageLessons(QWidgetBase):
     @Slot(object)
     def get_words_from_sthread_loop(self, event: UIEvent[WordsEvent]):
         if event.event_type != UIEVENTTYPE.DISPLAY or not isinstance(
-            UIEvent.payload, WordsEvent
+            event.payload, WordsEvent
         ):
             return
         self.logging(f"Lesson Page: Received {len(event.payload.words)} Words")
@@ -264,7 +264,7 @@ class PageLessons(QWidgetBase):
     @Slot(list)
     def get_sentences_from_thread_loop(self, event: UIEvent[SentencesEvent]):
         if event.event_type != UIEVENTTYPE.DISPLAY or not isinstance(
-            UIEvent.payload, SentencesEvent
+            event.payload, SentencesEvent
         ):
             return
 

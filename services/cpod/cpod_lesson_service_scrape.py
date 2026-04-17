@@ -32,6 +32,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
             LESSONTASK.EXPANSION: self.get_expansion,
             LESSONTASK.VOCAB: self.get_vocab,
             LESSONTASK.GRAMMAR: self.get_grammar,
+            LESSONTASK.CHECK: self.get_check,
         }
 
     def do_work(self, page):
@@ -58,6 +59,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
         self.on_success(data)
 
     def get_dialogue(self, page):
+        self.logging(f"Lesson - {self.job.payload.slug} - Getting Dialogue")
         page.goto(
             f"https://www.chinesepod.com/lessons/{self.job.payload.slug}#dialogue-tab",
             wait_until="domcontentloaded",
@@ -72,6 +74,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
             self.on_error("Page does not have Dialogue")
 
     def get_expansion(self, page):
+        self.logging(f"Lesson - {self.job.payload.slug} - Getting Expansion")
         page.goto(
             f"https://www.chinesepod.com/lessons/{self.job.payload.slug}#expansion-tab",
             wait_until="domcontentloaded",
@@ -84,6 +87,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
             self.on_success(data)
 
     def get_vocab(self, page):
+        self.logging(f"Lesson - {self.job.payload.slug} - Getting Vocab")
         page.goto(
             f"https://www.chinesepod.com/lessons/{self.job.payload.slug}#vocabulary-tab",
             wait_until="domcontentloaded",
@@ -98,6 +102,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
             self.on_error("Page does not have Vocab")
 
     def get_grammar(self, page):
+        self.logging(f"Lesson - {self.job.payload.slug} - Getting Grammar")
         page.goto(
             f"https://www.chinesepod.com/lessons/{self.job.payload.slug}",
             wait_until="domcontentloaded",
@@ -116,6 +121,23 @@ class CpodLessonServiceScrape(PlaywrightBase):
             self.on_success(data)
         else:
             self.on_error("Page does not have Grammar")
+
+    def get_check(self, page):
+        self.logging(f"Lesson - {self.job.payload.slug} - Checking Lesson")
+        page.goto(
+            f"https://www.chinesepod.com/lessons/{self.job.payload.slug}",
+            wait_until="domcontentloaded",
+            timeout=60_000,
+        )
+        studied_span = page.locator("#studiedBtn")
+        studied_span.wait_for(state="attached", timeout=10_000)
+        if not studied_span.is_visible():
+            self.logging("Lesson already marked studied")
+            self.on_success(None)
+        else:
+            button = studied_span.locator("button")
+            button.wait_for(state="visible", timeout=10_000)
+            self.on_success(None)
 
     def page_has_tab(self, page, tab_name: str) -> bool:
         tab = page.locator(

@@ -352,7 +352,13 @@ class BaseLessonPipeline(QObjectBase):
         state.status = TASKSTATESTATUS.ERROR
         if policy.is_criticial:
             # TODO complete failure
-            pass
+            return
+        else:
+            self.logging(
+                f"Skipping Task {job.task} as it is not critical. Trying to continue"
+            )
+            state.status = TASKSTATESTATUS.ERROR
+            self.propagate_tasks(job.task)
         return
 
     def update_lesson_status(
