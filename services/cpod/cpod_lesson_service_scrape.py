@@ -137,6 +137,8 @@ class CpodLessonServiceScrape(PlaywrightBase):
         else:
             button = studied_span.locator("button")
             button.wait_for(state="visible", timeout=10_000)
+            button.click()
+            self.logging("Lesson marked studied")
             self.on_success(None)
 
     def page_has_tab(self, page, tab_name: str) -> bool:
