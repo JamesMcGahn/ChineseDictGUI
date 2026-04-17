@@ -8,3 +8,4 @@ class DBOPERATION(StrEnum):
     DELETE_MANY = "delete_many"
     UPDATE_ONE = "update_one"
     UPDATE_MANY = "update_many"
+    UPSERT_ONE = "upsert_one"

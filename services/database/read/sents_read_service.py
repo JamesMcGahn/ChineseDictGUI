@@ -1,9 +1,9 @@
 import math
 
 from models.dictionary import Sentence
-from models.services.database.read import PaginationResponse
 
 from ..dals import SentsDAL
+from ..models.read import PaginationResponse
 from .base_read_service import BaseReadService
 
 

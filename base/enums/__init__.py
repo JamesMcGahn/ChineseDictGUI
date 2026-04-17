@@ -1,6 +1,4 @@
 from .auth_validation_state import AUTHVALIDATIONSTATUS
-from .db_jobtype import DBJOBTYPE
-from .db_operation import DBOPERATION
 from .extract_data_source import EXTRACTDATASOURCE
 from .failure_strategy import FAILURESTRATEGY
 from .job_status import JOBSTATUS
@@ -26,8 +24,6 @@ __all__ = [
     "LESSONAUDIO",
     "JOBSTATUS",
     "WHISPERPROVIDER",
-    "DBJOBTYPE",
-    "DBOPERATION",
     "WORDSTATUS",
     "WORDTASK",
     "PIPELINEJOBTYPE",

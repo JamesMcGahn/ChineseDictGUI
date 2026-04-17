@@ -3,9 +3,9 @@ from typing import Any
 
 from models.dictionary import Lesson
 from models.services import JobRequest
-from models.services.database import DBJobPayload
 
 from ..dals import LessonsDAL
+from ..models import DBJobPayload
 from .base_write_service import BaseWriteService
 
 
@@ -18,6 +18,13 @@ class LessonWriteService(BaseWriteService[Lesson]):
     def insert_one(self, payload):
         lesson = payload.data.data
         id = self.dal.insert_one(lesson)
+        lesson = replace(lesson, id=id)
+        return lesson
+
+    @BaseWriteService.emit_db_response
+    def upsert_one(self, payload):
+        lesson = payload.data.data
+        id = self.dal.upsert_one(lesson)
         lesson = replace(lesson, id=id)
         return lesson
 

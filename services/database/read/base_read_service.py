@@ -3,9 +3,9 @@ from functools import wraps
 from typing import Callable, Generic, ParamSpec, TypeVar
 
 from base import QObjectBase
-from models.services.database.read import PaginationResponse
 
 from ..db_manager import DatabaseManager
+from ..models.read import PaginationResponse
 
 T = TypeVar("T")
 P = ParamSpec("P")

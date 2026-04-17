@@ -5,11 +5,11 @@ from typing import Any
 from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QThreadBase, ThreadCleanUpManager
-from base.enums import DBJOBTYPE
 from models.services import JobRequest
-from models.services.database import DBJobPayload
+from services.database.models import DBJobPayload
 
 from ..db_manager import DatabaseManager
+from ..enums import DBJOBTYPE
 from .anki_integration_write_service import AnkiIntegrationWriteService
 from .base_write_service import BaseWriteService
 from .lesson_write_service import LessonWriteService

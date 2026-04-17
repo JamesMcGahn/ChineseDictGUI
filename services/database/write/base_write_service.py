@@ -4,20 +4,22 @@ from typing import Any, Callable, Generic, ParamSpec, TypeVar
 from PySide6.QtCore import Signal, Slot
 
 from base import QWorkerBase
-from base.enums import DBOPERATION, JOBSTATUS
+from base.enums import JOBSTATUS
 from models.services import JobRef, JobRequest, JobResponse
-from models.services.database import DBJobPayload
-from models.services.database.write import (
+
+from ..dals.base_DAL import BaseDAL
+from ..db_manager import DatabaseManager
+from ..enums import DBOPERATION
+from ..models import DBJobPayload
+from ..models.write import (
     DeleteManyPayload,
     DeleteOnePayload,
     InsertManyPayload,
     InsertOnePayload,
     UpdateManyPayload,
     UpdateOnePayload,
+    UpsertOnePayload,
 )
-
-from ..dals.base_DAL import BaseDAL
-from ..db_manager import DatabaseManager
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -41,6 +43,10 @@ class BaseWriteService(Generic[T], QWorkerBase):
             DBOPERATION.INSERT_MANY: (
                 InsertManyPayload,
                 self.insert_many,
+            ),
+            DBOPERATION.UPSERT_ONE: (
+                UpsertOnePayload,
+                self.upsert_one,
             ),
             DBOPERATION.UPDATE_ONE: (
                 UpdateOnePayload,
@@ -138,6 +144,14 @@ class BaseWriteService(Generic[T], QWorkerBase):
         self.dal = dal(self.db_manager)
 
     def insert_one(self, payload: DBJobPayload[InsertOnePayload[T]]) -> T:
+        self.logging(
+            f"insert_one has not been implemented by {self.__class__.__name__}", "ERROR"
+        )
+        raise NotImplementedError(
+            f"insert_one has not need implemented by {self.__class__.__name__}"
+        )
+
+    def upsert_one(self, payload: DBJobPayload[UpsertOnePayload[T]]) -> T:
         self.logging(
             f"insert_one has not been implemented by {self.__class__.__name__}", "ERROR"
         )

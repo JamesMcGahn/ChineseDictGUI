@@ -45,6 +45,52 @@ class LessonsDAL(BaseDAL[Lesson]):
         cursor.close()
         return row_id
 
+    def upsert_one(self, item) -> int:
+        query = """INSERT INTO lessons (
+            provider, url, slug, status, task,
+            lesson_id, title, level, hash_code,
+            storage_path, created_at, updated_at
+        )
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT (provider, lesson_id) WHERE lesson_id IS NOT NULL
+        DO UPDATE SET
+            url = excluded.url,
+            slug = excluded.slug,
+            status = excluded.status,
+            task = excluded.task,
+            title = excluded.title,
+            level = excluded.level,
+            hash_code = excluded.hash_code,
+            storage_path = excluded.storage_path,
+            updated_at = excluded.updated_at
+
+        RETURNING id;
+        """
+
+        cursor = self.db_manager.execute_write_query(
+            query,
+            (
+                item.provider,
+                item.url,
+                item.slug,
+                item.status,
+                item.task,
+                item.lesson_id,
+                item.title,
+                item.level,
+                item.hash_code,
+                item.storage_path,
+                item.created_at,
+                item.updated_at,
+            ),
+        )
+        row = cursor.fetchone()
+        self.db_manager.commit_transaction()
+        cursor.close()
+        if row is None:
+            raise RuntimeError("Upsert failed to return an id")
+        return row[0]
+
     def update_one(self, id, updates, commit=True) -> tuple[
         int,
         tuple[int, str, str, str, str, str, str, str, str, str, str, int, int] | None,

@@ -4,9 +4,9 @@ from PySide6.QtCore import Signal, Slot
 
 from base import QObjectBase
 from models.services import JobRequest
-from models.services.database import DBJobPayload
 
 from ..database import DatabaseManager
+from ..database.models import DBJobPayload
 from ..database.read import DBReadService
 from ..database.write.db_write_service import DBWriteService
 

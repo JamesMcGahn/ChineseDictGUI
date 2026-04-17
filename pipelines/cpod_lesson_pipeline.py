@@ -2,8 +2,6 @@ from PySide6.QtCore import Signal
 
 from base import ThreadQueueManager
 from base.enums import (
-    DBJOBTYPE,
-    DBOPERATION,
     LESSONLEVEL,
     LESSONTASK,
     PIPELINEJOBTYPE,
@@ -22,8 +20,9 @@ from models.services import (
     LingqLessonPayload,
     WhisperPayload,
 )
-from models.services.database import DBJobPayload
-from models.services.database.write import InsertOnePayload
+from services.database.enums import DBJOBTYPE, DBOPERATION
+from services.database.models import DBJobPayload
+from services.database.models.write import UpsertOnePayload
 from services.processors.cpod.cpod_processor_registry import CpodProcessorRegistry
 
 # TODO - global registry for processors and transformers
@@ -191,8 +190,8 @@ class CPodLessonPipeline(BaseLessonPipeline):
                 task,
                 payload=DBJobPayload(
                     kind=DBJOBTYPE.LESSONS,
-                    operation=DBOPERATION.INSERT_ONE,
-                    data=InsertOnePayload(data=lesson),
+                    operation=DBOPERATION.UPSERT_ONE,
+                    data=UpsertOnePayload(data=lesson),
                 ),
             )
         )

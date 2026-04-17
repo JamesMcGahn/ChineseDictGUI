@@ -3,9 +3,9 @@ from typing import Any
 
 from models.dictionary import Sentence
 from models.services import JobRequest
-from models.services.database import DBJobPayload
 
 from ..dals import SentsDAL
+from ..models import DBJobPayload
 from .base_write_service import BaseWriteService
 
 
