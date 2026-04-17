@@ -1,8 +1,5 @@
-from PySide6.QtCore import QRect, QSize
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QLabel, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget
-
-from ..pages import PageDictionary, PageLessons, PageLogs, PageSettings, PageWords
+from PySide6.QtCore import QSize
+from PySide6.QtWidgets import QSizePolicy, QStackedWidget, QVBoxLayout, QWidget
 
 
 class MainScreenView(QWidget):
@@ -26,31 +23,8 @@ class MainScreenView(QWidget):
         self.main_screen_container_v.setContentsMargins(1, 1, 1, 1)
         self.stackedWidget = QStackedWidget(self)
         self.stackedWidget.setObjectName("main_screen_stacked")
-        self.words_page = PageWords()
-        font1 = QFont()
-
-        self.stackedWidget.addWidget(self.words_page)
-        self.sentences_page = PageLessons()
-
-        self.stackedWidget.addWidget(self.sentences_page)
-        self.audio_page = QWidget()
-
-        self.audio_page.setObjectName("audio_page")
-        self.label_2 = QLabel(self.audio_page)
-        self.label_2.setObjectName("label_2")
-        self.label_2.setGeometry(QRect(350, 410, 221, 81))
-        self.label_2.setFont(font1)
-        self.label_2.setText("audio page")
-        self.stackedWidget.addWidget(self.audio_page)
-
-        self.dictionary_page = PageDictionary()
-
-        self.stackedWidget.addWidget(self.dictionary_page)
-
-        self.settings_page = PageSettings()
-        self.logs_page = PageLogs()
-
-        self.stackedWidget.addWidget(self.settings_page)
-        self.stackedWidget.addWidget(self.logs_page)
 
         self.main_screen_container_v.addWidget(self.stackedWidget)
+
+    def add_page_to_stacked_widget(self, widget: QWidget):
+        self.stackedWidget.addWidget(widget)

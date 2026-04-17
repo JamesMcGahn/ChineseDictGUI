@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QLabel, QMainWindow, QMenu, QMessageBox, QSystemTr
 
 from base.enums import LOGLEVEL
 from context import AppContext
+from controllers import ControllerFactory
 from keys import keys
 
 # trunk-ignore(ruff/F401)
@@ -23,6 +24,7 @@ class MainWindow(QMainWindow):
     def __init__(self, app):
         super().__init__()
         self.ctx = AppContext()
+        self.controller_factory = ControllerFactory(self.ctx)
 
         self.app = app
         self.setWindowTitle("Custom MainWindow")

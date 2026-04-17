@@ -1,8 +1,10 @@
-from PySide6.QtCore import Slot
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtCore import QRect, Slot
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QLabel, QPushButton, QWidget
 
 from base import QWidgetBase
 
+from ..pages import PageDictionary, PageLessons, PageLogs, PageSettings, PageWords
 from .main_screen_ui import MainScreenView
 
 
@@ -14,11 +16,36 @@ class MainScreen(QWidgetBase):
         self.layout.addWidget(self.ui)
 
         self.setObjectName("main_screen")
-        self.appshutdown.connect(self.ui.words_page.notified_app_shutting)
-        self.appshutdown.connect(self.ui.sentences_page.notified_app_shutting)
-        self.appshutdown.connect(self.ui.dictionary_page.notified_app_shutting)
-        self.appshutdown.connect(self.ui.settings_page.notified_app_shutting)
-        self.appshutdown.connect(self.ui.logs_page.notified_app_shutting)
+
+        self.audio_page = QWidget()
+
+        self.audio_page.setObjectName("audio_page")
+        self.label_2 = QLabel(self.audio_page)
+        self.label_2.setObjectName("label_2")
+        self.label_2.setGeometry(QRect(350, 410, 221, 81))
+        font1 = QFont()
+        self.label_2.setFont(font1)
+        self.label_2.setText("audio page")
+
+        self.words_page = PageWords()
+        self.sentences_page = PageLessons()
+        self.dictionary_page = PageDictionary()
+        self.settings_page = PageSettings()
+        self.logs_page = PageLogs()
+
+        self.ui.add_page_to_stacked_widget(self.words_page)
+        self.ui.add_page_to_stacked_widget(self.sentences_page)
+        self.ui.add_page_to_stacked_widget(self.audio_page)
+        self.ui.add_page_to_stacked_widget(self.dictionary_page)
+        self.ui.add_page_to_stacked_widget(self.settings_page)
+        self.ui.add_page_to_stacked_widget(self.logs_page)
+
+        # TODO REMOVE after going to controller - pages shouldnt have services
+        self.appshutdown.connect(self.words_page.notified_app_shutting)
+        self.appshutdown.connect(self.sentences_page.notified_app_shutting)
+        self.appshutdown.connect(self.dictionary_page.notified_app_shutting)
+        self.appshutdown.connect(self.settings_page.notified_app_shutting)
+        self.appshutdown.connect(self.logs_page.notified_app_shutting)
 
     @Slot(QPushButton)
     def change_page(self, btn):

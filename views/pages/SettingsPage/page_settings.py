@@ -8,6 +8,7 @@ from models.settings import AppSettingsModel, LogSettingsModel
 from .field_registry import FieldRegistry
 from .page_settings_ui import PageSettingsUI
 from .settings_ui_helper import SettingsUIHelper
+from .tabs.log_settings import TabLogSettings
 from .verify_settings import VerifySettings
 
 
@@ -31,6 +32,9 @@ class PageSettings(QWidgetBase):
         self.sui = SettingsUIHelper()
         self.view = PageSettingsUI(self.sui)
         self.layout.addWidget(self.view)
+
+        self.log_settings_tab = TabLogSettings()
+        self.view.add_page_to_tab(self.log_settings_tab, "Log Settings")
 
         self.verify_settings = VerifySettings()
         self.timers = {}
