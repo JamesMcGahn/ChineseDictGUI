@@ -54,20 +54,23 @@ class SettingsRepository:
         return section_dc(**values), validated
 
     def save_section(self, section_dc, section_validated: dict[str, bool]):
+        try:
+            self.settings.begin_group("settings")
+            for field in fields(section_dc):
+                meta: SettingsFieldMeta = field.metadata["meta"]
 
-        for field in fields(section_dc):
-            meta: SettingsFieldMeta = field.metadata["meta"]
+                key = f"{meta.category}/{meta.key}"
+                validated_key = f"{meta.category}/{meta.key}-validated"
 
-            key = f"{meta.category}/{meta.key}"
-            validated_key = f"{meta.category}/{meta.key}-validated"
+                is_validated = section_validated.get(field.name, False)
+                value = getattr(section_dc, field.name)
+                if meta.secure:
+                    self.secure_settings.save_creds(
+                        "chinese-dict-secure-settings", key, value
+                    )
+                else:
+                    self.settings.set_value(key, value)
 
-            is_validated = section_validated.get(field.name, False)
-            value = getattr(section_dc, field.name)
-            if meta.secure:
-                self.secure_settings.save_creds(
-                    "chinese-dict-secure-settings", key, value
-                )
-            else:
-                self.settings.set_value(key, value)
-
-            self.settings.set_value(validated_key, is_validated)
+                self.settings.set_value(validated_key, is_validated)
+        finally:
+            self.settings.end_group()
