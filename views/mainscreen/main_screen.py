@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from controllers import ControllerFactory
+
 from PySide6.QtCore import QRect, Slot
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QLabel, QPushButton, QWidget
@@ -9,13 +16,18 @@ from .main_screen_ui import MainScreenView
 
 
 class MainScreen(QWidgetBase):
-    def __init__(self):
+
+    def __init__(self, controller_factory: ControllerFactory):
         super().__init__()
         self.ui = MainScreenView()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.addWidget(self.ui)
 
         self.setObjectName("main_screen")
+
+        self.controller_factory = controller_factory
+
+        self.settings_page_controllers = self.controller_factory.create_settings_page()
 
         self.audio_page = QWidget()
 
@@ -30,7 +42,7 @@ class MainScreen(QWidgetBase):
         self.words_page = PageWords()
         self.sentences_page = PageLessons()
         self.dictionary_page = PageDictionary()
-        self.settings_page = PageSettings()
+        self.settings_page = PageSettings(controllers=self.settings_page_controllers)
         self.logs_page = PageLogs()
 
         self.ui.add_page_to_stacked_widget(self.words_page)

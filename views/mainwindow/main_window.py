@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
         self.setFont(font)
         with open("./styles/main_window.css", "r") as ss:
             self.setStyleSheet(ss.read())
-        self.centralwidget = CentralWidget()
+        self.centralwidget = CentralWidget(controller_factory=self.controller_factory)
 
         self.label = QLabel(self)
         self.setCentralWidget(self.centralwidget)

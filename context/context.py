@@ -7,6 +7,7 @@ from PySide6.QtCore import QThread, QTimer, Signal, Slot
 
 from base import QObjectBase, QSingleton
 from base.enums import PROVIDERS
+from controllers import SettingsController
 from core.lingq import LingqLoginWorker
 from keys import keys
 from models.pipelines import PipelineServiceContainer
@@ -28,6 +29,7 @@ from services.settings import (
     SettingsRepository,
     SettingsService,
 )
+from services.validation import SettingsMetaProvider, ValidationService
 from utils.files import PathManager
 
 # TODO Remove after Testing
@@ -57,6 +59,9 @@ class AppContext(QObjectBase, metaclass=QSingleton):
 
         self.settings_repo = SettingsRepository(self.settings, self.secure_settings)
         self.settings_manager = SettingsService(repo=self.settings_repo)
+        self.validation_service = ValidationService(
+            settings_meta_provider=self.settings_manager
+        )
         self.session_registry = SessionRegistry()
         self.auth_service = AuthService(session_registry=self.session_registry)
         self.ffmpeg_task_manager = FFmpegTaskManager()
@@ -76,6 +81,12 @@ class AppContext(QObjectBase, metaclass=QSingleton):
                 session=self.session_registry,
                 cpod_lesson=self.cpod_lesson_manager,
             )
+        )
+
+        ## Controllers
+        self.settings_controller = SettingsController(
+            settings_service=self.settings_manager,
+            validation_service=self.validation_service,
         )
 
         folder = PathManager.create_folder_in_app_data("playwright")

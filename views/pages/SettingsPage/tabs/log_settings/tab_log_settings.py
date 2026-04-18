@@ -1,7 +1,15 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.settings.models import LogSettings
+
 from PySide6.QtCore import Signal, Slot
 
 from base import QWidgetBase
 from models.settings import AppSettingsModel, LogSettingsModel
+from services.settings.enums import SETTINGSCATEGORIES
 
 from ...settings_ui_helper import SettingsUIHelper
 from ...verify_settings import VerifySettings
@@ -9,25 +17,27 @@ from .tab_log_settings_ui import TabLogSettingsUI
 
 
 class TabLogSettings(QWidgetBase):
-
+    settings_field_updated = Signal(str, str, object)
     log_page_settings = Signal(str, bool, str, bool)
     save_log_settings_model = Signal(str, str, int, int, int, bool, str)
 
-    def __init__(self):
+    def __init__(self, settings: LogSettings):
         super().__init__()
-        self.tab_id = "log_settings"
+        self.tab_id = SETTINGSCATEGORIES.LOG
         self.settings_model = AppSettingsModel()
         self.settings_model.get_settings()
         self.log_settings = LogSettingsModel()
 
         self.sui = SettingsUIHelper()
-        self.view = TabLogSettingsUI(self.sui)
+        self.view = TabLogSettingsUI(self.tab_id, settings, self.sui)
         self.layout.addWidget(self.view)
 
         self.verify_settings = VerifySettings()
 
         # SIGNAL CONNECTIONS
         self.sui.send_to_verify.connect(self.verify_settings.verify_settings)
+        self.sui.settings_field_updated.connect(self.settings_field_updated)
+
         self.save_log_settings_model.connect(self.log_settings.save_log_settings)
         self.verify_settings.verify_response_update_sui.connect(
             self.sui.verify_response_update

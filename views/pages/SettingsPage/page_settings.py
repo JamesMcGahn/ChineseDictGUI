@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from controllers.models import SettingsPageControllers
+
 import os
 
 from PySide6.QtCore import QTimer, Signal, Slot
@@ -22,9 +29,9 @@ class PageSettings(QWidgetBase):
     define_page_settings = Signal(str, bool)
     save_log_settings_model = Signal(str, str, int, int, int, bool, str)
 
-    def __init__(self):
+    def __init__(self, controllers: SettingsPageControllers):
         super().__init__()
-
+        self.controllers = controllers
         self.settings_model = AppSettingsModel()
         self.settings_model.get_settings()
         self.log_settings = LogSettingsModel()
@@ -32,8 +39,9 @@ class PageSettings(QWidgetBase):
         self.sui = SettingsUIHelper()
         self.view = PageSettingsUI(self.sui)
         self.layout.addWidget(self.view)
+        self.app_settings = self.controllers.settings.get_settings()
 
-        self.log_settings_tab = TabLogSettings()
+        self.log_settings_tab = TabLogSettings(self.app_settings.log)
         self.view.add_page_to_tab(self.log_settings_tab, "Log Settings")
 
         self.verify_settings = VerifySettings()
@@ -55,6 +63,10 @@ class PageSettings(QWidgetBase):
         )
 
         self.view.secure_setting_change.connect(self.sui.handle_secure_setting_change)
+
+        self.log_settings_tab.settings_field_updated.connect(
+            self.controllers.settings.on_field_change
+        )
 
     def send_settings_update(self, tab, key):
 

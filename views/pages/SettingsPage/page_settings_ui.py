@@ -33,14 +33,14 @@ class PageSettingsUI(QWidget):
         self.layout = QVBoxLayout(self)
 
         self.tabs = QTabWidget()
-        self.app_settings_tab = TabAppSettings()
+        # self.app_settings_tab = TabAppSettings()
 
-        self.anki_settings_tab = TabAnkiSettings()
-        self.whisper_settings_tab = TabWhisperSettings()
+        # self.anki_settings_tab = TabAnkiSettings()
+        # self.whisper_settings_tab = TabWhisperSettings()
 
-        self.tabs.addTab(self.app_settings_tab, QIcon(), "App Settings")
-        self.tabs.addTab(self.anki_settings_tab, QIcon(), "Anki Settings")
-        self.tabs.addTab(self.whisper_settings_tab, QIcon(), "Whisper Settings")
+        # self.tabs.addTab(self.app_settings_tab, QIcon(), "App Settings")
+        # self.tabs.addTab(self.anki_settings_tab, QIcon(), "Anki Settings")
+        # self.tabs.addTab(self.whisper_settings_tab, QIcon(), "Whisper Settings")
 
         self.tabs.setTabPosition(QTabWidget.West)
         self.tabs.setTabsClosable(False)

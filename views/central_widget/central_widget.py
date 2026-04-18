@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from controllers import ControllerFactory
+
 import os
 
 from PySide6.QtCore import Qt
@@ -10,12 +17,12 @@ from .central_widget_ui import CentralWidgetView
 
 class CentralWidget(QWidgetBase):
 
-    def __init__(self):
+    def __init__(self, controller_factory: ControllerFactory):
         super().__init__()
         self.ui = CentralWidgetView()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.addWidget(self.ui)
-        self.main_screen_widget = MainScreen()
+        self.main_screen_widget = MainScreen(controller_factory=controller_factory)
         self.ui.add_widget_to_grid(self.main_screen_widget, 2, 3, 1, 1)
 
         self.setObjectName("centralwidget")
