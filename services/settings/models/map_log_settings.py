@@ -1,11 +1,20 @@
 from dataclasses import dataclass
 
 from ..enums import SETTINGSCATEGORIES
+from ..validators.log_validators import (
+    validate_log_backup_count,
+    validate_log_file_max_mbs,
+    validate_log_file_name,
+    validate_log_file_path,
+    validate_log_keep_files_days,
+    validate_log_level,
+)
+from .base_category_map import SettingsCategoryBase
 from .settings_field_helper import setting
 
 
 @dataclass
-class LogSettings:
+class LogSettings(SettingsCategoryBase):
     log_file_path: str = setting(
         key="log_file_path",
         default="./logs/",
@@ -15,7 +24,7 @@ class LogSettings:
         verify_btn_text="Verify Log Path",
         secure=False,
         folder_icon=True,
-        verify=None,
+        verify=validate_log_file_path,
     )
     log_file_name: str = setting(
         key="log_file_name",
@@ -26,7 +35,7 @@ class LogSettings:
         verify_btn_text="Save Log File Name",
         secure=False,
         folder_icon=True,
-        verify=None,
+        verify=validate_log_file_name,
     )
     log_file_max_mbs: int = setting(
         key="log_file_max_mbs",
@@ -37,7 +46,7 @@ class LogSettings:
         verify_btn_text="Save Log File Max Mbs",
         secure=False,
         folder_icon=False,
-        verify=None,
+        verify=validate_log_file_max_mbs,
     )
     log_keep_files_days: int = setting(
         key="log_keep_files_days",
@@ -48,7 +57,7 @@ class LogSettings:
         verify_btn_text="Save Log File Days",
         secure=False,
         folder_icon=False,
-        verify=None,
+        verify=validate_log_keep_files_days,
     )
     log_backup_count: int = setting(
         key="log_backup_count",
@@ -59,7 +68,7 @@ class LogSettings:
         verify_btn_text="Save Log Backup Count",
         secure=False,
         folder_icon=False,
-        verify=None,
+        verify=validate_log_backup_count,
     )
     log_level: str = setting(
         key="log_level",
@@ -70,5 +79,5 @@ class LogSettings:
         verify_btn_text="Save Log Level",
         secure=False,
         combo_box=["INFO", "WARN", "DEBUG", "ERROR"],
-        verify=None,
+        verify=validate_log_level,
     )
