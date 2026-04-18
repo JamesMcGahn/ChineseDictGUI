@@ -1,14 +1,13 @@
 from dataclasses import dataclass, field
+from typing import Any
 
-from base.enums import JOBSTATUS, LESSONTASK
-
-ALLOWED_PROVIDERS = {"cpod"}
+from base.enums import JOBSTATUS
 
 
 # Event
 @dataclass(frozen=True)
 class JobRef:
     id: str
-    task: LESSONTASK
+    task: Any
     status: JOBSTATUS
     error: str | None = None

@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from typing import Generic, TypeVar
-
-from base.enums import LESSONTASK
+from typing import Any, Generic, TypeVar
 
 P = TypeVar("P")
 
@@ -10,5 +8,5 @@ P = TypeVar("P")
 @dataclass(frozen=True)
 class JobRequest(Generic[P]):
     id: str
-    task: LESSONTASK
+    task: Any
     payload: P
