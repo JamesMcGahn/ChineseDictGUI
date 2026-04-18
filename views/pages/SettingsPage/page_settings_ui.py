@@ -28,7 +28,7 @@ class PageSettingsUI(QWidget):
     folder_submit = Signal(str, str)
     secure_setting_change = Signal(str, str)
 
-    def __init__(self, ui_helper):
+    def __init__(self):
         super().__init__()
         self.layout = QVBoxLayout(self)
 

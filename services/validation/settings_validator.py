@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, TypeVar
 
 if TYPE_CHECKING:
-    from models.services import JobResponse, JobRequest
+    from models.services import JobRequest
     from .models import ValidationRequest, SettingsValidatePayload
     from .enums import VALIDATEJOBTYPE
     from .base_validator import BaseValidator
@@ -14,7 +14,7 @@ from PySide6.QtCore import Signal
 
 from base import QObjectBase
 from base.enums import JOBSTATUS
-from models.services import JobRef
+from models.services import JobRef, JobResponse
 
 from .models import SettingsValidateResponse, ValidationResponse
 
@@ -33,7 +33,7 @@ class SettingsValidationService(QObjectBase):
         self._pending_jobs[job.id] = job
 
         payload = job.payload.data
-
+        print(payload)
         field_meta: SettingsFieldMeta = self.settings_meta_provider.get_field_meta(
             payload.category, payload.field
         )
@@ -42,12 +42,15 @@ class SettingsValidationService(QObjectBase):
             # Send fail task
             return
 
-        result = field_meta.verify(payload)
+        result = field_meta.verify(payload.field, payload.value)
+        print(result)
         if result is None:
             return  # Send fail task
         # validator.validate(job)
 
         if isinstance(result, SettingsValidateResponse):
+            print("here")
+            self.send_validation_response(job.id, result)
             pass
             # return self._wrap_response(job, result)
 
@@ -68,3 +71,4 @@ class SettingsValidationService(QObjectBase):
             payload=res,
         )
         self.task_complete.emit(job_response)
+        self._pending_jobs.pop(job_id)

@@ -26,7 +26,7 @@ class SettingsService(QObjectBase):
         super().__init__()
         self._repo = repo
         self._settings: AppSettingsMap = None
-        self._validated = {}
+        self._validated: dict[SETTINGSCATEGORIES, dict[str, bool]] = {}
         self.sections: dict[SETTINGSCATEGORIES, SettingsCategoryBase] = {
             SETTINGSCATEGORIES.LOG: LogSettings
         }
@@ -67,6 +67,9 @@ class SettingsService(QObjectBase):
         print(self._settings)
         return deepcopy(self._settings)
 
+    def get_validations(self) -> dict[SETTINGSCATEGORIES, dict[str, bool]]:
+        return deepcopy(self._validated)
+
     def update_setting(self, category: SETTINGSCATEGORIES, field: str, value: Any):
         section = getattr(self._settings, category)
         setattr(section, field, value)
@@ -82,8 +85,8 @@ class SettingsService(QObjectBase):
         return self._validated.get(section, {}).get(field, False)
 
     def get_category(self, category: SETTINGSCATEGORIES) -> SettingsCategoryBase:
-        attr = category.value
-        cat = getattr(self._settings, attr, None)
+        # attr = category.value
+        cat = getattr(self._settings, category, None)
         if not cat:
             msg = f"Cannot Find Category: {category}"
             self.logging(msg)

@@ -11,6 +11,7 @@ from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QWidgetBase
 from models.settings import AppSettingsModel, LogSettingsModel
+from services.settings.enums import SETTINGSCATEGORIES
 
 from .field_registry import FieldRegistry
 from .page_settings_ui import PageSettingsUI
@@ -36,12 +37,14 @@ class PageSettings(QWidgetBase):
         self.settings_model.get_settings()
         self.log_settings = LogSettingsModel()
 
-        self.sui = SettingsUIHelper()
-        self.view = PageSettingsUI(self.sui)
+        self.view = PageSettingsUI()
         self.layout.addWidget(self.view)
         self.app_settings = self.controllers.settings.get_settings()
+        self.app_verify = self.controllers.settings.get_settings_validation()
 
-        self.log_settings_tab = TabLogSettings(self.app_settings.log)
+        self.log_settings_tab = TabLogSettings(
+            self.app_settings.log, self.app_verify[SETTINGSCATEGORIES.LOG]
+        )
         self.view.add_page_to_tab(self.log_settings_tab, "Log Settings")
 
         self.verify_settings = VerifySettings()
@@ -50,22 +53,26 @@ class PageSettings(QWidgetBase):
         self.field_registery = FieldRegistry()
         print("home", self.home_directory)
         # self.get_settings("ALL", setText=True)
-        self.sui.send_to_verify.connect(self.verify_settings.verify_settings)
-        self.save_log_settings_model.connect(self.log_settings.save_log_settings)
-        self.verify_settings.verify_response_update_sui.connect(
-            self.sui.verify_response_update
-        )
+        # self.sui.send_to_verify.connect(self.verify_settings.verify_settings)
+        # self.save_log_settings_model.connect(self.log_settings.save_log_settings)
+        # self.verify_settings.verify_response_update_sui.connect(
+        #     self.sui.verify_response_update
+        # )
 
         self.verify_settings.send_settings_update.connect(self.send_settings_update)
 
-        self.verify_settings.change_verify_btn_disable.connect(
-            self.sui.set_verify_btn_disable
-        )
+        # self.verify_settings.change_verify_btn_disable.connect(
+        #     self.sui.set_verify_btn_disable
+        # )
 
-        self.view.secure_setting_change.connect(self.sui.handle_secure_setting_change)
+        # self.view.secure_setting_change.connect(self.sui.handle_secure_setting_change)
 
         self.log_settings_tab.settings_field_updated.connect(
             self.controllers.settings.on_field_change
+        )
+
+        self.log_settings_tab.send_to_verify.connect(
+            self.controllers.settings.on_field_verify
         )
 
     def send_settings_update(self, tab, key):

@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from services.settings import SettingsService
     from services.validation import ValidationService
     from services.settings.enums import SETTINGSCATEGORIES
+    from services.settings.models import AppSettings
 
 from uuid import uuid4
 
@@ -32,29 +33,35 @@ class SettingsController(QObjectBase):
 
         self._active_jobs: dict[str, str] = {}
 
-    def get_settings(self):
+        self.validation_service.task_complete.connect(self.on_validation_complete)
 
+    def get_settings(self) -> AppSettings:
         self.settings_service.load_settings()
         return self.settings_service.get_settings()
+
+    def get_settings_validation(self) -> dict[SETTINGSCATEGORIES, dict[str, bool]]:
+        self.settings_service.load_settings()
+        return self.settings_service.get_validations()
 
     def on_field_change(self, tab, key, value):
         # print("*** in Controller:", tab, key, value, type(value))
         self.settings_service.update_setting(category=tab, field=key, value=value)
 
     def on_field_verify(self, category: SETTINGSCATEGORIES, field: str, value):
-        pass
+        print("controller", category, field, value)
 
-        # job_id = str(uuid4())
+        job_id = str(uuid4())
 
-        # payload = (
-        #     SettingsValidatePayload(category=category, field=field, value=value),
-        # )
+        payload = SettingsValidatePayload(category=category, field=field, value=value)
 
-        # job = JobRequest(
-        #     id=job_id,
-        #     task=None,
-        #     payload=ValidationRequest(kind=VALIDATEJOBTYPE.SETTINGS, data=payload),
-        # )
+        job = JobRequest(
+            id=job_id,
+            task=None,
+            payload=ValidationRequest(kind=VALIDATEJOBTYPE.SETTINGS, data=payload),
+        )
 
-        # self._active_jobs[job_id] = payload
-        # self.validation_service.validate(job)
+        self._active_jobs[job_id] = payload
+        self.validation_service.validate(job)
+
+    def on_validation_complete(self, job_res):
+        print(job_res)

@@ -21,21 +21,23 @@ class TabLogSettings(QWidgetBase):
     log_page_settings = Signal(str, bool, str, bool)
     save_log_settings_model = Signal(str, str, int, int, int, bool, str)
 
-    def __init__(self, settings: LogSettings):
+    send_to_verify = Signal(str, str, str)
+
+    def __init__(self, settings: LogSettings, settings_verify):
         super().__init__()
         self.tab_id = SETTINGSCATEGORIES.LOG
         self.settings_model = AppSettingsModel()
         self.settings_model.get_settings()
         self.log_settings = LogSettingsModel()
 
-        self.sui = SettingsUIHelper()
+        self.sui = SettingsUIHelper(settings_verify)
         self.view = TabLogSettingsUI(self.tab_id, settings, self.sui)
         self.layout.addWidget(self.view)
 
         self.verify_settings = VerifySettings()
 
         # SIGNAL CONNECTIONS
-        self.sui.send_to_verify.connect(self.verify_settings.verify_settings)
+        self.sui.send_to_verify.connect(self.send_to_verify)
         self.sui.settings_field_updated.connect(self.settings_field_updated)
 
         self.save_log_settings_model.connect(self.log_settings.save_log_settings)

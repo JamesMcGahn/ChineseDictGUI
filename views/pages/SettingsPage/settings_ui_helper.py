@@ -28,10 +28,10 @@ class SettingsUIHelper(QObject):
     send_to_verify = Signal(str, str, str)
     settings_field_updated = Signal(str, str, object)
 
-    def __init__(self):
+    def __init__(self, settings_verify):
         super().__init__()
         self.field_registery = FieldRegistry()
-
+        self.settings_verify = settings_verify
         self.timers = {}
 
         self.x_icon = QIcon()
@@ -81,13 +81,16 @@ class SettingsUIHelper(QObject):
         verify_btn = self.field_registery.get_field(f"{tab}/btn_{key}_verify")
         verify_btn.setDisabled(disable)
 
-    def handle_verify(self, tab, key, value=None):
-        print("ee", tab, key, value)
+    def handle_verify(self, tab, key, widget_type, value=None):
+        print("ee", tab, key, widget_type, value)
+        if not value:
+            value = self.field_registery.get_text_value(f"{tab}/{widget_type}_{key}")
+        print(value)
         self.send_to_verify.emit(tab, key, value)
 
     def create_input_fields(self, tab, key, value, meta: SettingsFieldMeta, layout):
         secure_setting = meta.secure
-        verified = False
+        verified = self.settings_verify.get(key, False)
 
         last_row = layout.count() // 4
         h_layout = QHBoxLayout()
@@ -132,9 +135,22 @@ class SettingsUIHelper(QObject):
             folder_icon_button.clicked.connect(
                 lambda: self.open_folder_dialog(tab, key)
             )
-            verify_button.clicked.connect(lambda: self.open_folder_dialog(tab, key))
+
+            widget_type = meta.widget_type
+            print("ww", widget_type)
+            verify_button.clicked.connect(
+                lambda _, widget_type=widget_type: self.open_folder_dialog(
+                    tab, key, widget_type=widget_type
+                )
+            )
         else:
-            verify_button.clicked.connect(lambda: self.handle_verify(tab, key))
+            widget_type = meta.widget_type
+            print("ww", widget_type)
+            verify_button.clicked.connect(
+                lambda _, widget_type=widget_type: self.handle_verify(
+                    tab, key, widget_type=widget_type
+                )
+            )
 
         if meta.widget_type == "line_edit":
             field_type = type(value)
@@ -277,7 +293,7 @@ class SettingsUIHelper(QObject):
         self.app_settings.change_secure_setting(tab, field, word)
         self.handle_setting_change_update(tab, field)
 
-    def open_folder_dialog(self, tab, key) -> None:
+    def open_folder_dialog(self, tab, key, widget_type) -> None:
         """
         Opens a dialog for the user to select a folder for storing log files.
         Once a folder is selected, the path is updated in the corresponding input field.
@@ -296,4 +312,4 @@ class SettingsUIHelper(QObject):
             line_edit.blockSignals(True)
             line_edit.setText(folder)
             line_edit.blockSignals(False)
-            self.handle_verify(tab, key, folder)
+            self.handle_verify(tab, key, widget_type, folder)

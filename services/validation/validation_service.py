@@ -10,19 +10,27 @@ if TYPE_CHECKING:
     from .base_validator import BaseValidator
     from .settings_meta_provider import SettingsMetaProvider
 
+from PySide6.QtCore import Signal
+
 from .enums import VALIDATEJOBTYPE
 from .settings_validator import SettingsValidationService
 
 
 class ValidationService(QObjectBase):
+    task_complete = Signal(object)
 
     def __init__(self, settings_meta_provider: SettingsMetaProvider):
         super().__init__()
+
+        self.settings_validation = SettingsValidationService(
+            settings_meta_provider=settings_meta_provider
+        )
+
         self._validators: dict[VALIDATEJOBTYPE, BaseValidator] = {
-            VALIDATEJOBTYPE.SETTINGS: SettingsValidationService(
-                settings_meta_provider=settings_meta_provider
-            )
+            VALIDATEJOBTYPE.SETTINGS: self.settings_validation
         }
+
+        self.settings_validation.task_complete.connect(self.task_complete)
 
     def validate(
         self, job: JobRequest[ValidationRequest]
