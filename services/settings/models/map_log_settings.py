@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 from ..enums import SETTINGSCATEGORIES
 from ..validators.log_validators import (
@@ -15,6 +16,8 @@ from .settings_field_helper import setting
 
 @dataclass
 class LogSettings(SettingsCategoryBase):
+    schema_name: ClassVar[str] = SETTINGSCATEGORIES.LOG
+    display_name: ClassVar[str] = "Log Settings"
     log_file_path: str = setting(
         key="log_file_path",
         default="./logs/",
@@ -34,7 +37,7 @@ class LogSettings(SettingsCategoryBase):
         label_text="Log File Name:",
         verify_btn_text="Save Log File Name",
         secure=False,
-        folder_icon=True,
+        folder_icon=False,
         verify=validate_log_file_name,
     )
     log_file_max_mbs: int = setting(
