@@ -30,6 +30,8 @@ class PageSettings(QWidgetBase):
     define_page_settings = Signal(str, bool)
     save_log_settings_model = Signal(str, str, int, int, int, bool, str)
 
+    verify_response_update = Signal(str, str, bool)
+
     def __init__(self, controllers: SettingsPageControllers):
         super().__init__()
         self.controllers = controllers
@@ -73,6 +75,9 @@ class PageSettings(QWidgetBase):
 
         self.log_settings_tab.send_to_verify.connect(
             self.controllers.settings.on_field_verify
+        )
+        self.controllers.settings.verify_response_update.connect(
+            self.log_settings_tab.on_verify_response
         )
 
     def send_settings_update(self, tab, key):

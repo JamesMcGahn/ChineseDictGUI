@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, TypeVar
 if TYPE_CHECKING:
     from models.services import JobRequest
     from .models import ValidationRequest, SettingsValidatePayload
-    from .enums import VALIDATEJOBTYPE
+
     from .base_validator import BaseValidator
     from settings.models import SettingsFieldMeta
     from .settings_meta_provider import SettingsMetaProvider
@@ -16,6 +16,7 @@ from base import QObjectBase
 from base.enums import JOBSTATUS
 from models.services import JobRef, JobResponse
 
+from .enums import VALIDATEJOBTYPE
 from .models import SettingsValidateResponse, ValidationResponse
 
 
@@ -33,7 +34,7 @@ class SettingsValidationService(QObjectBase):
         self._pending_jobs[job.id] = job
 
         payload = job.payload.data
-        print(payload)
+        print("payload validate", payload)
         field_meta: SettingsFieldMeta = self.settings_meta_provider.get_field_meta(
             payload.category, payload.field
         )
@@ -43,7 +44,7 @@ class SettingsValidationService(QObjectBase):
             return
 
         result = field_meta.verify(payload.field, payload.value)
-        print(result)
+        print("validate-result", result)
         if result is None:
             return  # Send fail task
         # validator.validate(job)
@@ -68,7 +69,7 @@ class SettingsValidationService(QObjectBase):
             return
         job_response = JobResponse(
             job_ref=JobRef(job_id, task=None, status=JOBSTATUS.COMPLETE),
-            payload=res,
+            payload=ValidationResponse(kind=VALIDATEJOBTYPE.SETTINGS, data=res),
         )
         self.task_complete.emit(job_response)
         self._pending_jobs.pop(job_id)

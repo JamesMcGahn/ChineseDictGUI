@@ -86,6 +86,7 @@ class SettingsUIHelper(QObject):
         if not value:
             value = self.field_registery.get_text_value(f"{tab}/{widget_type}_{key}")
         print(value)
+        self.set_verify_btn_disable(tab, key, True)
         self.send_to_verify.emit(tab, key, value)
 
     def create_input_fields(self, tab, key, value, meta: SettingsFieldMeta, layout):

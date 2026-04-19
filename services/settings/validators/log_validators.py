@@ -22,23 +22,23 @@ def _is_int(value):
 
 
 def validate_log_file_path(field, value):
-    _response(field, os.path.isdir(value))
+    return _response(field, os.path.isdir(value))
 
 
 def validate_log_file_name(field, value):
-    _response(field, value.endswith(".log"))
+    return _response(field, value.endswith(".log"))
 
 
 def validate_log_file_max_mbs(field, value):
-    _response(field, _is_int(value))
+    return _response(field, _is_int(value))
 
 
 def validate_log_keep_files_days(field, value):
-    _response(field, _is_int(value))
+    return _response(field, _is_int(value))
 
 
 def validate_log_backup_count(field, value):
-    _response(field, _is_int(value))
+    return _response(field, _is_int(value))
 
 
 def validate_log_level(field, value):

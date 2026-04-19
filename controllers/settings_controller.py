@@ -7,10 +7,15 @@ if TYPE_CHECKING:
     from services.validation import ValidationService
     from services.settings.enums import SETTINGSCATEGORIES
     from services.settings.models import AppSettings
+    from models.services import JobResponse
+    from services.validation.models import ValidationResponse, SettingsValidateResponse
 
 from uuid import uuid4
 
+from PySide6.QtCore import Signal
+
 from base import QObjectBase
+from base.enums import JOBSTATUS
 from models.services import JobRequest
 from services.validation.enums import VALIDATEJOBTYPE
 from services.validation.models import (
@@ -21,6 +26,7 @@ from services.validation.models import (
 
 
 class SettingsController(QObjectBase):
+    verify_response_update = Signal(str, str, bool)
 
     def __init__(
         self,
@@ -63,5 +69,19 @@ class SettingsController(QObjectBase):
         self._active_jobs[job_id] = payload
         self.validation_service.validate(job)
 
-    def on_validation_complete(self, job_res):
-        print(job_res)
+    def on_validation_complete(
+        self, job_res: JobResponse[ValidationResponse[SettingsValidateResponse]]
+    ):
+        job_id = job_res.job_ref.id
+        if job_id not in self._active_jobs:
+            return
+
+        payload = job_res.payload.data
+
+        if job_res.job_ref.status == JOBSTATUS.COMPLETE:
+            self._active_jobs.pop(job_id)
+            category = payload.category
+            field = payload.field
+            is_valid = payload.is_valid
+            self.settings_service.set_validated(category, field, is_valid)
+            self.verify_response_update.emit(category, field, is_valid)

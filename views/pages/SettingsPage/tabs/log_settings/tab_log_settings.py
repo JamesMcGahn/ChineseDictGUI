@@ -22,6 +22,8 @@ class TabLogSettings(QWidgetBase):
     save_log_settings_model = Signal(str, str, int, int, int, bool, str)
 
     send_to_verify = Signal(str, str, str)
+    verify_response_update = Signal(str, str, bool)
+    change_verify_btn_disable = Signal(str, str, bool)
 
     def __init__(self, settings: LogSettings, settings_verify):
         super().__init__()
@@ -38,16 +40,20 @@ class TabLogSettings(QWidgetBase):
 
         # SIGNAL CONNECTIONS
         self.sui.send_to_verify.connect(self.send_to_verify)
+        self.verify_response_update.connect(self.sui.verify_response_update)
+
         self.sui.settings_field_updated.connect(self.settings_field_updated)
 
         self.save_log_settings_model.connect(self.log_settings.save_log_settings)
-        self.verify_settings.verify_response_update_sui.connect(
-            self.sui.verify_response_update
-        )
+
         self.verify_settings.send_settings_update.connect(self.send_settings_update)
         self.verify_settings.change_verify_btn_disable.connect(
             self.sui.set_verify_btn_disable
         )
+
+    def on_verify_response(self, tab, field, is_valid):
+        self.change_verify_btn_disable.emit(tab, field, False)
+        self.verify_response_update.emit(tab, field, is_valid)
 
     @Slot(str, str)
     def send_settings_update(self, tab, key):
