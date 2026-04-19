@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import ClassVar
 
-from ..enums import SETTINGSCATEGORIES
+from ..enums import SETTINGSCATEGORIES, SETTINGSWIDGETTYPE
 from ..validators.log_validators import (
     validate_log_backup_count,
     validate_log_file_max_mbs,
@@ -22,7 +22,7 @@ class LogSettings(SettingsCategoryBase):
         key="log_file_path",
         default="./logs/",
         category=SETTINGSCATEGORIES.LOG,
-        widget_type="line_edit",
+        widget_type=SETTINGSWIDGETTYPE.LINE_EDIT,
         label_text="Log File path:",
         verify_btn_text="Verify Log Path",
         secure=False,
@@ -33,7 +33,7 @@ class LogSettings(SettingsCategoryBase):
         key="log_file_name",
         default="application.log",
         category=SETTINGSCATEGORIES.LOG,
-        widget_type="line_edit",
+        widget_type=SETTINGSWIDGETTYPE.LINE_EDIT,
         label_text="Log File Name:",
         verify_btn_text="Save Log File Name",
         secure=False,
@@ -44,7 +44,7 @@ class LogSettings(SettingsCategoryBase):
         key="log_file_max_mbs",
         default=5,
         category=SETTINGSCATEGORIES.LOG,
-        widget_type="line_edit",
+        widget_type=SETTINGSWIDGETTYPE.LINE_EDIT,
         label_text="Log File Max Mbs:",
         verify_btn_text="Save Log File Max Mbs",
         secure=False,
@@ -55,7 +55,7 @@ class LogSettings(SettingsCategoryBase):
         key="log_keep_files_days",
         default=5,
         category=SETTINGSCATEGORIES.LOG,
-        widget_type="line_edit",
+        widget_type=SETTINGSWIDGETTYPE.LINE_EDIT,
         label_text="Keep Log File Days:",
         verify_btn_text="Save Log File Days",
         secure=False,
@@ -66,7 +66,7 @@ class LogSettings(SettingsCategoryBase):
         key="log_backup_count",
         default=5,
         category=SETTINGSCATEGORIES.LOG,
-        widget_type="line_edit",
+        widget_type=SETTINGSWIDGETTYPE.LINE_EDIT,
         label_text="Log Backup Count:",
         verify_btn_text="Save Log Backup Count",
         secure=False,
@@ -77,7 +77,7 @@ class LogSettings(SettingsCategoryBase):
         key="log_level",
         default="INFO",
         category=SETTINGSCATEGORIES.LOG,
-        widget_type="combo_box",
+        widget_type=SETTINGSWIDGETTYPE.COMBO_BOX,
         label_text="Log Level:",
         verify_btn_text="Save Log Level",
         secure=False,

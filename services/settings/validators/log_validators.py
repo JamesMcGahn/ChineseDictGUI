@@ -2,48 +2,36 @@
 import os
 
 from base.enums import LOGLEVEL
-from services.validation.models import SettingsValidateResponse
 
 from ..enums import SETTINGSCATEGORIES
+from .validator_helper import ValidatorHelper
 
-
-def _response(field, is_valid):
-    return SettingsValidateResponse(
-        category=SETTINGSCATEGORIES.LOG, field=field, is_valid=is_valid
-    )
-
-
-def _is_int(value):
-    try:
-        int(value)
-        return True
-    except ValueError:
-        return False
+helper = ValidatorHelper(SETTINGSCATEGORIES.LOG)
 
 
 def validate_log_file_path(field, value):
-    return _response(field, os.path.isdir(value))
+    return helper.settings_response(field, os.path.isdir(value))
 
 
 def validate_log_file_name(field, value):
-    return _response(field, value.endswith(".log"))
+    return helper.settings_response(field, value.endswith(".log"))
 
 
 def validate_log_file_max_mbs(field, value):
-    return _response(field, _is_int(value))
+    return helper.settings_response(field, helper.is_int(value) and value > 0)
 
 
 def validate_log_keep_files_days(field, value):
-    return _response(field, _is_int(value))
+    return helper.settings_response(field, helper.is_int(value))
 
 
 def validate_log_backup_count(field, value):
-    return _response(field, _is_int(value))
+    return helper.settings_response(field, helper.is_int(value))
 
 
 def validate_log_level(field, value):
     try:
         LOGLEVEL(value)
-        return _response(field, True)
+        return helper.settings_response(field, True)
     except ValueError:
-        return _response(field, False)
+        return helper.settings_response(field, False)

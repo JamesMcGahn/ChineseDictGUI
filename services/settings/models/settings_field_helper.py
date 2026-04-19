@@ -1,6 +1,7 @@
 from dataclasses import field
 from typing import Callable, Optional
 
+from ..enums import SETTINGSWIDGETTYPE
 from .settings_field_meta import SettingsFieldMeta
 
 
@@ -9,7 +10,7 @@ def setting(
     key: str,
     default: int | bool | str | float,
     category: str,
-    widget_type: str,
+    widget_type: SETTINGSWIDGETTYPE,
     label_text: str,
     verify_btn_text: str,
     secure: bool = False,

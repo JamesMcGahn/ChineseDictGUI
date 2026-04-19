@@ -16,6 +16,7 @@ from .models import AppSettings
 from .models.base_category_map import SettingsCategoryBase
 from .models.map_app_settings import AppSettings as AppSettingsMap
 from .models.map_log_settings import LogSettings
+from .models.map_whisper_settings import WhisperSettings
 
 
 class SettingsService(QObjectBase):
@@ -28,7 +29,8 @@ class SettingsService(QObjectBase):
         self._settings: AppSettingsMap = None
         self._validated: dict[SETTINGSCATEGORIES, dict[str, bool]] = {}
         self.sections: dict[SETTINGSCATEGORIES, SettingsCategoryBase] = {
-            SETTINGSCATEGORIES.LOG: LogSettings
+            SETTINGSCATEGORIES.LOG: LogSettings,
+            SETTINGSCATEGORIES.WHISPER: WhisperSettings,
         }
         self._settings_loaded = False
 
