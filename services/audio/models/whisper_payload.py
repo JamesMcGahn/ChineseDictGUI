@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 
-from base.enums import WHISPERPROVIDER
-
+from ..enums import WHISPERPROVIDER
 from .faster_whisper_options import FasterWhisperOptions
 
 

@@ -7,14 +7,10 @@ from PySide6.QtCore import QProcess, Signal, Slot
 
 from base import QWorkerBase
 from base.enums import JOBSTATUS, LOGLEVEL
-from models.services import (
-    JobRef,
-    JobRequest,
-    JobResponse,
-    WhisperPayload,
-    WhisperResponse,
-)
+from models.services import JobRef, JobRequest, JobResponse
 from utils.files import PathManager
+
+from .models import WhisperPayload, WhisperResponse
 
 
 class OpenAIWhisperWorker(QWorkerBase):

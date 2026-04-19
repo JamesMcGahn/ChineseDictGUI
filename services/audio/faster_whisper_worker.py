@@ -6,14 +6,13 @@ from PySide6.QtCore import Signal, Slot
 from base import QWorkerBase
 from base.enums import JOBSTATUS
 from models.services import (
-    FasterWhisperOptions,
     JobRef,
     JobRequest,
     JobResponse,
-    WhisperPayload,
-    WhisperResponse,
 )
 from utils.files import PathManager
+
+from .models import FasterWhisperOptions, WhisperPayload, WhisperResponse
 
 
 class FasterWhisperWorker(QWorkerBase):

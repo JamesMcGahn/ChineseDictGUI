@@ -12,7 +12,6 @@ from .pipeline_jobtype import PIPELINEJOBTYPE
 from .providers import PROVIDERS
 from .task_state_status import TASKSTATESTATUS
 from .ui_event_type import UIEVENTTYPE
-from .whisper_provider import WHISPERPROVIDER
 from .word_status import WORDSTATUS
 from .word_task import WORDTASK
 
@@ -23,7 +22,6 @@ __all__ = [
     "LESSONSTATUS",
     "LESSONAUDIO",
     "JOBSTATUS",
-    "WHISPERPROVIDER",
     "WORDSTATUS",
     "WORDTASK",
     "PIPELINEJOBTYPE",

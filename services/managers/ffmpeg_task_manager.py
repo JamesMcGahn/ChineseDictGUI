@@ -1,8 +1,10 @@
 from PySide6.QtCore import Signal, Slot
 
 from base import QObjectBase, ThreadQueueManager
-from models.services import CombineAudioPayload, JobRequest, WhisperPayload
+from models.services import CombineAudioPayload, JobRequest
 from services.audio import CombineAudioThread, WhisperThread
+
+from ..audio.models import WhisperPayload
 
 
 class FFmpegTaskManager(QObjectBase):

@@ -5,7 +5,6 @@ from base.enums import (
     LESSONLEVEL,
     LESSONTASK,
     PIPELINEJOBTYPE,
-    WHISPERPROVIDER,
 )
 from models.dictionary import Lesson
 from models.pipelines import (
@@ -18,8 +17,9 @@ from models.services import (
     CombineAudioPayload,
     CPodLessonPayload,
     LingqLessonPayload,
-    WhisperPayload,
 )
+from services.audio.enums import WHISPERPROVIDER
+from services.audio.models import WhisperPayload
 from services.database.enums import DBJOBTYPE, DBOPERATION
 from services.database.models import DBJobPayload
 from services.database.models.write import UpsertOnePayload

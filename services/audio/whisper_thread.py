@@ -3,10 +3,11 @@ from pathlib import Path
 from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QThreadBase
-from base.enums import WHISPERPROVIDER
-from models.services import JobRequest, WhisperPayload
+from models.services import JobRequest
 
+from .enums import WHISPERPROVIDER
 from .faster_whisper_worker import FasterWhisperWorker
+from .models import WhisperPayload
 from .open_ai_whisper_worker import OpenAIWhisperWorker
 
 
