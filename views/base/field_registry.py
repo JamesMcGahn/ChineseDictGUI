@@ -1,10 +1,8 @@
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QComboBox, QLineEdit, QTextEdit
 
-from base import QSingleton
 
-
-class FieldRegistry(QObject, metaclass=QSingleton):
+class FieldRegistry(QObject):
 
     def __init__(self):
         super().__init__()

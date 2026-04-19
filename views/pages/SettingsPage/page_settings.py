@@ -5,178 +5,65 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from controllers.models import SettingsPageControllers
 
-import os
-
-from PySide6.QtCore import QTimer, Signal, Slot
+from PySide6.QtCore import Signal
 
 from base import QWidgetBase
-from models.settings import AppSettingsModel, LogSettingsModel
 from services.settings.enums import SETTINGSCATEGORIES
 
-from .field_registry import FieldRegistry
+from ...base import FieldRegistry
 from .page_settings_ui import PageSettingsUI
-from .settings_ui_helper import SettingsUIHelper
-from .tabs.log_settings import TabLogSettings
-from .verify_settings import VerifySettings
+from .tabs import TabSettingsBase
 
 
 # TODO: Move all Settings logic to a Settings Service
 class PageSettings(QWidgetBase):
-    main_app_settings = Signal(bool, bool)
-    import_page_settings = Signal(str, bool)
-    audio_page_settings = Signal(str, bool, str, bool)
-    sync_page_settings = Signal(str, bool, str, bool)
-    log_page_settings = Signal(str, bool, str, bool)
-    define_page_settings = Signal(str, bool)
-    save_log_settings_model = Signal(str, str, int, int, int, bool, str)
-
     verify_response_update = Signal(str, str, bool)
+    settings_field_updated = Signal(str, str, object)
 
     def __init__(self, controllers: SettingsPageControllers):
         super().__init__()
-        self.controllers = controllers
-        self.settings_model = AppSettingsModel()
-        self.settings_model.get_settings()
-        self.log_settings = LogSettingsModel()
-
         self.view = PageSettingsUI()
         self.layout.addWidget(self.view)
-        self.app_settings = self.controllers.settings.get_settings()
-        self.app_verify = self.controllers.settings.get_settings_validation()
 
-        self.log_settings_tab = TabLogSettings(
-            self.app_settings.log, self.app_verify[SETTINGSCATEGORIES.LOG]
-        )
-        self.view.add_page_to_tab(self.log_settings_tab, "Log Settings")
-
-        self.verify_settings = VerifySettings()
-        self.timers = {}
-        self.home_directory = os.path.expanduser("~")
         self.field_registery = FieldRegistry()
-        print("home", self.home_directory)
-        # self.get_settings("ALL", setText=True)
-        # self.sui.send_to_verify.connect(self.verify_settings.verify_settings)
-        # self.save_log_settings_model.connect(self.log_settings.save_log_settings)
-        # self.verify_settings.verify_response_update_sui.connect(
-        #     self.sui.verify_response_update
-        # )
+        self.controllers = controllers
+        self.settings_controller = self.controllers.settings
+        self.app_settings = self.settings_controller.get_settings()
+        self.app_verify = self.settings_controller.get_settings_validation()
 
-        self.verify_settings.send_settings_update.connect(self.send_settings_update)
+        self.tabs_loaded = False
+        self.set_up_tabs(self.field_registery, self.app_settings, self.app_verify)
 
-        # self.verify_settings.change_verify_btn_disable.connect(
-        #     self.sui.set_verify_btn_disable
-        # )
+    def set_up_tabs(self, field_registry, app_settings, app_verify):
+        if self.tabs_loaded:
+            return
+        for category in app_settings.get_fields_list():
+            category_settings = getattr(app_settings, category.name, None)
+            if category_settings is None:
+                return
+            attr_name = f"{category_settings}_tab"
+            setattr(
+                self,
+                attr_name,
+                TabSettingsBase(
+                    tab_id=SETTINGSCATEGORIES(category_settings.schema_name),
+                    settings=category_settings,
+                    settings_verify=app_verify[category_settings.schema_name],
+                    field_registry=field_registry,
+                ),
+            )
 
-        # self.view.secure_setting_change.connect(self.sui.handle_secure_setting_change)
+            self.view.add_page_to_tab(
+                getattr(self, attr_name), category_settings.display_name
+            )
 
-        self.log_settings_tab.settings_field_updated.connect(
-            self.controllers.settings.on_field_change
-        )
+            getattr(self, attr_name).settings_field_updated.connect(
+                self.settings_controller.on_field_change
+            )
 
-        self.log_settings_tab.send_to_verify.connect(
-            self.controllers.settings.on_field_verify
-        )
-        self.controllers.settings.verify_response_update.connect(
-            self.log_settings_tab.on_verify_response
-        )
-
-    def send_settings_update(self, tab, key):
-
-        # Import Page settings
-        if key in ["apple_note_name"]:
-            self.send_import_page_settings()
-        elif key in ["audio_path", "google_api_key"]:
-            self.send_audio_page_settings()
-        elif key in ["anki_deck_name", "anki_model_name"]:
-            self.send_sync_page_settings()
-        elif key in [
-            "log_file_path",
-            "log_file_name",
-            "log_backup_count",
-            "log_file_max_mbs",
-            "log_keep_files_days",
-        ]:
-            self.send_logs_page_setting()
-        elif key in ["dictionary_source", "merriam_webster_api_key"]:
-            self.send_define_page_settings()
-        elif key in ["auto_save_on_close"]:
-            self.send_main_app_settings()
-
-    def send_main_app_settings(self):
-        auto_save_on_close, auto_save_on_close_verifed = (
-            self.settings_model.get_setting("auto_save_on_close")
-        )
-        self.main_app_settings.emit(auto_save_on_close, auto_save_on_close_verifed)
-
-    def send_define_page_settings(self):
-        dictionary_source, dict_source_verifed = self.settings_model.get_setting(
-            "dictionary_source"
-        )
-
-        self.define_page_settings.emit(
-            dictionary_source,
-            dict_source_verifed,
-        )
-
-    def send_import_page_settings(self):
-        apple_note_name, ann_verifed = self.settings_model.get_setting(
-            "apple_note_name"
-        )
-        self.import_page_settings.emit(apple_note_name, ann_verifed)
-
-    def send_audio_page_settings(self):
-        google_api_key, gak_verifed = self.settings_model.get_setting("google_api_key")
-        anki_audio_path, aap_verifed = self.settings_model.get_setting(
-            "anki_audio_path"
-        )
-
-        self.audio_page_settings.emit(
-            google_api_key,
-            gak_verifed,
-            anki_audio_path,
-            aap_verifed,
-        )
-
-    def send_sync_page_settings(self):
-        anki_deck_name, adn_verifed = self.settings_model.get_setting("anki_deck_name")
-        anki_model_name, amn_verifed = self.settings_model.get_setting(
-            "anki_model_name"
-        )
-
-        self.sync_page_settings.emit(
-            anki_deck_name, adn_verifed, anki_model_name, amn_verifed
-        )
-
-    def send_logs_page_setting(self):
-        log_file_path, lfp_verifed = self.settings_model.get_setting("log_file_path")
-        log_file_name, lfn_verifed = self.settings_model.get_setting("log_file_name")
-        log_file_max_mbs, _ = self.settings_model.get_setting("log_file_max_mbs")
-        log_backup_count, _ = self.settings_model.get_setting("log_backup_count")
-        log_keep_files_days, _ = self.settings_model.get_setting("log_keep_files_days")
-        log_level, _ = self.settings_model.get_setting("log_level")
-
-        self.log_page_settings.emit(
-            log_file_path,
-            lfp_verifed,
-            log_file_name,
-            lfn_verifed,
-        )
-        self.save_log_settings_model.emit(
-            log_file_path,
-            log_file_name,
-            log_file_max_mbs,
-            log_backup_count,
-            log_keep_files_days,
-            False,
-            log_level,
-        )
-
-    @Slot()
-    def send_all_settings(self):
-        print("send all settings")
-        self.send_import_page_settings()
-        self.send_audio_page_settings()
-        self.send_sync_page_settings()
-        self.send_logs_page_setting()
-        self.send_define_page_settings()
-        self.send_main_app_settings()
+            getattr(self, attr_name).send_to_verify.connect(
+                self.settings_controller.on_field_verify
+            )
+            self.settings_controller.verify_response_update.connect(
+                getattr(self, attr_name).on_verify_response
+            )

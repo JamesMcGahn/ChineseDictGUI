@@ -19,18 +19,17 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from models.settings import AppSettingsModel
-
-from .field_registry import FieldRegistry
+from ....base.field_registry import FieldRegistry
 
 
+# TODO Combine with tab settings UI
 class SettingsUIHelper(QObject):
     send_to_verify = Signal(str, str, str)
     settings_field_updated = Signal(str, str, object)
 
-    def __init__(self, settings_verify):
+    def __init__(self, settings_verify, field_registery: FieldRegistry):
         super().__init__()
-        self.field_registery = FieldRegistry()
+        self.field_registery = field_registery
         self.settings_verify = settings_verify
         self.timers = {}
 

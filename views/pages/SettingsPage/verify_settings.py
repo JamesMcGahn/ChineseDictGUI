@@ -14,7 +14,7 @@ from services.network import NetworkWorker
 from services.settings import AppSettings
 from utils.files import RemoveFileWorker
 
-from .field_registry import FieldRegistry
+from ...base.field_registry import FieldRegistry
 
 
 class VerifySettings(QObject):

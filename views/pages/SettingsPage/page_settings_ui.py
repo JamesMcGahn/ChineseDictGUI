@@ -18,11 +18,6 @@ from PySide6.QtWidgets import (
 
 from components.utils import ColoredSpacer
 
-from .field_registry import FieldRegistry
-from .tabs.anki_settings import TabAnkiSettings
-from .tabs.app_settings import TabAppSettings
-from .tabs.whisper_settings import TabWhisperSettings
-
 
 class PageSettingsUI(QWidget):
     folder_submit = Signal(str, str)
