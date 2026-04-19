@@ -85,3 +85,7 @@ class SettingsController(QObjectBase):
             is_valid = payload.is_valid
             self.settings_service.set_validated(category, field, is_valid)
             self.verify_response_update.emit(category, field, is_valid)
+        elif job_res.job_ref.status in (JOBSTATUS.ERROR, JOBSTATUS.PARTIAL_ERROR):
+            self._active_jobs.pop(job_id)
+            self.settings_service.set_validated(category, field, False)
+            self.verify_response_update.emit(category, field, False)
