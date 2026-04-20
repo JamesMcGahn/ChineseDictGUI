@@ -1,11 +1,20 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from PySide6.QtWidgets import QWidget
+    from .enums import QTOASTSTATUS
+
 from PySide6.QtGui import QColor, QFont
 
-from .pyqttoast import Toast, ToastPosition, ToastPreset
+from .pyqttoast import Toast, ToastPosition
 
 
 class QToast(Toast):
-    def __init__(self, parent, status, title, message):
-        super().__init__()
+
+    def __init__(self, parent: QWidget, status: QTOASTSTATUS, title: str, message: str):
+        super().__init__(parent=parent)
         self.setDuration(5000)
         self.message = message
         self.title = title
@@ -14,19 +23,9 @@ class QToast(Toast):
         font = QFont([".AppleSystemUIFont"], 12, QFont.Weight.Bold)
         self.setTitleFont(font)
         self.setTextFont(font)
+        print(self.status)
 
-        match (self.status):
-            case "success":
-                self.applyPreset(ToastPreset.SUCCESS)
-            case "error":
-                self.applyPreset(ToastPreset.ERROR)
-            case "warning":
-                self.applyPreset(ToastPreset.WARNING)
-            case "info":
-                self.applyPreset(ToastPreset.INFORMATION)
-            case "close":
-                self.applyPreset(ToastPreset.CLOSE)
-
+        self.applyPreset(self.status)
         self.setTextColor(QColor("#ffffff"))
         self.setTitleColor(QColor("#FFFFFF"))
         self.setBackgroundColor(QColor("#000000"))

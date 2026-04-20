@@ -1,3 +1,5 @@
+# pyqttoast pakage modified to work with Pyside6
+
 import math
 
 from PySide6.QtCore import (
@@ -19,12 +21,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..enums import QTOASTSTATUS
+
 # trunk-ignore(ruff/F403)
 from .constants import *
 from .css.toast_css import TOAST_CSS
 from .drop_shadow import DropShadow
 from .icon_utils import IconUtils
-from .toast_enums import ToastButtonAlignment, ToastIcon, ToastPosition, ToastPreset
+from .toast_enums import ToastButtonAlignment, ToastIcon, ToastPosition
 
 
 class Toast(QDialog):
@@ -2169,7 +2173,7 @@ class Toast(QDialog):
             return
         self.__text_section_spacing = spacing
 
-    def applyPreset(self, preset: ToastPreset):
+    def applyPreset(self, preset: QTOASTSTATUS):
         """Apply a style preset to the toast
 
         :param preset: style preset
@@ -2178,33 +2182,34 @@ class Toast(QDialog):
         if self.__used:
             return
 
-        if preset == ToastPreset.SUCCESS or preset == ToastPreset.SUCCESS_DARK:
+        if preset == QTOASTSTATUS.SUCCESS or preset == QTOASTSTATUS.SUCCESS_DARK:
             self.setIcon(ToastIcon.SUCCESS)
             self.setIconColor(SUCCESS_ACCENT_COLOR)
             self.setDurationBarColor(SUCCESS_ACCENT_COLOR)
 
-        elif preset == ToastPreset.WARNING or preset == ToastPreset.WARNING_DARK:
+        elif preset == QTOASTSTATUS.WARNING or preset == QTOASTSTATUS.WARNING_DARK:
             self.setIcon(ToastIcon.WARNING)
             self.setIconColor(WARNING_ACCENT_COLOR)
             self.setDurationBarColor(WARNING_ACCENT_COLOR)
 
-        elif preset == ToastPreset.ERROR or preset == ToastPreset.ERROR_DARK:
+        elif preset == QTOASTSTATUS.ERROR or preset == QTOASTSTATUS.ERROR_DARK:
             self.setIcon(ToastIcon.ERROR)
             self.setIconColor(ERROR_ACCENT_COLOR)
             self.setDurationBarColor(ERROR_ACCENT_COLOR)
 
         elif (
-            preset == ToastPreset.INFORMATION or preset == ToastPreset.INFORMATION_DARK
+            preset == QTOASTSTATUS.INFORMATION
+            or preset == QTOASTSTATUS.INFORMATION_DARK
         ):
             self.setIcon(ToastIcon.INFORMATION)
             self.setIconColor(INFORMATION_ACCENT_COLOR)
             self.setDurationBarColor(INFORMATION_ACCENT_COLOR)
 
         if (
-            preset == ToastPreset.SUCCESS
-            or preset == ToastPreset.WARNING
-            or preset == ToastPreset.ERROR
-            or preset == ToastPreset.INFORMATION
+            preset == QTOASTSTATUS.SUCCESS
+            or preset == QTOASTSTATUS.WARNING
+            or preset == QTOASTSTATUS.ERROR
+            or preset == QTOASTSTATUS.INFORMATION
         ):
             self.setBackgroundColor(DEFAULT_BACKGROUND_COLOR)
             self.setCloseButtonIconColor(DEFAULT_CLOSE_BUTTON_ICON_COLOR)
@@ -2213,10 +2218,10 @@ class Toast(QDialog):
             self.setTextColor(DEFAULT_TEXT_COLOR)
 
         elif (
-            preset == ToastPreset.SUCCESS_DARK
-            or preset == ToastPreset.WARNING_DARK
-            or preset == ToastPreset.ERROR_DARK
-            or preset == ToastPreset.INFORMATION_DARK
+            preset == QTOASTSTATUS.SUCCESS_DARK
+            or preset == QTOASTSTATUS.WARNING_DARK
+            or preset == QTOASTSTATUS.ERROR_DARK
+            or preset == QTOASTSTATUS.INFORMATION_DARK
         ):
             self.setBackgroundColor(DEFAULT_BACKGROUND_COLOR_DARK)
             self.setCloseButtonIconColor(DEFAULT_CLOSE_BUTTON_ICON_COLOR_DARK)

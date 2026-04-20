@@ -15,8 +15,12 @@ from uuid import uuid4
 from PySide6.QtCore import Signal
 
 from base import QObjectBase
-from base.enums import JOBSTATUS
+from base.enums import JOBSTATUS, UIEVENTTYPE
+from base.events import UIEvent
 from models.services import JobRequest
+from services.settings.enums import FIELDSTATESTATUS
+from services.settings.events import FieldStateEvent, SettingUpdatedEvent
+from services.settings.models import SettingUpdatedPayload, SettingValidatedPayload
 from services.validation.enums import VALIDATEJOBTYPE
 from services.validation.models import (
     SettingsValidatePayload,
@@ -26,7 +30,8 @@ from services.validation.models import (
 
 
 class SettingsController(QObjectBase):
-    verify_response_update = Signal(str, str, bool)
+    verify_response_update = Signal(object)
+    setting_updated = Signal(object)
 
     def __init__(
         self,
@@ -50,8 +55,9 @@ class SettingsController(QObjectBase):
         return self.settings_service.get_validations()
 
     def on_field_change(self, tab, key, value):
-        # print("*** in Controller:", tab, key, value, type(value))
-        self.settings_service.update_setting(category=tab, field=key, value=value)
+        self.settings_service.update_setting(
+            SettingUpdatedPayload(category=tab, field=key, value=value)
+        )
 
     def on_field_verify(self, category: SETTINGSCATEGORIES, field: str, value):
         print("controller", category, field, value)
@@ -77,15 +83,36 @@ class SettingsController(QObjectBase):
             return
 
         payload = job_res.payload.data
+        category = payload.category
+        field = payload.field
+        value = payload.value
+        status = payload.status
+        message = payload.message
+
+        if status == FIELDSTATESTATUS.VALID:
+            is_valid = True
+        else:
+            is_valid = False
+
+        settings_validate_payload = SettingValidatedPayload(
+            category=category, field=field, is_valid=is_valid
+        )
+
+        ui_event = UIEvent(
+            event_type=UIEVENTTYPE.UPDATE,
+            payload=FieldStateEvent(
+                category=category, field=field, status=status, message=message
+            ),
+        )
 
         if job_res.job_ref.status == JOBSTATUS.COMPLETE:
             self._active_jobs.pop(job_id)
-            category = payload.category
-            field = payload.field
-            is_valid = payload.is_valid
-            self.settings_service.set_validated(category, field, is_valid)
-            self.verify_response_update.emit(category, field, is_valid)
+            self.settings_service.set_validated(settings_validate_payload)
+            self.setting_updated.emit(
+                SettingUpdatedEvent(category=category, field=field, value=value)
+            )
+            self.verify_response_update.emit(ui_event)
         elif job_res.job_ref.status in (JOBSTATUS.ERROR, JOBSTATUS.PARTIAL_ERROR):
             self._active_jobs.pop(job_id)
-            self.settings_service.set_validated(category, field, False)
-            self.verify_response_update.emit(category, field, False)
+            self.settings_service.set_validated(settings_validate_payload)
+            self.verify_response_update.emit(ui_event)

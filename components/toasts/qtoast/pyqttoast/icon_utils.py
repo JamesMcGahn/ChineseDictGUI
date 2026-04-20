@@ -13,15 +13,15 @@ class IconUtils:
         """
 
         if enum_icon == ToastIcon.SUCCESS:
-            return QPixmap(":/images/success.png")
+            return QPixmap(":/images/toast/success.png")
         elif enum_icon == ToastIcon.WARNING:
-            return QPixmap(":/images/warning.png")
+            return QPixmap(":/images/toast/warning.png")
         elif enum_icon == ToastIcon.ERROR:
-            return QPixmap(":/images/error.png")
+            return QPixmap(":/images/toast/error.png")
         elif enum_icon == ToastIcon.INFORMATION:
-            return QPixmap(":/images/information.png")
+            return QPixmap(":/images/toast/information.png")
         elif enum_icon == ToastIcon.CLOSE:
-            return QPixmap(":/images/close.png")
+            return QPixmap(":/images/toast/toast/close.png")
 
     @staticmethod
     def recolor_image(image: QImage, color: QColor | None):

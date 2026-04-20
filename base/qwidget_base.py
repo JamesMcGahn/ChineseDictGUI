@@ -3,7 +3,9 @@ from typing import Optional
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
+from base.enums import LOGLEVEL
 from components.toasts import QToast
+from components.toasts.qtoast.enums import QTOASTSTATUS
 
 
 class QWidgetBase(QWidget):
@@ -39,7 +41,9 @@ class QWidgetBase(QWidget):
         self.setLayout(new_layout)
 
     @Slot(str, str, bool)
-    def logging(self, msg, level="INFO", print_msg=True) -> None:
+    def logging(
+        self, msg: str, level: LOGLEVEL = LOGLEVEL.INFO, print_msg: bool = True
+    ) -> None:
         """
         Logs a message with the specified log level.
 
@@ -67,8 +71,8 @@ class QWidgetBase(QWidget):
         self,
         toast_title: str,
         msg: str,
-        log_level: str = "INFO",
-        toast_level: str = "INFO",
+        log_level: LOGLEVEL = LOGLEVEL.INFO,
+        toast_level: QTOASTSTATUS = QTOASTSTATUS.INFORMATION,
         print_msg: bool = True,
         parent: Optional[QWidget] = None,
     ) -> None:
@@ -91,4 +95,4 @@ class QWidgetBase(QWidget):
         self.logging(msg, log_level, print_msg)
         if not parent:
             parent = self
-        QToast(parent, toast_level, toast_title, msg)
+        QToast(parent, toast_level, toast_title, msg).show()
