@@ -25,21 +25,22 @@ Priorities:
 ## Settings Service / Validation Service
 
 - [x] Settings Repository
-- [ ] Settings Service Class
-- [ ] Settings Validation Service Class
-- [ ] field validators
+- [x] Settings Service Class
+- [x] Settings Validation Service Class
+- [x] field validators
 - [x] Settings Meta dc
-- [ ] Remove direct connections to UI
+- [x] Remove direct connections to UI
 
 ## Controller Infrastructure
 
 - [ ] separate logic from forms/pages into controllers
-- [ ] introduce controller factory (used only in composition layer)
+- [x] introduce controller factory (used only in composition layer)
 - [ ] create page-specific controller containers (LessonPageControllers, etc.)
 - [ ] inject controllers into pages at creation (no runtime lookup)
 - [ ] pipelines emit domain events (rename UIEvent → Event)
 - [ ] controllers translate pipeline events → UI updates
-- [ ] define UI composition layer (MainScreen/CentralWidget) for wiring
+- [x] define UI composition layer (MainScreen/CentralWidget) for wiring
+- [/] controllers translate validation events -> UI updates
 
 ## Network Refactor – Unified Response
 

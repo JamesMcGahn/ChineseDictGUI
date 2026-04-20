@@ -5,13 +5,12 @@ from PySide6.QtCore import QObject, Signal, Slot
 
 from base import QSingleton
 from base.enums import LOGLEVEL
-from models.settings import LogSettingsModel
+from services.settings.models import LogSettings
 from utils.files import PathManager
 
 from .log_worker import LogWorker
 
 
-# TODO MOVE TO Settings Service -> once service is created
 class Logger(QObject, metaclass=QSingleton):
     """
     Logger class responsible for managing log file creation, rotation, and cleanup.
@@ -41,26 +40,35 @@ class Logger(QObject, metaclass=QSingleton):
         Initialize the logger by loading settings, starting the logging thread, and cleaning up old logs.
         """
         super().__init__()
-        self.log_file_path = "./logs/"
-        self.log_file_name = "file.log"
-        self.log_file_max_mbs = 5
-        self.log_backup_count = 5
-        self.log_keep_files_days = 30
-        self.log_turn_off_print = False
-        self.log_level = "INFO"
-        self.settings = LogSettingsModel()
-        self.init_logging_settings()
+        self._settings_loaded = False
+        self._logger_started = False
+        self.logs_queue_before_start = []
 
-        self.settings.log_setting_changed.connect(self.log_settings_changed)
+        # SETTINGS Fields
+        self.log_file_path = None
+        self.log_file_name = None
+        self.log_file_max_mbs = None
+        self.log_backup_count = None
+        self.log_keep_files_days = None
+        self.log_level = None
+        self.log_print_logs = True
 
+    def start_up(self):
+        if not self._settings_loaded:
+            return
         path = PathManager.regex_path(self.log_file_path + self.log_file_name)
         if not PathManager.path_exists(path["path"], True):
             self.log_file_path = PathManager.create_folder_in_app_data("logs")
-        self.logs_queue_before_start = []
-
         self.cleanup_old_logs()
-
         self.start_logging_thread()
+
+    def load_settings(self, settings: LogSettings):
+        if self._settings_loaded:
+            return
+        for field in settings.get_fields_list():
+            value = getattr(settings, field.name, None)
+            setattr(self, field.name, value)
+        self._settings_loaded = True
 
     def start_logging_thread(self) -> None:
         """
@@ -69,49 +77,28 @@ class Logger(QObject, metaclass=QSingleton):
         Returns:
             None: This function does not return a value.
         """
+        if self._logger_started:
+            return
         self.log_worker = LogWorker(
             self.log_file_path,
             self.log_file_name,
             self.log_file_max_mbs,
             self.log_backup_count,
             self.log_keep_files_days,
-            self.log_turn_off_print,
+            self.log_print_logs,
             self.log_level,
         )
         self.log_worker.log_signal.connect(self.send_logs_out)
         self.submit_log.connect(self.log_worker.insert_log)
-        self.log_worker.started.connect(
-            lambda: [self.insert(*log) for log in self.logs_queue_before_start]
-        )
+        self.log_worker.started.connect(lambda: self._log_service_started(True))
+        self.log_worker.started.connect(lambda: self.flush_boot_logs())
         self.log_worker.start()
 
-    def init_logging_settings(self) -> None:
-        """
-        Initializes the logger settings from the LogSettingsModel.
-
-        Returns:
-            None: This function does not return a value.
-        """
-        (
-            log_file_path,
-            log_file_name,
-            log_file_max_mbs,
-            log_backup_count,
-            log_keep_files_days,
-            log_turn_off_print,
-            log_level,
-        ) = self.settings.get_log_settings()
-
-        self.log_file_path = log_file_path
-        self.log_file_name = log_file_name
-        self.log_file_max_mbs = log_file_max_mbs
-        self.log_backup_count = log_backup_count
-        self.log_keep_files_days = log_keep_files_days
-        self.log_turn_off_print = log_turn_off_print
-        self.log_level = log_level
+    def _log_service_started(self, status: bool):
+        self._logger_started = status
 
     @Slot(tuple)
-    def log_settings_changed(self, settings: tuple) -> None:
+    def log_settings_changed(self, settings: LogSettings) -> None:
         """
         Slot to handle when the logging settings change. It restarts the logger to apply new settings.
 
@@ -125,8 +112,9 @@ class Logger(QObject, metaclass=QSingleton):
             "Logging settings changed. Restarting Logger to Apply Settings.", "INFO"
         )
         self.close()
-        self.init_logging_settings()
-        self.start_logging_thread()
+        self._settings_loaded = False
+        self.load_settings(settings)
+        self.start_up()
 
     @Slot()
     def turn_off_print_msg(self, switch: bool) -> None:
@@ -168,8 +156,16 @@ class Logger(QObject, metaclass=QSingleton):
         Returns:
             None: This function does not return a value.
         """
+        if self._log_service_started:
+            self.submit_log.emit((level, msg, print_msg))
+        else:
+            self.logs_queue_before_start.append((level, msg, print_msg))
 
-        self.submit_log.emit((level, msg, print_msg))
+    def flush_boot_logs(self):
+        for log in self.logs_queue_before_start:
+            level, msg, print_msg = log
+            self.insert(level, msg, print_msg)
+        self.logs_queue_before_start.clear()
 
     def cleanup_old_logs(self) -> None:
         """
@@ -181,10 +177,12 @@ class Logger(QObject, metaclass=QSingleton):
         log_dir = self.log_file_path
 
         if not PathManager.path_exists(log_dir, True):
-            self.logs_queue_before_start.append(("log path doesnt exist"))
+            self.logs_queue_before_start.append(
+                ("INFO", "log path doesnt exist", self.log_print_logs)
+            )
         current_time = time.time()
         self.logs_queue_before_start.append(
-            ("Checking For Old Log Files to Clean Up", "INFO")
+            ("INFO", "Checking For Old Log Files to Clean Up", self.log_print_logs)
         )
 
         for log_file in os.listdir(log_dir):
@@ -197,7 +195,12 @@ class Logger(QObject, metaclass=QSingleton):
                 if file_age > self.log_keep_files_days * 24 * 60 * 60:
                     os.remove(file_path)
                     self.logs_queue_before_start.append(
-                        (f"Removed old log file {file_path}", LOGLEVEL.INFO)
+                        (
+                            LOGLEVEL.INFO,
+                            f"Removed old log file {file_path}",
+                            LOGLEVEL.INFO,
+                            self.log_print_logs,
+                        )
                     )
 
     @Slot()
@@ -213,3 +216,4 @@ class Logger(QObject, metaclass=QSingleton):
         self.log_worker.cleanup()
         self.log_worker.quit()
         self.log_worker.wait()
+        self._log_service_started = False

@@ -8,10 +8,9 @@ if TYPE_CHECKING:
 from PySide6.QtCore import Signal, Slot
 
 from base import QWidgetBase
-from models.settings import AppSettingsModel, LogSettingsModel
 from services.settings.enums import SETTINGSCATEGORIES
+from services.settings.models import LogSettings
 
-from ..verify_settings import VerifySettings
 from .tab_settings_ui import TabLogSettingsUI
 from .tab_ui_helper import SettingsUIHelper
 
@@ -31,9 +30,6 @@ class TabSettingsBase(QWidgetBase):
     ):
         super().__init__()
         self.tab_id = tab_id
-        self.settings_model = AppSettingsModel()
-        self.settings_model.get_settings()
-        self.log_settings = LogSettingsModel()
         self.field_registry = field_registry
 
         self.sui = SettingsUIHelper(settings_verify, field_registry)

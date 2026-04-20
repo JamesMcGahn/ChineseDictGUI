@@ -9,6 +9,7 @@ from ..validators.log_validators import (
     validate_log_file_path,
     validate_log_keep_files_days,
     validate_log_level,
+    validate_log_print_logs,
 )
 from .base_category_map import SettingsCategoryBase
 from .settings_field_helper import setting
@@ -83,4 +84,15 @@ class LogSettings(SettingsCategoryBase):
         secure=False,
         combo_box=["INFO", "WARN", "DEBUG", "ERROR"],
         verify=validate_log_level,
+    )
+    log_print_logs: str = setting(
+        key="log_print_logs",
+        default="True",
+        category=SETTINGSCATEGORIES.LOG,
+        widget_type=SETTINGSWIDGETTYPE.COMBO_BOX,
+        label_text="Print Logs:",
+        verify_btn_text="Save Print Logs",
+        secure=False,
+        combo_box=["True", "False"],
+        verify=validate_log_print_logs,
     )

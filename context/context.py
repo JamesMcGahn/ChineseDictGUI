@@ -29,11 +29,11 @@ from services.settings import (
     SettingsRepository,
     SettingsService,
 )
-from services.validation import SettingsMetaProvider, ValidationService
+from services.settings.enums import SETTINGSCATEGORIES
+from services.validation import ValidationService
 from utils.files import PathManager
 
-# TODO Remove after Testing
-# from services.cpod.cpod_lesson_service_fallback import LessonScrapeFallbackWorker
+# TODO Connect Logger settings changes
 
 
 class AppContext(QObjectBase, metaclass=QSingleton):
@@ -47,18 +47,21 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         super().__init__()
         self.cookie_jar = requests.cookies.RequestsCookieJar()
         self.logger = Logger()
+        self.settings = AppSettings()
+        self.secure_settings = SecureCredentials()
+        self.settings_repo = SettingsRepository(self.settings, self.secure_settings)
+        self.settings_manager = SettingsService(repo=self.settings_repo)
 
+        log_settings = self.settings_manager.get_category(SETTINGSCATEGORIES.LOG)
+        self.logger.load_settings(log_settings)
+        self.logger.start_up()
         # TODO: Remove when Migration is Completed
         self.session_manager = SessionManager()
         self.session_manager.bind_context(self)
 
-        self.settings = AppSettings()
-        self.secure_settings = SecureCredentials()
         self.session_manager.load_session()
         self.db = DatabaseServiceManager()
 
-        self.settings_repo = SettingsRepository(self.settings, self.secure_settings)
-        self.settings_manager = SettingsService(repo=self.settings_repo)
         self.validation_service = ValidationService(
             settings_meta_provider=self.settings_manager
         )
@@ -111,12 +114,6 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         # self.task_complete.connect(self.lesson_workflow_manager.on_task_completed)
 
         self.add_to_db_write_queue.connect(self.db.write)
-
-        # TODO REMOVE AFTER TESTING
-        # lesson = LessonScrapeFallbackWorker(
-        #     session=self.session_registry.for_provider(PROVIDERS.CPOD)
-        # )
-        # lesson.run()
 
     def ensure_playwright_browsers(self, app_data_path):
         env = os.environ.copy()

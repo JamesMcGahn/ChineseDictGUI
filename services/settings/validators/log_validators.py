@@ -35,3 +35,7 @@ def validate_log_level(field, value):
         return helper.settings_response(field, True)
     except ValueError:
         return helper.settings_response(field, False)
+
+
+def validate_log_print_logs(field, value):
+    return helper.settings_response(field, True)

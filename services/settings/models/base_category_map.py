@@ -28,3 +28,6 @@ class SettingsCategoryBase(ABC):
 
     def get_field_meta(self, field: str) -> SettingsFieldMeta:
         return self._meta_index.get(field)
+
+    def get_fields_list(self):
+        return [f for f in fields(self)]

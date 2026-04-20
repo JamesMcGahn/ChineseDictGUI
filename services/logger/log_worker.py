@@ -21,7 +21,7 @@ class LogWorker(QThread):
         log_file_max_mbs (int): Maximum size of the log file in megabytes.
         log_backup_count (int): Number of backup log files to retain.
         log_keep_files_days (int): Number of days to retain log files.
-        log_turn_off_print (bool): Flag to control whether log messages should be printed to the console.
+        log_print_logs (bool): Flag to control whether log messages should be printed to the console.
         stop_event (bool): Flag to stop the logging thread.
         mutex (QMutex): Mutex to ensure thread-safe logging operations.
         logger (logging.Logger): Logger instance for handling log file writing.
@@ -39,7 +39,7 @@ class LogWorker(QThread):
         log_file_max_mbs: int,
         log_backup_count: int,
         log_keep_files_days: int,
-        log_turn_off_print: bool,
+        log_print_logs: bool,
         log_level: str,
     ):
         """
@@ -60,7 +60,7 @@ class LogWorker(QThread):
         self.log_file_max_mbs = log_file_max_mbs
         self.log_backup_count = log_backup_count
         self.log_keep_files_days = log_keep_files_days
-        self.log_turn_off_print = log_turn_off_print
+        self.log_print_logs = log_print_logs
         self.log_level = log_level
 
         self.stop_event = False
@@ -82,7 +82,7 @@ class LogWorker(QThread):
         Returns:
             None: This function does not return a value.
         """
-        print(f"log level: {self.log_level} ")
+
         complete_path = self.log_file_path + self.log_file_name
         self.logger = logging.getLogger(complete_path)
         self.logger.setLevel(logging.INFO)
@@ -101,10 +101,18 @@ class LogWorker(QThread):
                 logging.Formatter("%(asctime)s %(levelname)s %(message)s")
             )
             self.logger.addHandler(logfile)
+
             self.insert_log(
                 (
                     LOGLEVEL.INFO,
-                    f"Starting LogWorker Thread: {threading.get_ident()} - {self.thread()}",
+                    f"{self.__class__.__name__}: {threading.get_ident()} - {self.thread()}",
+                    True,
+                )
+            )
+            self.insert_log(
+                (
+                    LOGLEVEL.INFO,
+                    f"{self.__class__.__name__}: Log Level set at: {self.log_level} ",
                     True,
                 )
             )
@@ -125,7 +133,7 @@ class LogWorker(QThread):
         if level not in LOGLEVEL:
             level = LOGLEVEL.INFO
         if self.should_log(level):
-            if print_msg and not self.log_turn_off_print:
+            if print_msg and self.log_print_logs:
                 print(f"{level} - {msg}")
 
             self.log_queue.put((level, msg))
