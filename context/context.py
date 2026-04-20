@@ -43,6 +43,8 @@ class AppContext(QObjectBase, metaclass=QSingleton):
     task_complete = Signal(object)
     add_to_db_write_queue = Signal(object, object)
 
+    setting_updated = Signal(object)
+
     def __init__(self):
         super().__init__()
         self.cookie_jar = requests.cookies.RequestsCookieJar()
@@ -106,6 +108,9 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.appshutdown.connect(self.settings_manager.save_settings)
 
         # CONNECTIONS
+        ## SETTINGS
+        self.settings_controller.setting_updated.connect(self.setting_updated)
+        self.setting_updated.connect(self.logger.received_settings_change)
         ## TASK COMPLETE
         self.ffmpeg_task_manager.task_complete.connect(self.task_complete)
         self.audio_download_manager.task_complete.connect(self.task_complete)

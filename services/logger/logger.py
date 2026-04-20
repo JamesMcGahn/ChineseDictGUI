@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..settings.events import SettingUpdatedEvent
+
 import os
 import time
 
@@ -8,6 +15,7 @@ from base.enums import LOGLEVEL
 from services.settings.models import LogSettings
 from utils.files import PathManager
 
+from ..settings.enums import SETTINGSCATEGORIES
 from .log_worker import LogWorker
 
 
@@ -90,44 +98,12 @@ class Logger(QObject, metaclass=QSingleton):
         )
         self.log_worker.log_signal.connect(self.send_logs_out)
         self.submit_log.connect(self.log_worker.insert_log)
-        self.log_worker.started.connect(lambda: self._log_service_started(True))
+        self.log_worker.started.connect(lambda: self.set_log_service_started(True))
         self.log_worker.started.connect(lambda: self.flush_boot_logs())
         self.log_worker.start()
 
-    def _log_service_started(self, status: bool):
+    def set_log_service_started(self, status: bool):
         self._logger_started = status
-
-    @Slot(tuple)
-    def log_settings_changed(self, settings: LogSettings) -> None:
-        """
-        Slot to handle when the logging settings change. It restarts the logger to apply new settings.
-
-        Args:
-            settings (tuple): A tuple containing the new logging settings.
-
-        Returns:
-            None: This function does not return a value.
-        """
-        self.insert(
-            "Logging settings changed. Restarting Logger to Apply Settings.", "INFO"
-        )
-        self.close()
-        self._settings_loaded = False
-        self.load_settings(settings)
-        self.start_up()
-
-    @Slot()
-    def turn_off_print_msg(self, switch: bool) -> None:
-        """
-        Slot to turn off the printing of log messages to the console.
-
-        Args:
-            switch (bool): If True, disable printing log messages to the console.
-
-        Returns:
-            None: This function does not return a value.
-        """
-        self.turn_off_print = switch
 
     def send_logs_out(self, msg: str) -> None:
         """
@@ -156,15 +132,35 @@ class Logger(QObject, metaclass=QSingleton):
         Returns:
             None: This function does not return a value.
         """
-        if self._log_service_started:
+
+        if self._logger_started:
             self.submit_log.emit((level, msg, print_msg))
         else:
             self.logs_queue_before_start.append((level, msg, print_msg))
 
+    @Slot(object)
+    def received_settings_change(self, event: SettingUpdatedEvent):
+        if event.category == SETTINGSCATEGORIES.LOG:
+            if not hasattr(self, event.field):
+                raise ValueError(f"{event.field} not defined in class")
+            setattr(self, event.field, event.value)
+            self.insert(
+                f"{self.__class__.__name__}: Logging settings changed. Restarting Logger to Apply Settings.",
+                LOGLEVEL.INFO,
+            )
+            self.restart_logger()
+
+    def restart_logger(self):
+        try:
+            self.submit_log.disconnect()
+        except Exception:
+            pass
+        self.close()
+        self.start_logging_thread()
+
     def flush_boot_logs(self):
         for log in self.logs_queue_before_start:
-            level, msg, print_msg = log
-            self.insert(level, msg, print_msg)
+            self.submit_log.emit(log)
         self.logs_queue_before_start.clear()
 
     def cleanup_old_logs(self) -> None:
@@ -178,11 +174,19 @@ class Logger(QObject, metaclass=QSingleton):
 
         if not PathManager.path_exists(log_dir, True):
             self.logs_queue_before_start.append(
-                ("INFO", "log path doesnt exist", self.log_print_logs)
+                (
+                    LOGLEVEL.INFO,
+                    f"{self.__class__.__name__}: Log path doesnt exist",
+                    self.log_print_logs,
+                )
             )
         current_time = time.time()
         self.logs_queue_before_start.append(
-            ("INFO", "Checking For Old Log Files to Clean Up", self.log_print_logs)
+            (
+                LOGLEVEL.INFO,
+                f"{self.__class__.__name__}: Checking For Old Log Files to Clean Up",
+                self.log_print_logs,
+            )
         )
 
         for log_file in os.listdir(log_dir):
@@ -197,7 +201,7 @@ class Logger(QObject, metaclass=QSingleton):
                     self.logs_queue_before_start.append(
                         (
                             LOGLEVEL.INFO,
-                            f"Removed old log file {file_path}",
+                            f"{self.__class__.__name__}: Removed old log file {file_path}",
                             LOGLEVEL.INFO,
                             self.log_print_logs,
                         )
@@ -211,9 +215,15 @@ class Logger(QObject, metaclass=QSingleton):
         Returns:
             None: This function does not return a value.
         """
-        self.insert("Shutting down logging", LOGLEVEL.INFO, True)
+        self.submit_log.emit(
+            (
+                LOGLEVEL.INFO,
+                f"{self.__class__.__name__}: Shutting Down Logger.",
+                self.log_print_logs,
+            )
+        )
         self.log_worker.stop()
         self.log_worker.cleanup()
         self.log_worker.quit()
         self.log_worker.wait()
-        self._log_service_started = False
+        self.set_log_service_started(False)
