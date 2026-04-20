@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .settings_repository import SettingsRepository
-
+    from .models import SettingUpdatedPayload, SettingValidatedPayload
 from copy import deepcopy
 
-from PySide6.QtCore import Signal, Slot
+from PySide6.QtCore import Slot
 
 from base import QObjectBase
 
@@ -20,8 +20,6 @@ from .models.map_whisper_settings import WhisperSettings
 
 
 class SettingsService(QObjectBase):
-    setting_changed = Signal(str, str, object)
-    validation_changed = Signal(str, str, bool)
 
     def __init__(self, repo: SettingsRepository):
         super().__init__()
@@ -72,16 +70,20 @@ class SettingsService(QObjectBase):
     def get_validations(self) -> dict[SETTINGSCATEGORIES, dict[str, bool]]:
         return deepcopy(self._validated)
 
-    def update_setting(self, category: SETTINGSCATEGORIES, field: str, value: Any):
-        section = getattr(self._settings, category)
-        setattr(section, field, value)
-        self._validated.setdefault(category, {})
-        self._validated[category][field] = False
-        self.setting_changed.emit(category, field, value)
+    def update_setting(self, event: SettingUpdatedPayload):
+        section = getattr(self._settings, event.category, None)
+        if section is None:
+            msg = "{event.category} does not exist"
+            self.logging(msg, "ERROR")
+            raise ValueError(msg)
+        setattr(section, event.field, event.value)
+        self._validated.setdefault(event.category, {})
+        self._validated[event.category][event.field] = False
 
-    def set_validated(self, category, field, is_valid):
-        self._validated[category][field] = is_valid
-        self.validation_changed.emit(category, field, is_valid)
+    def set_validated(self, payload: SettingValidatedPayload):
+        self._validated.setdefault(payload.category, {})[
+            payload.field
+        ] = payload.is_valid
 
     def is_validated(self, section: str, field: str) -> bool:
         return self._validated.get(section, {}).get(field, False)

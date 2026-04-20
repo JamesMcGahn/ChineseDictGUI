@@ -10,32 +10,34 @@ helper = ValidatorHelper(SETTINGSCATEGORIES.LOG)
 
 
 def validate_log_file_path(field, value):
-    return helper.settings_response(field, os.path.isdir(value))
+    return helper.settings_response(field, value, os.path.isdir(value))
 
 
 def validate_log_file_name(field, value):
-    return helper.settings_response(field, value.endswith(".log"))
+    return helper.settings_response(field, value, value.endswith(".log"))
 
 
 def validate_log_file_max_mbs(field, value):
-    return helper.settings_response(field, helper.is_int(value) and value > 0)
+    return helper.settings_response(
+        field, value, helper.is_int(value) and int(value) > 0
+    )
 
 
 def validate_log_keep_files_days(field, value):
-    return helper.settings_response(field, helper.is_int(value))
+    return helper.settings_response(field, value, helper.is_int(value))
 
 
 def validate_log_backup_count(field, value):
-    return helper.settings_response(field, helper.is_int(value))
+    return helper.settings_response(field, value, helper.is_int(value))
 
 
 def validate_log_level(field, value):
     try:
         LOGLEVEL(value)
-        return helper.settings_response(field, True)
+        return helper.settings_response(field, value, True)
     except ValueError:
-        return helper.settings_response(field, False)
+        return helper.settings_response(field, value, False)
 
 
 def validate_log_print_logs(field, value):
-    return helper.settings_response(field, True)
+    return helper.settings_response(field, value, True)

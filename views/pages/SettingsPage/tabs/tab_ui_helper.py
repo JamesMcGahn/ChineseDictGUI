@@ -137,7 +137,6 @@ class SettingsUIHelper(QObject):
             )
 
             widget_type = meta.widget_type
-            print("ww", widget_type)
             verify_button.clicked.connect(
                 lambda _, widget_type=widget_type: self.open_folder_dialog(
                     tab, key, widget_type=widget_type
@@ -145,7 +144,6 @@ class SettingsUIHelper(QObject):
             )
         else:
             widget_type = meta.widget_type
-            print("ww", widget_type)
             verify_button.clicked.connect(
                 lambda _, widget_type=widget_type: self.handle_verify(
                     tab, key, widget_type=widget_type

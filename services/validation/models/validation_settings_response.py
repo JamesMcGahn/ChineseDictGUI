@@ -1,10 +1,13 @@
 from dataclasses import dataclass
+from typing import Any
 
-from services.settings.enums import SETTINGSCATEGORIES
+from services.settings.enums import FIELDSTATESTATUS, SETTINGSCATEGORIES
 
 
 @dataclass
 class SettingsValidateResponse:
     category: SETTINGSCATEGORIES
     field: str
-    is_valid: bool
+    value: Any
+    status: FIELDSTATESTATUS
+    message: str | None = None

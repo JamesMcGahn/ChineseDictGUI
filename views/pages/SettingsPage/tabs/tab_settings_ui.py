@@ -53,7 +53,6 @@ class TabLogSettingsUI(QWidget):
         for field in fields(self.settings):
             key = field.name
             value = getattr(self.settings, key)
-            print(key, value, type(value))
             meta = self.settings.get_field_meta(key)
             self.uih.create_input_fields(
                 self.tab_id, key, value, meta, self.settings_grid_layout
