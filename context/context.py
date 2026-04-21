@@ -7,10 +7,9 @@ from PySide6.QtCore import QThread, QTimer, Signal, Slot
 
 from base import QObjectBase, QSingleton
 from base.enums import PROVIDERS
-from controllers import SettingsController
-from core.lingq import LingqLoginWorker
+from controllers import LessonsController, SettingsController
 from keys import keys
-from models.pipelines import PipelineServiceContainer
+from pipelines.models import PipelineServiceContainer
 from services.logger import Logger
 from services.managers import (
     AudioDownloadManager,
@@ -92,6 +91,9 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.settings_controller = SettingsController(
             settings_service=self.settings_manager,
             validation_service=self.validation_service,
+        )
+        self.lessons_controller = LessonsController(
+            db_service=self.db, lesson_pipeline=self.lesson_pipeline_manager
         )
 
         folder = PathManager.create_folder_in_app_data("playwright")

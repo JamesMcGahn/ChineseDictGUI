@@ -13,6 +13,7 @@ from components.dialogs import (
     MultiWordDialog,
 )
 from context import AppContext
+from controllers.models import ImportPageControllers
 from core.scrapers.words.word_scrape_thread import WordScraperThread
 from db import DatabaseManager, DatabaseQueryThread
 from models.dictionary import Lesson, Sentence, Word
@@ -33,20 +34,16 @@ class PageLessons(QWidgetBase):
     updated_sents_levels_sig = Signal(bool, list)
     set_button_disabled = Signal(bool)
 
-    def __init__(self):
+    def __init__(self, controllers: ImportPageControllers):
         super().__init__()
+        self.controllers = controllers
         self.ui = PageLessonsView()
         self.ctx = AppContext()
 
-        self.ctx.lesson_pipeline_manager.scraping_active.connect(
-            self.set_button_disabled
-        )
-        self.ctx.lesson_pipeline_manager.ui_event.connect(
-            self.get_words_from_sthread_loop
-        )
-        self.ctx.lesson_pipeline_manager.ui_event.connect(
-            self.get_sentences_from_thread_loop
-        )
+        # self.ctx.lesson_pipeline_manager.scraping_active.connect(
+        #     self.set_button_disabled
+        # )
+        self.controllers.lessons.ui_event.connect(self.handle_ui_event)
 
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.addWidget(self.ui)
@@ -62,7 +59,7 @@ class PageLessons(QWidgetBase):
         self.dialog.add_lesson_submited_signal.connect(self.get_dialog_submitted)
 
         self.ui.stacked_widget.setCurrentIndex(1)
-        self.ui.addwords_btn.clicked.connect(self.addwords_btn_clicked)
+        self.ui.import_button.clicked.connect(self.handle_import_button_clicked)
 
         self.ui.words_table_btn.clicked.connect(self.change_table)
         self.ui.sents_table_btn.clicked.connect(self.change_table)
@@ -72,7 +69,7 @@ class PageLessons(QWidgetBase):
         self.ui.select_all_s.clicked.connect(self.select_all_sents)
         self.ui.clear_w.clicked.connect(self.clear_table_words)
         self.ui.clear_s.clicked.connect(self.clear_table_sents)
-        self.set_button_disabled.connect(self.ui.set_lesson_btn)
+        self.set_button_disabled.connect(self.ui.set_import_btn)
 
         self.appshutdown.connect(lambda: print("app shutdown lesson"))
         self.dbw = DatabaseManager("chineseDict.db")
@@ -142,175 +139,20 @@ class PageLessons(QWidgetBase):
         else:
             self.ui.stacked_widget.setCurrentIndex(1)
 
-    def addwords_btn_clicked(self):
-        self.dialog.exec()
+    @Slot(object)
+    def handle_ui_event(self, event: UIEvent):
+        if event.event_type == UIEVENTTYPE.DISPLAY:
+            if isinstance(event.payload, WordsEvent):
+                [self.table_wordmodel.add_word(x) for x in event.payload.words]
+                return
+            if isinstance(event.payload, SentencesEvent):
+                [self.table_sentmodel.add_sentence(x) for x in event.payload.sentences]
+                return
 
     @Slot(list)
-    def get_dialog_mdmulti(self, words):
-        self.selectionDialog = MultiWordDialog(words)
-        self.selectionDialog.md_multi_def_signal.connect(
-            self.get_dialog_multi_selection
-        )
-        self.selectionDialog.exec()
-
-    @Slot(int)
-    def get_dialog_multi_selection(self, index):
-        self.md_multi_selection_sig.emit(index)
-
-    @Slot(object)
-    def get_user_choice_usecpod(self, word):
-        print("herer")
-        ret = QMessageBox.question(
-            self,
-            "No MDBG definition available.",
-            f"No MDBG definition available.\n Use Cpod's definition?: \n {word.chinese} - {word.definition}",
-            QMessageBox.Ok | QMessageBox.Cancel,
-        )
-        if ret == QMessageBox.Ok:
-            self.use_cpod_def_sig.emit(True)
-        else:
-            self.use_cpod_def_sig.emit(False)
-
-    # TO BE MOVE TO CONTROLLER
-    @Slot(object)
-    def get_words_from_sthread_loop(self, event: UIEvent[WordsEvent]):
-        if event.event_type != UIEVENTTYPE.DISPLAY or not isinstance(
-            event.payload, WordsEvent
-        ):
-            return
-        self.logging(f"Lesson Page: Received {len(event.payload.words)} Words")
-
-        if event.payload.check_duplicates:
-            # dup_check = "".join(f"{word.chinese}" for word in words)
-            self.check_word_duplicates = DatabaseQueryThread(
-                "words", "check_for_duplicate_words", words=event.payload.words
-            )
-            self.check_word_duplicates.start()
-            self.check_word_duplicates.result.connect(
-                lambda result: self.receive_duplicates(result, event.payload.words)
-            )
-            self.check_word_duplicates.finished.connect(
-                self.check_word_duplicates.deleteLater
-            )
-        else:
-            [self.table_wordmodel.add_word(x) for x in event.payload.words]
-
-    def receive_duplicates(self, result, words):
-        unique_words = [word for word in words if word.chinese not in result]
-        already_in_db_words = [word for word in words if word.chinese in result]
-        print("words already in db", already_in_db_words)
-        # unique_words = "".join(f"{word.chinese}\n" for word in words)
-
-        if len(unique_words) == 0:
-            print("No words to add")
-        else:
-            # self.wdialog = AddWordsDialog(unique_words)
-            # self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)
-
-            # TODO Filter words out that arent already in db
-            # self.wdialog.exec()
-            [self.table_wordmodel.add_word(x) for x in unique_words]
-
-    @Slot(object)
-    def get_word_from_thread_loop(self, word, check_for_dups):
-        print("page-word-received", word)
-
-        self.table_wordmodel.add_word(word)
-
-    @Slot(object)
-    def get_wdialog_submitted(self, form_data):
-
-        self.word_scrape_thread = WordScraperThread(
-            form_data["word_list"],
-            form_data["definition_source"],
-            form_data["save_sentences"],
-            form_data["level_selection"],
-        )
-        # TODO add list to the screen
-
-        self.word_scrape_thread.start()
-        self.word_scrape_thread.md_thd_multi_words_sig.connect(self.get_dialog_mdmulti)
-        self.md_multi_selection_sig.connect(self.word_scrape_thread.get_md_user_select)
-        self.use_cpod_def_sig.connect(self.word_scrape_thread.get_use_cpod_w)
-        self.word_scrape_thread.send_word_sig.connect(self.get_word_from_thread_loop)
-        self.word_scrape_thread.md_use_cpod_w_sig.connect(self.get_user_choice_usecpod)
-        self.word_scrape_thread.no_sents_inc_levels.connect(
-            self.get_user_no_sents_inclvl
-        )
-
-        self.updated_sents_levels_sig.connect(
-            self.word_scrape_thread.get_updated_sents_levels
-        )
-        self.word_scrape_thread.send_sents_sig.connect(
-            self.get_sentences_from_thread_loop
-        )
-        self.word_scrape_thread.finished.connect(self.word_scrape_thread.deleteLater)
-
-    @Slot(list)
-    def get_user_no_sents_inclvl(self, levels):
-        self.nosentsDialog = IncreaseLvlsDialog(levels)
-        self.nosentsDialog.sent_lvls_change_sig.connect(
-            self.user_no_sents_inclvl_selection
-        )
-        self.nosentsDialog.exec()
-
-    @Slot(bool, list)
-    def user_no_sents_inclvl_selection(self, changed, levels):
-        if changed:
-            self.updated_sents_levels_sig.emit(changed, levels)
-        else:
-            self.updated_sents_levels_sig.emit(False, levels)
-
-    @Slot(list)
-    def get_sentences_from_thread_loop(self, event: UIEvent[SentencesEvent]):
-        if event.event_type != UIEVENTTYPE.DISPLAY or not isinstance(
-            event.payload, SentencesEvent
-        ):
-            return
-
-        self.logging(f"Lesson Page: Received {len(event.payload.sentences)} Sentences")
-
-        if event.payload.check_duplicates:
-            self.check_sentences_duplicates = DatabaseQueryThread(
-                "sents",
-                "check_for_duplicate_sentences",
-                sentences=event.payload.sentences,
-            )
-            self.check_sentences_duplicates.start()
-            self.check_sentences_duplicates.result.connect(
-                lambda result: self.receive_duplicate_sentences(
-                    result, event.payload.sentences
-                )
-            )
-            self.check_sentences_duplicates.finished.connect(
-                self.check_sentences_duplicates.deleteLater
-            )
-        else:
-            self.receive_duplicate_sentences([], event.payload.sentences)
-
-    def receive_duplicate_sentences(self, result, sentences):
-        unique_sentences = [
-            sentence for sentence in sentences if sentence.chinese not in result
-        ]
-        already_in_db_sentences = [
-            sentence for sentence in sentences if sentence.chinese in result
-        ]
-        print("sentences already in db", already_in_db_sentences)
-        # unique_words = "".join(f"{word.chinese}\n" for word in words)
-
-        if len(unique_sentences) == 0:
-            print("No Sentences to add")
-        else:
-            # self.wdialog = AddWordsDialog(unique_words)
-            # self.wdialog.add_words_submited_signal.connect(self.get_wdialog_submitted)
-
-            # TODO Filter words out that arent already in db
-            # self.wdialog.exec()
-
-            [self.table_sentmodel.add_sentence(x) for x in unique_sentences]
-
-    @Slot(list, bool, bool)
-    def get_dialog_submitted(self, form_data, check_for_dups, transcribe_lesson):
+    def get_dialog_submitted(self, form_data):
         self.logging(f"Received {len(form_data)} Lessons", "INFO")
-        self.ctx.lesson_pipeline_manager.enqueue_lessons(form_data)
-        # lesson_urls = [x.strip() for x in form_data if x]
+        self.controllers.lessons.add_to_lesson_queue(form_data)
+
+    def handle_import_button_clicked(self):
+        self.dialog.exec()

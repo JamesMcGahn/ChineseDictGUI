@@ -4,17 +4,15 @@ from collections import deque
 from PySide6.QtCore import Signal
 
 from base import QObjectBase
-from base.enums import (
-    LESSONPROVIDERS,
-    PIPELINEJOBTYPE,
-)
-from models.pipelines import (
+from pipelines import BaseLessonPipeline, PipelineFactory
+from pipelines.enums import PIPELINEJOBTYPE
+from pipelines.models import (
     LessonPipelinePayload,
     PipelineRequest,
     PipelineServiceContainer,
 )
-from models.services import LessonWorkFlowRequest
-from pipelines import BaseLessonPipeline, PipelineFactory
+from services.lessons.enums import LESSONPROVIDERS
+from services.lessons.models import LessonWorkFlowRequest
 
 
 # TODO move logic to pipeline
@@ -29,24 +27,8 @@ class LessonPipelineManager(QObjectBase):
         self.pipeline_queue: deque[PipelineRequest] = deque()
         self.current_pipeline: None | BaseLessonPipeline = None
 
-    # TODO change name of method
-    def enqueue_lessons(self, lesson_specs: list[LessonWorkFlowRequest]):
-
-        for spec in lesson_specs:
-            queue_id = str(uuid.uuid4())
-
-            request = PipelineRequest(
-                job_type=PIPELINEJOBTYPE.LESSONS,
-                payload=LessonPipelinePayload(
-                    queue_id=queue_id,
-                    provider=LESSONPROVIDERS.CPOD,
-                    url=spec.url,
-                    check_dup_sents=spec.check_dup_sents,
-                    transcribe_lesson=spec.transcribe_lesson,
-                    create_lingq_lessons=True,
-                ),
-            )
-            self.pipeline_queue.append(request)
+    def add_lessons_to_queue(self, requests: list[PipelineRequest]):
+        self.pipeline_queue.extend(requests)
         self.run_next()
 
     def on_pipeline_completed(self, queue_id):
