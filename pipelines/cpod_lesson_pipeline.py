@@ -4,19 +4,19 @@ from base import ThreadQueueManager
 from base.enums import (
     LESSONLEVEL,
     LESSONTASK,
-    PIPELINEJOBTYPE,
 )
 from models.dictionary import Lesson
-from models.pipelines import (
-    LessonPipelinePayload,
-    PipelineServiceContainer,
-    TaskDefinition,
-)
 from models.services import (
     AudioDownloadPayload,
     CombineAudioPayload,
     CPodLessonPayload,
     LingqLessonPayload,
+)
+from pipelines.enums import PIPELINEJOBTYPE
+from pipelines.models import (
+    LessonPipelinePayload,
+    PipelineServiceContainer,
+    TaskDefinition,
 )
 from services.audio.enums import WHISPERPROVIDER
 from services.audio.models import WhisperPayload

@@ -1,6 +1,5 @@
 from base.enums import EXTRACTDATASOURCE, FAILURESTRATEGY, LESSONTASK
-from models.pipelines import TaskCapability, TaskPolicy
-from models.pipelines.task_definition import TaskDefinition
+from pipelines.models import TaskCapability, TaskDefinition, TaskPolicy
 
 TASK_GRAPH: dict[LESSONTASK, TaskDefinition] = {
     LESSONTASK.INFO: TaskDefinition(

@@ -12,16 +12,18 @@ from base.enums import (
     TASKSTATESTATUS,
 )
 from models.dictionary import Lesson
-from models.pipelines import (
+from models.services import JobRef, JobRequest, JobResponse
+from pipelines.actions import (
     EmitUIEventAction,
     FileWriteAction,
-    LessonPipelinePayload,
     PipelineAction,
+)
+from pipelines.models import (
+    LessonPipelinePayload,
     PipelineServiceContainer,
     TaskDefinition,
     TaskRuntimeState,
 )
-from models.services import JobRef, JobRequest, JobResponse
 from services.processors import LessonFileService
 
 # TODO - global registry for processors and transformers
@@ -159,6 +161,7 @@ class BaseLessonPipeline(QObjectBase):
             provider=self.spec.provider,
             url=self.spec.url,
             check_dup_sents=self.spec.check_dup_sents,
+            check_dup_words=self.spec.check_dup_words,
             transcribe_lesson=self.spec.transcribe_lesson,
             queue_id=self.queue_id,
             slug=slug,

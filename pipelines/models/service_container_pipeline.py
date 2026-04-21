@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from ..services.service_container import ServiceContainer
+from models.services.service_container import ServiceContainer
 
 if TYPE_CHECKING:
     from services.managers import (

@@ -1,6 +1,6 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from base.enums import PIPELINEJOBTYPE
+from pipelines.enums import PIPELINEJOBTYPE
 
 from .lesson_pipeline_payload import LessonPipelinePayload
 
