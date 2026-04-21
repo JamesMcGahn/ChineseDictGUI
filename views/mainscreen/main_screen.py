@@ -28,7 +28,7 @@ class MainScreen(QWidgetBase):
         self.controller_factory = controller_factory
 
         self.settings_page_controllers = self.controller_factory.create_settings_page()
-
+        self.import_page_controllers = self.controller_factory.create_import_page()
         self.audio_page = QWidget()
 
         self.audio_page.setObjectName("audio_page")
@@ -40,7 +40,7 @@ class MainScreen(QWidgetBase):
         self.label_2.setText("audio page")
 
         self.words_page = PageWords()
-        self.sentences_page = PageLessons()
+        self.sentences_page = PageLessons(controllers=self.import_page_controllers)
         self.dictionary_page = PageDictionary()
         self.settings_page = PageSettings(controllers=self.settings_page_controllers)
         self.logs_page = PageLogs()

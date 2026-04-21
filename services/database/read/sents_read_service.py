@@ -14,7 +14,7 @@ class SentsReadService(BaseReadService[Sentence]):
         self.dal = SentsDAL(self.db_manager)
 
     @BaseReadService.catch_sql_error
-    def exists(self, items):
+    def exists(self, items) -> list[Sentence]:
         sentences_strings = [sentence.chinese for sentence in items]
         rows = self.dal.exists(sentences_strings)
         sentences = [

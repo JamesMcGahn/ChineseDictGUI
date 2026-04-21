@@ -1,27 +1,34 @@
 from PySide6.QtCore import QFile, QIODevice, QTextStream, Signal
 from PySide6.QtWidgets import QFileDialog, QWidget
 
-from models.services import LessonWorkFlowRequest
+from services.lessons import LessonRequestBuilder
 
 from .add_lessons_dialog_ui import AddLessonsDialogView
 
 
 class AddLessonsDialog(QWidget):
-    add_lesson_submited_signal = Signal(list, bool, bool)
+    add_lesson_submited_signal = Signal(list)
     add_lesson_closed = Signal()
+    reset_form_ui = Signal()
+    set_lesson_text_edit = Signal(str)
 
     def __init__(self):
         super().__init__()
+        self.lesson_request_builder = LessonRequestBuilder()
         self.lesson_list = []
 
-        self.check_for_dups = False
+        self.check_for_dup_words = False
+        self.check_for_dup_sents = False
         self.transcribe_lesson = True
 
         self.ui = AddLessonsDialogView()
+        self.reset_form_ui.connect(self.ui.reset_form)
+        self.set_lesson_text_edit.connect(self.ui.set_lesson_text_edit)
         self.ui.read_button.clicked.connect(self.read_button_clicked)
         self.ui.submit_btn.clicked.connect(self.submit_btn_clicked)
         self.ui.cancel_btn.clicked.connect(self.cancel_btn_clicked)
-        self.ui.check_for_dups_cb.toggled.connect(self.check_for_dups_toggle)
+        self.ui.check_for_sent_dups_cb.toggled.connect(self.check_for_dup_sents_toggle)
+        self.ui.check_for_word_dups_cb.toggled.connect(self.check_for_dup_words_toggle)
         self.ui.transcribe_lesson_cb.toggled.connect(self.transcribe_lesson_toggle)
 
     def exec(self):
@@ -46,18 +53,22 @@ class AddLessonsDialog(QWidget):
             file_content += line
             file_content += "\n"
         file.close()
-
-        self.ui.textEdit.clear()
-        self.ui.textEdit.setText(file_content)
+        self.set_lesson_text_edit.emit(file_content)
 
     def cancel_btn_clicked(self):
         self.ui.reject()
 
-    def check_for_dups_toggle(self, checked):
+    def check_for_dup_words_toggle(self, checked):
         if checked:
-            self.check_for_dups = True
+            self.check_for_dup_words = True
         else:
-            self.check_for_dups = False
+            self.check_for_dup_words = False
+
+    def check_for_dup_sents_toggle(self, checked):
+        if checked:
+            self.check_for_dup_sents = True
+        else:
+            self.check_for_dup_sents = False
 
     def transcribe_lesson_toggle(self, checked):
         if checked:
@@ -65,31 +76,21 @@ class AddLessonsDialog(QWidget):
         else:
             self.transcribe_lesson = False
 
+    def reset_form(self):
+        self.check_for_dup_sents_toggle(False)
+        self.check_for_dup_words_toggle(False)
+        self.transcribe_lesson_toggle(False)
+        self.reset_form_ui.emit()
+
     def submit_btn_clicked(self):
 
-        urls = self.ui.textEdit.toPlainText().split("\n")
-        lesson_urls = [x.strip() for x in urls if x]
-        lessons = []
-        for url in lesson_urls:
-            if "chinesepod" in url:
-                lessons.append(
-                    LessonWorkFlowRequest(
-                        provider="cpod",
-                        url=url,
-                        slug=None,
-                        check_dup_sents=self.check_for_dups,
-                        transcribe_lesson=self.transcribe_lesson,
-                    )
-                )
-
-        self.add_lesson_submited_signal.emit(
-            lessons,
-            self.check_for_dups,
+        text = self.ui.get_text_from_lesson_text_edit()
+        requests = self.lesson_request_builder.build_request_from_text(
+            text,
+            self.check_for_dup_sents,
+            self.check_for_dup_words,
             self.transcribe_lesson,
         )
-        self.ui.textEdit.clear()
-        self.check_for_dups = False
-        self.ui.check_for_dups_cb.setChecked(False)
-        self.lesson_list = []
-
+        self.add_lesson_submited_signal.emit(requests)
+        self.reset_form()
         self.ui.accept()

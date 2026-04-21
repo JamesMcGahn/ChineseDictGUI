@@ -27,10 +27,10 @@ class PageLessonsView(QWidget):
         font1.setPointSize(25)
         self.label_6.setFont(font1)
 
-        self.addwords_btn = QPushButton("Add Lessons")
+        self.import_button = QPushButton("Add Lessons")
 
         self.words_page_vlayout = QVBoxLayout(self)
-        self.words_page_vlayout.addWidget(self.addwords_btn)
+        self.words_page_vlayout.addWidget(self.import_button)
         self.words_page_vlayout.addWidget(self.label_6)
 
         self.horizontal_btn_layout = QHBoxLayout()
@@ -84,5 +84,5 @@ class PageLessonsView(QWidget):
         self.words_page_vlayout.addWidget(self.stacked_widget)
 
     @Slot(bool)
-    def set_lesson_btn(self, disabled):
-        self.addwords_btn.setDisabled(disabled)
+    def set_import_btn(self, disabled):
+        self.import_button.setDisabled(disabled)
