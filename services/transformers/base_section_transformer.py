@@ -1,7 +1,7 @@
 from base import QObjectBase
 from base.enums import EXTRACTDATASOURCE
-from models.core import LessonTaskPayload
 from models.dictionary import Lesson
+from services.lessons.models import LessonTaskPayload
 
 
 class BaseSectionTransformer(QObjectBase):

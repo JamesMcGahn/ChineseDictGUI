@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from ..pipelines import PipelineAction
+from pipelines.actions import PipelineAction
 
 
 @dataclass

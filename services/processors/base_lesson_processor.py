@@ -1,8 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..lessons.models import LessonTaskPayload
+    from base.enums import LESSONTASK
+    from .models import ProcessorResponse
+
 from base import QObjectBase
-from base.enums import LESSONTASK
-from models.core import LessonTaskPayload
 from models.dictionary import Lesson
-from models.services import ProcessorResponse
 
 from .base_section_processor import BaseSectionProcessor
 

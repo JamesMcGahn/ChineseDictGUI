@@ -1,5 +1,5 @@
 from base import QObjectBase
-from base.enums import PIPELINEJOBTYPE
+from pipelines.enums import PIPELINEJOBTYPE
 
 from .lessons.lesson_transformer import LessonTransformer
 

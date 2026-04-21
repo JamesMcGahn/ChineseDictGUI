@@ -1,7 +1,8 @@
 from base import QObjectBase
-from models.core import LessonTaskPayload
 from models.dictionary import Lesson
-from models.services import ProcessorResponse
+
+from ..lessons.models import LessonTaskPayload
+from .models import ProcessorResponse
 
 
 class BaseSectionProcessor(QObjectBase):

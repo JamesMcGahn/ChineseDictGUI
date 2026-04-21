@@ -1,4 +1,4 @@
-from models.pipelines import (
+from pipelines.actions import (
     WriteGrammarAction,
     WriteLessonPartsAction,
     WriteSentencesAction,

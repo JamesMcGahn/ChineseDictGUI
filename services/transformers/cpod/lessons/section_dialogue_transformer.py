@@ -1,10 +1,10 @@
 from bs4 import BeautifulSoup
 
 from base.enums import EXTRACTDATASOURCE
-from models.core import LessonTaskPayload
 from models.dictionary import Lesson, Sentence
 from utils import strip_string
 
+from ....lessons.models import LessonTaskPayload
 from ...base_section_transformer import BaseSectionTransformer
 from ..utils.audio_helpers import (
     build_audio_url_from_api,

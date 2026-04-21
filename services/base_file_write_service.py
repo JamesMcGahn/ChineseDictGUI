@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from base import QObjectBase
-from models.pipelines import (
+from pipelines.actions import (
     FileWriteAction,
     WriteGrammarAction,
     WriteSentencesAction,

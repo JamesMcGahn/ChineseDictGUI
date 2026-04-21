@@ -12,7 +12,6 @@ from base.enums import (
     LOGLEVEL,
 )
 from keys import keys
-from models.core import LessonTaskPayload
 from models.dictionary import Lesson
 from models.services import (
     CPodLessonPayload,
@@ -21,6 +20,7 @@ from models.services import (
     JobResponse,
     NetworkResponse,
 )
+from services.lessons.models import LessonTaskPayload
 from services.network import NetworkWorker
 from services.network.session import BaseProviderSession
 

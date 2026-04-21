@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 
 from base.enums import EXTRACTDATASOURCE
+from models.dictionary import GrammarPoint, Sentence, Word
 
-from ..dictionary import GrammarPoint, Sentence, Word
 from .lesson_info import LessonInfo
 
 

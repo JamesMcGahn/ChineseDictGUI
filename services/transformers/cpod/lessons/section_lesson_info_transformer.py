@@ -1,9 +1,9 @@
 from bs4 import BeautifulSoup
 
 from base.enums import EXTRACTDATASOURCE
-from models.core import LessonInfo, LessonTaskPayload
 from models.dictionary import Lesson
 
+from ....lessons.models import LessonInfo, LessonTaskPayload
 from ...base_section_transformer import BaseSectionTransformer
 from ..utils.audio_helpers import clean_audio_link
 from ..utils.helpers import parse_lesson_level
