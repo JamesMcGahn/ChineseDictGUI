@@ -1,7 +1,8 @@
 from bs4 import BeautifulSoup
 
 from base.enums import EXTRACTDATASOURCE
-from models.dictionary import GrammarPoint, Lesson, Sentence
+from models.dictionary import GrammarPoint, Lesson
+from services.sentences.models import Sentence
 from utils.contains_chinese import contains_chinese
 
 from ....lessons.models import LessonTaskPayload

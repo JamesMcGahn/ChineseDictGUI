@@ -3,7 +3,8 @@ from urllib.parse import unquote
 import regex
 
 import utils
-from models.dictionary import LessonAudio, Sentence
+from models.dictionary import LessonAudio
+from services.sentences.models import Sentence
 from services.words.models import Word
 
 

@@ -5,9 +5,9 @@ from base import QWidgetBase
 from components.dialogs import AddWordsDialog, IncreaseLvlsDialog, MultiWordDialog
 from core.scrapers.words import WordScraperThreadV2
 from db import DatabaseManager, DatabaseQueryThread
-from models.dictionary import Sentence
 from models.table import SentenceTableModel, WordTableModel
 from services.audio import AudioThread
+from services.sentences.models import Sentence
 
 from .page_words_ui import PageWordsView
 

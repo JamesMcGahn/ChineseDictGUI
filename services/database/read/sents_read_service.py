@@ -1,6 +1,6 @@
 import math
 
-from models.dictionary import Sentence
+from services.sentences.models import Sentence
 
 from ..dals import SentsDAL
 from ..models.read import PaginationResponse

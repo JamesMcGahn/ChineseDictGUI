@@ -10,8 +10,8 @@ from PySide6.QtCore import QThread, Signal
 from db import DatabaseManager
 from db.dals import AnkiIntegrationDAL, SentsDAL, WordsDAL
 from db.workers import AnkiIntQueryWorker, SentsQueryWorker, WordsQueryWorker
-from models.dictionary import Sentence
 from services.network import NetworkWorker
+from services.sentences.models import Sentence
 from services.words.models import Word
 
 from .anki_find_id_inlocal_worker import FindAnkiIDsInLocalWorker

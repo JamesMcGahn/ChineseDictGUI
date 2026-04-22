@@ -1,4 +1,4 @@
-from models.dictionary import Sentence
+from services.sentences.models import Sentence
 
 from .base_DAL import BaseDAL
 

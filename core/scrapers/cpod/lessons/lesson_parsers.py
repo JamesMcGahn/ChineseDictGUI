@@ -4,8 +4,9 @@ from urllib.parse import urlparse
 from base.enums import (
     LESSONLEVEL,
 )
-from models.dictionary import GrammarPoint, Lesson, Sentence
+from models.dictionary import GrammarPoint, Lesson
 from services.lessons.models import LessonInfo, LessonTaskPayload
+from services.sentences.models import Sentence
 from services.words.models import Word
 
 

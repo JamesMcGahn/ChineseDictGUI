@@ -5,9 +5,9 @@ from PySide6.QtCore import Signal, Slot
 from base import QWidgetBase
 from components.toasts import QToast
 from db import DatabaseManager, DatabaseQueryThread
-from models.dictionary import Sentence
 from models.table import SentenceTableModel, WordTableModel
 from services.audio import AudioThread
+from services.sentences.models import Sentence
 from services.words.models import Word
 
 from .page_dictionary_ui import PageDictionaryView

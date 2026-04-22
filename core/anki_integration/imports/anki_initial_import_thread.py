@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from PySide6.QtCore import QThread, Signal
 
 from db.workers import AnkiIntQueryWorker, SentsQueryWorker, WordsQueryWorker
-from models.dictionary import Sentence
+from services.sentences.models import Sentence
 from services.words.models import Word
 
 from .anki_find_id_inlocal_worker import FindAnkiIDsInLocalWorker

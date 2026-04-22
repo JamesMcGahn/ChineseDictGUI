@@ -1,8 +1,8 @@
 from dataclasses import replace
 from typing import Any
 
-from models.dictionary import Sentence
 from models.services import JobRequest
+from services.sentences.models import Sentence
 
 from ..dals import SentsDAL
 from ..models import DBJobPayload

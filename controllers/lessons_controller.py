@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from services.managers import DatabaseServiceManager
     from services.managers import LessonPipelineManager
     from services.words.models import Word
-    from models.dictionary import Sentence
+    from services.sentences.models import Sentence
 
 from uuid import uuid4
 

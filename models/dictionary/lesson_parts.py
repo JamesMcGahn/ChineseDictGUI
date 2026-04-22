@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from services.words.models import Word
+    from services.sentences.models import Sentence
 
 from dataclasses import dataclass, field
 
 from .grammar_point import GrammarPoint
 from .lesson_audio import LessonAudio
-from .sentence import Sentence
 
 
 @dataclass

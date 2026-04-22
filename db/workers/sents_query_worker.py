@@ -4,7 +4,7 @@ import time
 
 from PySide6.QtCore import QObject, Signal, Slot
 
-from models.dictionary import Sentence
+from services.sentences.models import Sentence
 
 from ..dals import SentsDAL
 from ..db_manager import DatabaseManager

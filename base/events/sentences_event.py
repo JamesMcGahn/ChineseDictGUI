@@ -1,6 +1,11 @@
-from dataclasses import dataclass, field
+from __future__ import annotations
 
-from models.dictionary import Sentence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.sentences.models import Sentence
+
+from dataclasses import dataclass, field
 
 
 @dataclass
