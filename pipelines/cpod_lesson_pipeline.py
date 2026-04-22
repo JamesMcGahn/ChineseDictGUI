@@ -32,8 +32,6 @@ from utils.files import PathManager
 from .base_lesson_pipeline import BaseLessonPipeline
 from .cpod_task_config import TASK_GRAPH as CPOD_TASK_GRAPH
 
-# TODO ADD STEP ERROR HANDLING
-
 
 class CPodLessonPipeline(BaseLessonPipeline):
     scraping_active = Signal(bool)

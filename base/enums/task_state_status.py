@@ -6,3 +6,4 @@ class TASKSTATESTATUS(StrEnum):
     RUNNING = "running"
     COMPLETE = "complete"
     ERROR = "error"
+    SKIPPED = "skipped"

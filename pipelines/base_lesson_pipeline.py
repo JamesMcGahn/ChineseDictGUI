@@ -18,8 +18,11 @@ from pipelines.actions import (
     FileWriteAction,
     PipelineAction,
 )
+from pipelines.enums import PIPELINEJOBTYPE, PIPELINESTATUS
 from pipelines.models import (
     LessonPipelinePayload,
+    LessonPipelineResponse,
+    PipelineResponse,
     PipelineServiceContainer,
     TaskDefinition,
     TaskRuntimeState,
@@ -35,7 +38,7 @@ from services.transformers.cpod.utils.lesson_helpers import extract_slug
 class BaseLessonPipeline(QObjectBase):
     scraping_active = Signal(bool)
     ui_event = Signal(object)
-    pipeline_finished = Signal(str)
+    pipeline_response = Signal(object)
 
     class Config:
         core_tasks = {
@@ -65,9 +68,10 @@ class BaseLessonPipeline(QObjectBase):
 
         self.thread_queue_manager = ThreadQueueManager("Lesson")
         self.base_path = "./test/"
-
+        self.current_task = None
         self.expected_tasks = set()
         self.completed_tasks = set()
+        self.errored_tasks = set()
         self.queue_id = None
         self.lesson = None
 
@@ -201,7 +205,11 @@ class BaseLessonPipeline(QObjectBase):
         task_def = self._get_task_def(task)
         return task_def.next_tasks
 
+    def set_current_task(self, task: LESSONTASK):
+        self.current_task = task
+
     def dispatch(self, task: LESSONTASK, lesson: Lesson):
+        self.set_current_task(task)
         dispatcher = self.dispatchers.get(task, None)
         state = self._get_task_state(task)
         if state.status in (TASKSTATESTATUS.RUNNING, TASKSTATESTATUS.COMPLETE):
@@ -276,9 +284,9 @@ class BaseLessonPipeline(QObjectBase):
         state.downstream_dispatched = True
 
     def handle_success(self, job: JobRef, payload, lesson: Lesson):
-        self.update_completed_tasks(job.task)
         state = self._get_task_state(job.task)
         state.status = TASKSTATESTATUS.COMPLETE
+        self.update_completed_tasks(job.task)
         task_def = self._get_task_def(job.task)
         capability = task_def.capability
 
@@ -312,7 +320,10 @@ class BaseLessonPipeline(QObjectBase):
     def update_completed_tasks(self, task: LESSONTASK):
         self.completed_tasks.add(task)
         self.check_pipeline_completed()
-        print("COMPLETED TASKS", self.completed_tasks)
+
+    def update_errored_tasks(self, task: LESSONTASK):
+        self.errored_tasks.add(task)
+        self.check_pipeline_completed()
 
     def handle_failure(self, job: JobRef, payload, lesson: Lesson):
         task_def = self._get_task_def(job.task)
@@ -322,8 +333,8 @@ class BaseLessonPipeline(QObjectBase):
         attempts = state.retry_attempts
 
         if policy.failure_strategy == FAILURESTRATEGY.IGNORE:
+            state.status = TASKSTATESTATUS.SKIPPED
             self.update_completed_tasks(job.task)
-            state.status = TASKSTATESTATUS.ERROR
             self.propagate_tasks(job.task)
 
         if policy.failure_strategy == FAILURESTRATEGY.FALLBACK:
@@ -354,13 +365,19 @@ class BaseLessonPipeline(QObjectBase):
 
         state.status = TASKSTATESTATUS.ERROR
         if policy.is_criticial:
-            # TODO complete failure
+            self.logging(
+                f"Failing pileline {job.task} is a critical task. Can not continue",
+                "WARN",
+            )
+            self.fail_pipeline()
             return
         else:
             self.logging(
-                f"Skipping Task {job.task} as it is not critical. Trying to continue"
+                f"Skipping Task {job.task} as it is not critical. Trying to continue",
+                "WARN",
             )
             state.status = TASKSTATESTATUS.ERROR
+            self.update_completed_tasks(job.task)
             self.propagate_tasks(job.task)
         return
 
@@ -370,13 +387,70 @@ class BaseLessonPipeline(QObjectBase):
         self.lesson.task = lesson_task
         self.lesson.status = lesson_status
 
+    def is_pipeline_completed(self):
+        for task in self.expected_tasks:
+            state = self._get_task_state(task)
+            if state.status not in {
+                TASKSTATESTATUS.COMPLETE,
+                TASKSTATESTATUS.ERROR,
+                TASKSTATESTATUS.SKIPPED,
+            }:
+                return False
+        return True
+
     def check_pipeline_completed(self):
 
-        if self.expected_tasks.issubset(self.completed_tasks):
-            self.pipeline_finished.emit(self.queue_id)
-        else:
-            print("not finished")
-            print(self.expected_tasks, self.completed_tasks)
+        log_string = []
+        for task in self.expected_tasks:
+            state = self._get_task_state(task)
+            log_string.append(f"{task}: {state.status} \n")
+        self.logging(
+            f"Expected Tasks Statuses: \n {" ".join(log_string)} \n ----------------- \n"
+        )
 
-    # TODO
-    # def fail_pipeline(self, job: JobRef):
+        if self.is_pipeline_completed():
+            self.logging(f"{self.lesson.title} - Pipeline has completed.")
+            expected_task_statuses = [
+                self._get_task_state(task).status for task in self.expected_tasks
+            ]
+            # SUCCESS
+            SUCCESS_STATES = {TASKSTATESTATUS.COMPLETE, TASKSTATESTATUS.SKIPPED}
+            if all(status in SUCCESS_STATES for status in expected_task_statuses):
+                self.pipeline_response.emit(
+                    self._build_response(
+                        status=PIPELINESTATUS.COMPLETE,
+                        message=f"{self.lesson.title} - Lesson Import Succeeded.",
+                    )
+                )
+                return
+            if any(task == TASKSTATESTATUS.ERROR for task in expected_task_statuses):
+                self.fail_pipeline()
+                return
+        else:
+            remaining_tasks = self.expected_tasks - self.completed_tasks
+            self.logging(
+                f"Pipeline not finished. Tasks to be completed: {", ".join([task.name for task in remaining_tasks])}"
+            )
+            return
+
+    def _build_response(self, status: PIPELINESTATUS, message):
+        return PipelineResponse(
+            job_type=PIPELINEJOBTYPE.LESSONS,
+            status=status,
+            payload=LessonPipelineResponse(
+                queue_id=self.spec.queue_id,
+                provider=self.spec.provider,
+                current_task=self.current_task,
+                errored_tasks=self.errored_tasks,
+                completed_tasks=self.completed_tasks,
+                message=message,
+            ),
+        )
+
+    def fail_pipeline(self):
+        self.pipeline_response.emit(
+            self._build_response(
+                status=PIPELINESTATUS.ERROR,
+                message=f"{self.lesson.title} - Lesson Import Errored.",
+            )
+        )
