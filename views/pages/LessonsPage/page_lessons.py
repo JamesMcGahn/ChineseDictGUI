@@ -1,25 +1,17 @@
 import time
 
-from PySide6.QtCore import QThread, Signal, Slot
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtCore import Signal, Slot
 
 from base import QWidgetBase
 from base.enums import UIEVENTTYPE
-from base.events import SentencesEvent, UIEvent, WordsEvent
+from base.events import SentencesEvent, ToastEvent, UIEvent, WordsEvent
 from components.dialogs import (
     AddLessonsDialog,
-    AddWordsDialog,
-    IncreaseLvlsDialog,
-    MultiWordDialog,
 )
 from context import AppContext
 from controllers.models import ImportPageControllers
-from core.scrapers.words.word_scrape_thread import WordScraperThread
 from db import DatabaseManager, DatabaseQueryThread
-from models.dictionary import Lesson, Sentence, Word
 from models.table import SentenceTableModel, WordTableModel
-from services.audio import AudioThread, CombineAudioThread, WhisperThread
-from utils.files import PathManager
 
 from .page_lessons_ui import PageLessonsView
 
@@ -148,6 +140,15 @@ class PageLessons(QWidgetBase):
             if isinstance(event.payload, SentencesEvent):
                 [self.table_sentmodel.add_sentence(x) for x in event.payload.sentences]
                 return
+            if isinstance(event.payload, ToastEvent):
+                e = event.payload
+                self.log_with_toast(
+                    parent=self,
+                    toast_title=e.title,
+                    msg=e.message,
+                    log_level=e.log_level,
+                    toast_level=e.toast_level,
+                )
 
     @Slot(list)
     def get_dialog_submitted(self, form_data):

@@ -124,22 +124,35 @@ class CpodLessonServiceScrape(PlaywrightBase):
 
     def get_check(self, page):
         self.logging(f"Lesson - {self.job.payload.slug} - Checking Lesson")
-        page.goto(
-            f"https://www.chinesepod.com/lessons/{self.job.payload.slug}",
-            wait_until="domcontentloaded",
-            timeout=60_000,
-        )
+        url = f"https://www.chinesepod.com/lessons/{self.job.payload.slug}"
+        page.goto(url, wait_until="domcontentloaded", timeout=60_000)
         studied_span = page.locator("#studiedBtn")
+        unstudied_span = page.locator("#unstudiedBtn")
         studied_span.wait_for(state="attached", timeout=10_000)
-        if not studied_span.is_visible():
+        unstudied_span.wait_for(state="attached", timeout=10_000)
+
+        if unstudied_span.is_visible():
             self.logging("Lesson already marked studied")
             self.on_success(None)
         else:
-            button = studied_span.locator("button")
-            button.wait_for(state="visible", timeout=10_000)
-            button.click()
+
+            with page.expect_request(
+                lambda r: r.url == page.url and r.method == "POST"
+            ):
+                studied_span.wait_for(state="visible", timeout=10_000)
+                studied_span.click()
+                unstudied_span.wait_for(state="visible", timeout=10_000)
+                page.wait_for_timeout(500)
+
             self.logging("Lesson marked studied")
             self.on_success(None)
+
+    def retry_click(page, url, button, wait_for_element):
+        with page.expect_request(lambda r: r.url == url and r.request.method == "POST"):
+            button.wait_for(state="visible", timeout=10_000)
+            button.click()
+            wait_for_element.wait_for(state="visible", timeout=10_000)
+            return True
 
     def page_has_tab(self, page, tab_name: str) -> bool:
         tab = page.locator(

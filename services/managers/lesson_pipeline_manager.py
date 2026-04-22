@@ -1,24 +1,22 @@
-import uuid
 from collections import deque
 
 from PySide6.QtCore import Signal
 
 from base import QObjectBase
 from pipelines import BaseLessonPipeline, PipelineFactory
-from pipelines.enums import PIPELINEJOBTYPE
+from pipelines.enums import PIPELINESTATUS
 from pipelines.models import (
-    LessonPipelinePayload,
     PipelineRequest,
+    PipelineResponse,
     PipelineServiceContainer,
 )
-from services.lessons.enums import LESSONPROVIDERS
-from services.lessons.models import LessonWorkFlowRequest
 
 
 # TODO move logic to pipeline
 class LessonPipelineManager(QObjectBase):
     scraping_active = Signal(bool)
     ui_event = Signal(object)
+    pipeline_response = Signal(object)
 
     def __init__(self, service_cont: PipelineServiceContainer):
         super().__init__()
@@ -31,15 +29,24 @@ class LessonPipelineManager(QObjectBase):
         self.pipeline_queue.extend(requests)
         self.run_next()
 
-    def on_pipeline_completed(self, queue_id):
+    def on_pipeline_completed(self, response: PipelineResponse):
         pipeline = self.current_pipeline
-        self.logging(f"LessonPipelineManager - {queue_id} - completed")
-        self.current_pipeline = None
-        if pipeline:
-            pipeline.ui_event.disconnect(self.ui_event)
-            pipeline.pipeline_finished.disconnect(self.on_pipeline_completed)
 
-        self.run_next()
+        print("RECEIVED in PIPELINE", response.status)
+        if response.status in (
+            PIPELINESTATUS.COMPLETE,
+            PIPELINESTATUS.ERROR,
+            PIPELINESTATUS.PARTIAL_ERROR,
+        ):
+            self.current_pipeline = None
+            self.pipeline_response.emit(response)
+            if pipeline:
+                pipeline.ui_event.disconnect(self.ui_event)
+                pipeline.pipeline_response.disconnect(self.on_pipeline_completed)
+
+            self.run_next()
+        else:
+            self.pipeline_response.emit(response)
 
     def run_next(self):
         if self.current_pipeline is not None:
@@ -55,6 +62,6 @@ class LessonPipelineManager(QObjectBase):
         )
 
         self.current_pipeline.ui_event.connect(self.ui_event)
-        self.current_pipeline.pipeline_finished.connect(self.on_pipeline_completed)
+        self.current_pipeline.pipeline_response.connect(self.on_pipeline_completed)
 
         self.current_pipeline.process()

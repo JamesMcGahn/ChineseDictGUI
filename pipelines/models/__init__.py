@@ -1,5 +1,7 @@
 from .lesson_pipeline_payload import LessonPipelinePayload
+from .lesson_pipeline_response import LessonPipelineResponse
 from .pipeline_request import PipelineRequest
+from .pipeline_response import PipelineResponse
 from .service_container_pipeline import PipelineServiceContainer
 from .task_capabilities import TaskCapability
 from .task_definition import TaskDefinition
@@ -14,4 +16,6 @@ __all__ = [
     "TaskCapability",
     "TaskRuntimeState",
     "TaskDefinition",
+    "LessonPipelineResponse",
+    "PipelineResponse",
 ]
