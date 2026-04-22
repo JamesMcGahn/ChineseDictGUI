@@ -1,6 +1,6 @@
 import math
 
-from models.dictionary import Word
+from services.words.models import Word
 
 from ..dals import WordsDAL
 from ..models.read import PaginationResponse

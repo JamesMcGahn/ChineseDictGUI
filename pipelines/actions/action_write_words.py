@@ -1,6 +1,11 @@
-from dataclasses import dataclass, field
+from __future__ import annotations
 
-from models.dictionary import Word
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.words.models import Word
+
+from dataclasses import dataclass, field
 
 from .action_file_write_service import FileWriteAction
 

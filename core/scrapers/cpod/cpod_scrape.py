@@ -3,7 +3,8 @@ from urllib.parse import unquote
 import regex
 
 import utils
-from models.dictionary import LessonAudio, Sentence, Word
+from models.dictionary import LessonAudio, Sentence
+from services.words.models import Word
 
 
 class ScrapeCpod:

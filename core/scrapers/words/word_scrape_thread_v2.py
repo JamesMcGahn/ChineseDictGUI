@@ -8,8 +8,9 @@ from bs4 import BeautifulSoup
 from PySide6.QtCore import QMutex, QThread, QWaitCondition, Signal, Slot
 
 from keys import keys
-from models.dictionary import Sentence, Word
+from models.dictionary import Sentence
 from services.network import NetworkWorker
+from services.words.models import Word
 from utils.files import WriteFile
 
 from ..cpod import ScrapeCpod

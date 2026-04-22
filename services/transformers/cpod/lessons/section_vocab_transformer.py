@@ -1,7 +1,8 @@
 from bs4 import BeautifulSoup
 
 from base.enums import EXTRACTDATASOURCE
-from models.dictionary import Lesson, Word
+from models.dictionary import Lesson
+from services.words.models import Word
 from utils import strip_string
 
 from ....lessons.models import LessonTaskPayload

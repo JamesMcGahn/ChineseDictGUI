@@ -1,4 +1,4 @@
-from models.dictionary import Word
+from services.words.models import Word
 
 from .base_DAL import BaseDAL
 

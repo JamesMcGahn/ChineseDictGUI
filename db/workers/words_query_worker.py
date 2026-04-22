@@ -4,7 +4,7 @@ import time
 
 from PySide6.QtCore import QObject, Signal, Slot
 
-from models.dictionary import Word
+from services.words.models import Word
 
 from ..dals import WordsDAL
 from ..db_manager import DatabaseManager

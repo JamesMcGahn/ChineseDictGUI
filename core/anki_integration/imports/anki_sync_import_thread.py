@@ -10,8 +10,9 @@ from PySide6.QtCore import QThread, Signal
 from db import DatabaseManager
 from db.dals import AnkiIntegrationDAL, SentsDAL, WordsDAL
 from db.workers import AnkiIntQueryWorker, SentsQueryWorker, WordsQueryWorker
-from models.dictionary import Sentence, Word
+from models.dictionary import Sentence
 from services.network import NetworkWorker
+from services.words.models import Word
 
 from .anki_find_id_inlocal_worker import FindAnkiIDsInLocalWorker
 from .anki_get_ids_worker import AnkiGetNoteIDsWorker
@@ -50,7 +51,7 @@ class AnkiSyncImportThread(QThread):
         adb = AnkiIntegrationDAL(self.db)
         # step 2 query integration information -
         che = adb.get_anki_integration()
-        (id, anki_import_time, local_import_time, initialSyncDone) = che.fetchone()
+        id, anki_import_time, local_import_time, initialSyncDone = che.fetchone()
         # print(id, anki_import_time, local_import_time, initialSyncDone)
         self.anki_import_time = anki_import_time
 

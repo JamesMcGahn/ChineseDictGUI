@@ -6,7 +6,7 @@ from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QWorkerBase
 from base.enums import JOBSTATUS
-from models.dictionary import LessonAudio, Sentence, Word
+from models.dictionary import LessonAudio, Sentence
 from models.services import (
     AudioDownloadPayload,
     BatchJobResponse,
@@ -14,6 +14,7 @@ from models.services import (
     JobRequest,
     JobResponse,
 )
+from services.words.models import Word
 from utils.files import PathManager
 
 from .google_audio_worker import GoogleAudioWorker

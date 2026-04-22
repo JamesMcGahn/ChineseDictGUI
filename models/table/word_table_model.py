@@ -2,7 +2,7 @@ from time import time
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt, Signal
 
-from models.dictionary import Word
+from services.words.models import Word
 
 
 class WordTableModel(QAbstractTableModel):

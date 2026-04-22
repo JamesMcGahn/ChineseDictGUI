@@ -4,8 +4,9 @@ from urllib.parse import urlparse
 from base.enums import (
     LESSONLEVEL,
 )
-from models.dictionary import GrammarPoint, Lesson, Sentence, Word
+from models.dictionary import GrammarPoint, Lesson, Sentence
 from services.lessons.models import LessonInfo, LessonTaskPayload
+from services.words.models import Word
 
 
 def extract_slug(input_str: str) -> str | None:

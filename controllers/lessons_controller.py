@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from services.managers import DatabaseServiceManager
     from services.managers import LessonPipelineManager
-
-    from models.dictionary import Sentence, Word
+    from services.words.models import Word
+    from models.dictionary import Sentence
 
 from uuid import uuid4
 
