@@ -3,10 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from services.managers import DatabaseServiceManager
     from services.managers import LessonPipelineManager
-    from services.words.models import Word
-    from services.sentences.models import Sentence
+    from services.words import WordService
+    from services.sentences import SentenceService
 
 from uuid import uuid4
 
@@ -31,10 +30,14 @@ class LessonsController(QObjectBase):
     ui_event = Signal(object)
 
     def __init__(
-        self, db_service: DatabaseServiceManager, lesson_pipeline: LessonPipelineManager
+        self,
+        word_service: WordService,
+        sentence_service: SentenceService,
+        lesson_pipeline: LessonPipelineManager,
     ):
         super().__init__()
-        self.db_service = db_service
+        self.word_service = word_service
+        self.sentence_service = sentence_service
         self.lesson_pipeline = lesson_pipeline
         self._active_jobs: dict[str, LessonWorkFlowRequest] = {}
 
@@ -111,7 +114,7 @@ class LessonsController(QObjectBase):
 
     def handle_sentence_event(self, event: UIEvent[SentencesEvent]):
         if event.payload.check_duplicates:
-            sentences = self.check_sentence_duplicates(event.payload.sentences)
+            sentences = self.word_service.remove_duplicates(event.payload.sentences)
 
             deduped = UIEvent(
                 event_type=event.event_type,
@@ -122,17 +125,9 @@ class LessonsController(QObjectBase):
             self.ui_event.emit(event)
         return
 
-    def check_sentence_duplicates(self, sentences: list[Sentence]):
-        result = self.db_service.read.sentences.exists(sentences)
-        self.logging(f"Found {len(result)} sentences that already exist in the db.")
-        unique_sentences = [
-            sentence for sentence in sentences if sentence.chinese not in result
-        ]
-        return unique_sentences
-
     def handle_word_event(self, event: UIEvent[WordsEvent]):
         if event.payload.check_duplicates:
-            words = self.check_word_duplicates(event.payload.words)
+            words = self.word_service.remove_duplicates(event.payload.words)
             deduped = UIEvent(
                 event_type=event.event_type,
                 payload=WordsEvent(words=words, check_duplicates=True),
@@ -141,12 +136,6 @@ class LessonsController(QObjectBase):
         else:
             self.ui_event.emit(event)
         return
-
-    def check_word_duplicates(self, words: list[Word]):
-        result = self.db_service.read.words.exists(words)
-        self.logging(f"Found {len(result)} words that already exist in the db.")
-        unique_words = [word for word in words if word.chinese not in result]
-        return unique_words
 
     @Slot(list)
     def save_words(self, words):

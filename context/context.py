@@ -22,6 +22,7 @@ from services.managers import (
 from services.network import SessionManager
 from services.network.auth import AuthService
 from services.network.session import SessionRegistry
+from services.sentences import SentenceService
 from services.settings import (
     AppSettings,
     SecureCredentials,
@@ -30,6 +31,7 @@ from services.settings import (
 )
 from services.settings.enums import SETTINGSCATEGORIES
 from services.validation import ValidationService
+from services.words import WordService
 from utils.files import PathManager
 
 # TODO Connect Logger settings changes
@@ -76,6 +78,10 @@ class AppContext(QObjectBase, metaclass=QSingleton):
         self.cpod_lesson_manager = CpodServiceManager(
             session_registry=self.session_registry
         )
+
+        self.sentence_service = SentenceService(db_service=self.db)
+        self.word_service = WordService(db_service=self.db)
+
         self.lesson_pipeline_manager = LessonPipelineManager(
             service_cont=PipelineServiceContainer(
                 db=self.db,
@@ -93,7 +99,9 @@ class AppContext(QObjectBase, metaclass=QSingleton):
             validation_service=self.validation_service,
         )
         self.lessons_controller = LessonsController(
-            db_service=self.db, lesson_pipeline=self.lesson_pipeline_manager
+            sentence_service=self.sentence_service,
+            word_service=self.word_service,
+            lesson_pipeline=self.lesson_pipeline_manager,
         )
 
         folder = PathManager.create_folder_in_app_data("playwright")
