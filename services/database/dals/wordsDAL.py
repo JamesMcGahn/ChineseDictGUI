@@ -22,21 +22,24 @@ class WordsDAL(BaseDAL[Word]):
         rows = self.db_manager.fetch_all(query, tuple(items))
         return rows
 
-    def insert_one(self, item) -> int:
-        query = "INSERT INTO words (chinese, pinyin, definition, audio, level, anki_audio, anki_id, anki_update,local_update) VALUES (?,?,?,?,?,?,?,?,?)"
+    def insert_one(self, item: Word) -> int:
+        query = "INSERT INTO words (chinese, pinyin, definition, audio, level, anki_audio, anki_id, anki_update,local_update, runtime_id, staging_path,storage_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
 
         cursor = self.db_manager.execute_write_query(
             query,
             (
                 item.chinese,
                 item.pinyin,
-                item.definition,
-                item.audio,
+                item.english,
+                item.audio_link,
                 item.level,
                 item.anki_audio,
                 item.anki_id,
                 item.anki_update,
                 item.local_update,
+                item.runtime_id,
+                item.staging_path,
+                item.storage_path,
             ),
         )
         row_id = cursor.lastrowid
@@ -44,9 +47,10 @@ class WordsDAL(BaseDAL[Word]):
         cursor.close()
         return row_id
 
-    def update_one(
-        self, id, updates, commit=True
-    ) -> tuple[int, tuple[int, str, str, str, str, str, str, int, int, int] | None]:
+    def update_one(self, id, updates, commit=True) -> tuple[
+        int,
+        tuple[int, str, str, str, str, str, str, int, int, int, str, str, str] | None,
+    ]:
         """
         Dynamically update fields in the 'words' table.
 
@@ -66,9 +70,10 @@ class WordsDAL(BaseDAL[Word]):
         count = 1 if row is not None else 0
         return (count, row)
 
-    def delete_one_by_id(
-        self, id
-    ) -> tuple[int, tuple[int, str, str, str, str, str, str, int, int, int] | None]:
+    def delete_one_by_id(self, id) -> tuple[
+        int,
+        tuple[int, str, str, str, str, str, str, int, int, int, str, str, str] | None,
+    ]:
         query = "DELETE FROM words WHERE id = ? RETURNING *;"
         cursor = self.db_manager.execute_write_query(query, (id,))
         row = cursor.fetchone()
@@ -79,7 +84,9 @@ class WordsDAL(BaseDAL[Word]):
 
     def delete_many_by_id(
         self, ids
-    ) -> tuple[int, tuple[int, str, str, str, str, str, str, int, int, int]]:
+    ) -> tuple[
+        int, tuple[int, str, str, str, str, str, str, int, int, int, str, str, str]
+    ]:
         placeholders = ",".join(["?"] * len(ids))
         # trunk-ignore(bandit/B608)
         query = f"DELETE FROM words WHERE id IN ({placeholders}) RETURNING *;"
@@ -92,7 +99,7 @@ class WordsDAL(BaseDAL[Word]):
 
     def paginate(
         self, page, limit=25
-    ) -> tuple[int, str, str, str, str, str, str, int, int, int]:
+    ) -> tuple[int, str, str, str, str, str, str, int, int, int, str, str, str]:
         offset = (page - 1) * limit
         query = "SELECT * FROM words LIMIT ? OFFSET ?"
         return self.db_manager.fetch_all(
@@ -105,7 +112,7 @@ class WordsDAL(BaseDAL[Word]):
 
     def get_anki_export(
         self,
-    ) -> tuple[int, str, str, str, str, str, str, int, int, int]:
+    ) -> tuple[int, str, str, str, str, str, str, int, int, int, str, str, str]:
         query = (
             "SELECT * FROM words WHERE anki_id IS NULL OR local_update > anki_update"
         )
@@ -113,10 +120,12 @@ class WordsDAL(BaseDAL[Word]):
 
     def get_by_anki_id(
         self, anki_id
-    ) -> tuple[int, str, str, str, str, str, str, int, int, int] | None:
+    ) -> tuple[int, str, str, str, str, str, str, int, int, int, str, str, str] | None:
         query = "SELECT * FROM words WHERE anki_id = ?"
         return self.db_manager.fetch_one(query, (anki_id,))
 
-    def get_anki_ids(self) -> tuple[int, str, str, str, str, str, str, int, int, int]:
+    def get_anki_ids(
+        self,
+    ) -> tuple[int, str, str, str, str, str, str, int, int, int, str, str, str]:
         query = "SELECT anki_id FROM words where anki_id not null"
         return self.db_manager.fetch_all(query)

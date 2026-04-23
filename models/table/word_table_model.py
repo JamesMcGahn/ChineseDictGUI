@@ -125,6 +125,14 @@ class WordTableModel(QAbstractTableModel):
                 audio_link=self.data(self.index(row_index, 5), Qt.DisplayRole),
                 level=self.data(self.index(row_index, 4), Qt.DisplayRole),
                 id=word.id if word.id else None,
+                anki_audio=word.anki_audio,
+                anki_id=word.anki_id,
+                anki_update=word.anki_update,
+                local_update=word.local_update,
+                lesson=word.lesson,
+                runtime_id=word.runtime_id,
+                staging_path=word.staging_path,
+                storage_path=word.storage_path,
             )
 
         else:

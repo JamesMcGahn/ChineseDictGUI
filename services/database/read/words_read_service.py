@@ -28,6 +28,10 @@ class WordsReadService(BaseReadService[Word]):
                 anki_id=word[7],
                 anki_update=word[8],
                 local_update=word[9],
+                lesson=word[10],
+                runtime_id=word[11],
+                staging_path=word[12],
+                storage_path=word[13],
             )
             for word in rows
         ]
@@ -48,6 +52,10 @@ class WordsReadService(BaseReadService[Word]):
                 anki_id=word[7],
                 anki_update=word[8],
                 local_update=word[9],
+                lesson=word[10],
+                runtime_id=word[11],
+                staging_path=word[12],
+                storage_path=word[13],
             )
             for word in rows
         ]
@@ -74,6 +82,14 @@ class WordsReadService(BaseReadService[Word]):
                 audio_link=word[4],
                 level=word[5],
                 id=word[0],
+                anki_audio=word[6],
+                anki_id=word[7],
+                anki_update=word[8],
+                local_update=word[9],
+                lesson=word[10],
+                runtime_id=word[11],
+                staging_path=word[12],
+                storage_path=word[13],
             )
             for word in rows
         ]

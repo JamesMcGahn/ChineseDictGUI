@@ -52,6 +52,10 @@ class WordsWriteService(BaseWriteService[Word]):
                 anki_id=word[7],
                 anki_update=word[8],
                 local_update=word[9],
+                lesson=word[10],
+                runtime_id=word[11],
+                staging_path=word[12],
+                storage_path=word[13],
             )
         return updated_word
 
@@ -78,6 +82,10 @@ class WordsWriteService(BaseWriteService[Word]):
                         anki_id=word[7],
                         anki_update=word[8],
                         local_update=word[9],
+                        lesson=word[10],
+                        runtime_id=word[11],
+                        staging_path=word[12],
+                        storage_path=word[13],
                     )
                 )
 
@@ -99,6 +107,10 @@ class WordsWriteService(BaseWriteService[Word]):
                 anki_id=word[7],
                 anki_update=word[8],
                 local_update=word[9],
+                lesson=word[10],
+                runtime_id=word[11],
+                staging_path=word[12],
+                storage_path=word[13],
             )
 
         return word
@@ -121,6 +133,10 @@ class WordsWriteService(BaseWriteService[Word]):
                 anki_id=word[7],
                 anki_update=word[8],
                 local_update=word[9],
+                lesson=word[10],
+                runtime_id=word[11],
+                staging_path=word[12],
+                storage_path=word[13],
             )
             deleted_ids.append(word[0])
             deleted_words.append(del_word)
