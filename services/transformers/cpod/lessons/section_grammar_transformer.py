@@ -106,7 +106,7 @@ class GrammarTransformer(BaseSectionTransformer):
                     chinese=sentence["s"],
                     english=sentence["en"],
                     pinyin=sentence["p"],
-                    audio=audio,
+                    audio_link=audio,
                     level=lesson.level,
                     sent_type="grammar",
                     lesson=(lesson.title if lesson.title else ""),

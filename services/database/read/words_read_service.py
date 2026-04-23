@@ -18,16 +18,16 @@ class WordsReadService(BaseReadService[Word]):
         rows = self.dal.exists(word_strings)
         words = [
             Word(
-                word[1],
-                word[3],
-                word[2],
-                word[4],
-                word[5],
-                word[0],
-                word[6],
-                word[7],
-                word[8],
-                word[9],
+                chinese=word[1],
+                english=word[3],
+                pinyin=word[2],
+                audio_link=word[4],
+                level=word[5],
+                id=word[0],
+                anki_audio=word[6],
+                anki_id=word[7],
+                anki_update=word[8],
+                local_update=word[9],
             )
             for word in rows
         ]
@@ -38,16 +38,16 @@ class WordsReadService(BaseReadService[Word]):
         rows = self.dal.get_anki_export()
         words = [
             Word(
-                word[1],
-                word[3],
-                word[2],
-                word[4],
-                word[5],
-                word[0],
-                word[6],
-                word[7],
-                word[8],
-                word[9],
+                chinese=word[1],
+                english=word[3],
+                pinyin=word[2],
+                audio_link=word[4],
+                level=word[5],
+                id=word[0],
+                anki_audio=word[6],
+                anki_id=word[7],
+                anki_update=word[8],
+                local_update=word[9],
             )
             for word in rows
         ]
@@ -67,7 +67,15 @@ class WordsReadService(BaseReadService[Word]):
         rows = self.dal.paginate(page, limit)
 
         words = [
-            Word(word[1], word[3], word[2], word[4], word[5], word[0]) for word in rows
+            Word(
+                chinese=word[1],
+                english=word[3],
+                pinyin=word[2],
+                audio_link=word[4],
+                level=word[5],
+                id=word[0],
+            )
+            for word in rows
         ]
 
         return PaginationResponse(

@@ -171,9 +171,9 @@ def parse_vocab(lesson: Lesson, res_data) -> LessonTaskPayload:
             audio = build_audio_url(lesson=lesson, path=audio_path)
             new_word = Word(
                 chinese=word["s"],
-                definition=word["en"],
+                english=word["en"],
                 pinyin=word["p"],
-                audio=audio,
+                audio_link=audio,
                 lesson=(lesson.title if lesson.title else ""),
             )
             words.append(new_word)

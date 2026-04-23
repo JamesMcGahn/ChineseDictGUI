@@ -3,19 +3,22 @@ class WordsDAL:
         self.db_manager = db_manager
 
     def insert_word(self, word):
-        query = "INSERT INTO words (chinese, pinyin, definition, audio, level, anki_audio, anki_id, anki_update,local_update) VALUES (?,?,?,?,?,?,?,?,?)"
+        query = "INSERT INTO words (chinese, pinyin, english, audio_link, level, anki_audio, anki_id, anki_update,local_update,runtime_id,staging_path,storage_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"
         return self.db_manager.execute_write_query(
             query,
             (
                 word.chinese,
                 word.pinyin,
-                word.definition,
-                word.audio,
+                word.english,
+                word.audio_link,
                 word.level,
                 word.anki_audio,
                 word.anki_id,
                 word.anki_update,
                 word.local_update,
+                word.runtime_id,
+                word.staging_path,
+                word.storage_path,
             ),
         )
 

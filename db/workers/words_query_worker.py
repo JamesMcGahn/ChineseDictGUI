@@ -174,7 +174,21 @@ class WordsQueryWorker(QObject):
             result = self.dalw.get_words_paginate(page, limit)
             if result is not None:
                 words = [
-                    Word(word[1], word[3], word[2], word[4], word[5], word[0])
+                    Word(
+                        chinese=word[1],
+                        pinyin=word[2],
+                        english=word[3],
+                        audio_link=word[4],
+                        level=word[5],
+                        id=word[0],
+                        anki_audio=word[6],
+                        anki_id=word[7],
+                        anki_update=word[8],
+                        local_update=word[9],
+                        runtime_id=word[10],
+                        staging_path=word[11],
+                        storage_path=word[12],
+                    )
                     for word in result.fetchall()
                 ]
                 self.pagination.emit(
@@ -202,16 +216,19 @@ class WordsQueryWorker(QObject):
             if result is not None:
                 words = [
                     Word(
-                        word[1],
-                        word[3],
-                        word[2],
-                        word[4],
-                        word[5],
-                        word[0],
-                        word[6],
-                        word[7],
-                        word[8],
-                        word[9],
+                        chinese=word[1],
+                        pinyin=word[2],
+                        english=word[3],
+                        audio_link=word[4],
+                        level=word[5],
+                        id=word[0],
+                        anki_audio=word[6],
+                        anki_id=word[7],
+                        anki_update=word[8],
+                        local_update=word[9],
+                        runtime_id=word[10],
+                        staging_path=word[11],
+                        storage_path=word[12],
                     )
                     for word in result.fetchall()
                 ]

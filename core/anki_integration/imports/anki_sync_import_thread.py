@@ -263,9 +263,9 @@ class AnkiSyncImportThread(QThread):
             word_fields = word["fields"]
             word = Word(
                 chinese=word_fields["Chinese"]["value"],
-                definition=word_fields["English"]["value"],
+                english=word_fields["English"]["value"],
                 pinyin=word_fields["Pinyin"]["value"],
-                audio=None,
+                audio_link=None,
                 level=word_fields["Notes"]["value"],
                 anki_audio=word_fields["Audio"]["value"],
                 anki_id=word["noteId"],

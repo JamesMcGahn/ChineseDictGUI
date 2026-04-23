@@ -192,7 +192,12 @@ class WordScraperThreadV2(QThread):
         print(character, self.current_word)
         if character == self.current_word:
             definition_string = definition_string.strip()
-            self.cpod_word = Word(character, definition_string, pinyin, audio)
+            self.cpod_word = Word(
+                chinese=character,
+                english=definition_string,
+                pinyin=pinyin,
+                audio_link=audio,
+            )
             print(self.definition_source, self.cpod_word)
 
             if self.definition_source == "Cpod" and self.cpod_word is not None:

@@ -72,8 +72,8 @@ class AnkiInitialImportThread(QThread):
                 Word(
                     chinese=word["fields"]["Chinese"]["value"],
                     pinyin=word["fields"]["Pinyin"]["value"],
-                    definition=word["fields"]["English"]["value"],
-                    audio=None,
+                    english=word["fields"]["English"]["value"],
+                    audio_link=None,
                     level=word["fields"]["Notes"]["value"],
                     anki_audio=word["fields"]["Audio"]["value"],
                     anki_id=word["noteId"],

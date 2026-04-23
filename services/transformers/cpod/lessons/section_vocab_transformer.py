@@ -44,7 +44,7 @@ class VocabTransformer(BaseSectionTransformer):
                     chinese=chinese,
                     definition=english,
                     pinyin=pinyin,
-                    audio=audio,
+                    audio_link=audio,
                     lesson=(lesson.title if lesson.title else ""),
                 )
                 words.append(new_word)
@@ -72,9 +72,9 @@ class VocabTransformer(BaseSectionTransformer):
             audio = build_audio_url_from_api(lesson=lesson, path=audio_path)
             new_word = Word(
                 chinese=word["s"],
-                definition=word["en"],
+                english=word["en"],
                 pinyin=word["p"],
-                audio=audio,
+                audio_link=audio,
                 lesson=(lesson.title if lesson.title else ""),
             )
             words.append(new_word)

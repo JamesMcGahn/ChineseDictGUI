@@ -133,11 +133,16 @@ class AudioDownloadWorker(QWorkerBase):
                 self.current_item.anki_audio = f"[sound:{filename}.mp3]"
             success_msg = f'(Lesson: {self.project_name} - {self.count + 1}/{self.data_length}) Audio content written to file "{filename}.mp3"'
 
-            if getattr(self.current_item, "audio", None):
+            if getattr(self.current_item, "audio", None) or getattr(
+                self.current_item, "audio_link", None
+            ):
                 self.queue_downloading = True
-
-                checkHttp = self.current_item.audio.replace("http://", "https://")
-
+                if getattr(self.current_item, "audio", None):
+                    checkHttp = self.current_item.audio.replace("http://", "https://")
+                else:
+                    checkHttp = self.current_item.audio_link.replace(
+                        "http://", "https://"
+                    )
                 urllib.request.urlretrieve(checkHttp, path)
                 self.logging(success_msg, "INFO")
 

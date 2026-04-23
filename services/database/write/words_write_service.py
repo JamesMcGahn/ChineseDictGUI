@@ -42,16 +42,16 @@ class WordsWriteService(BaseWriteService[Word]):
 
         if word:
             updated_word = Word(
-                word[1],
-                word[3],
-                word[2],
-                word[4],
-                word[5],
-                word[0],
-                word[6],
-                word[7],
-                word[8],
-                word[9],
+                chinese=word[1],
+                english=word[3],
+                pinyin=word[2],
+                audio_link=word[4],
+                level=word[5],
+                id=word[0],
+                anki_audio=word[6],
+                anki_id=word[7],
+                anki_update=word[8],
+                local_update=word[9],
             )
         return updated_word
 
@@ -68,16 +68,16 @@ class WordsWriteService(BaseWriteService[Word]):
             if word:
                 words.append(
                     Word(
-                        word[1],
-                        word[3],
-                        word[2],
-                        word[4],
-                        word[5],
-                        word[0],
-                        word[6],
-                        word[7],
-                        word[8],
-                        word[9],
+                        chinese=word[1],
+                        english=word[3],
+                        pinyin=word[2],
+                        audio_link=word[4],
+                        level=word[5],
+                        id=word[0],
+                        anki_audio=word[6],
+                        anki_id=word[7],
+                        anki_update=word[8],
+                        local_update=word[9],
                     )
                 )
 
@@ -88,19 +88,17 @@ class WordsWriteService(BaseWriteService[Word]):
         id = payload.data.id
         count, word = self.dal.delete_one_by_id(id)
         if word:
-            word = (
-                Word(
-                    word[1],
-                    word[3],
-                    word[2],
-                    word[4],
-                    word[5],
-                    word[0],
-                    word[6],
-                    word[7],
-                    word[8],
-                    word[9],
-                ),
+            word = Word(
+                chinese=word[1],
+                english=word[3],
+                pinyin=word[2],
+                audio_link=word[4],
+                level=word[5],
+                id=word[0],
+                anki_audio=word[6],
+                anki_id=word[7],
+                anki_update=word[8],
+                local_update=word[9],
             )
 
         return word
@@ -113,16 +111,16 @@ class WordsWriteService(BaseWriteService[Word]):
         deleted_words: list[Word] = []
         for word in rows:
             del_word = Word(
-                word[1],
-                word[3],
-                word[2],
-                word[4],
-                word[5],
-                word[0],
-                word[6],
-                word[7],
-                word[8],
-                word[9],
+                chinese=word[1],
+                english=word[3],
+                pinyin=word[2],
+                audio_link=word[4],
+                level=word[5],
+                id=word[0],
+                anki_audio=word[6],
+                anki_id=word[7],
+                anki_update=word[8],
+                local_update=word[9],
             )
             deleted_ids.append(word[0])
             deleted_words.append(del_word)

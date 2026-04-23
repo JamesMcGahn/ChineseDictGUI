@@ -93,13 +93,17 @@ class DatabaseManager(QObject):
              id INTEGER PRIMARY KEY AUTOINCREMENT,
              chinese TEXT NOT NULL,
              pinyin TEXT NOT NULL,
-             definition TEXT NOT NULL,
-             audio TEXT,
+             english TEXT NOT NULL,
+             audio_link TEXT,
              level TEXT,
              anki_audio TEXT,
              anki_id INTEGER,
              anki_update INTEGER,
-             local_update INTEGER)
+             local_update INTEGER,
+             runtime_id TEXT NOT NULL UNIQUE,
+             staging_path TEXT,
+             storage_path TEXT
+             )
             """)
         self.execute_query("""
             CREATE TABLE IF NOT EXISTS sentences (

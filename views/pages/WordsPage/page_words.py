@@ -177,7 +177,7 @@ class PageWords(QWidgetBase):
         ret = QMessageBox.question(
             self,
             "No MDBG definition available.",
-            f"No MDBG definition available.\n Use Cpod's definition?: \n {word.chinese} - {word.definition}",
+            f"No MDBG definition available.\n Use Cpod's definition?: \n {word.chinese} - {word.english}",
             QMessageBox.Ok | QMessageBox.Cancel,
         )
         if ret == QMessageBox.Ok:

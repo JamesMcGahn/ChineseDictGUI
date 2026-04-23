@@ -43,7 +43,7 @@ class AnkiSyncExportThread(QThread):
         adb = AnkiIntegrationDAL(self.db)
         # step 2 query integration information -
         che = adb.get_anki_integration()
-        (id, anki_import_time, local_import_time, initialSyncDone) = che.fetchone()
+        id, anki_import_time, local_import_time, initialSyncDone = che.fetchone()
         # print(id, anki_import_time, local_import_time, initialSyncDone)
         self.local_import_time = local_import_time
 
@@ -132,11 +132,7 @@ class AnkiSyncExportThread(QThread):
                             "id": rec.anki_id,
                             "fields": {
                                 "Chinese": rec.chinese,
-                                "English": (
-                                    rec.english
-                                    if self.deck_type == "sents"
-                                    else rec.definition
-                                ),
+                                "English": rec.english,
                                 "Pinyin": rec.pinyin,
                                 "Notes": rec.level,
                                 "Audio": rec.anki_audio,
@@ -148,15 +144,14 @@ class AnkiSyncExportThread(QThread):
                 self.edited_card_note_payload.append(note)
                 self.edited_card_local_refs.append(rec.id)
             else:
-                model_name = f"Glossika ZS-{"S" if self.deck_type == "sents" else "W"}"
+                model_name_id = "S" if self.deck_type == "sents" else "W"
+                model_name = f"Glossika ZS-{model_name_id}"
                 note = {
                     "deckName": f"{deck_name}",
                     "modelName": model_name,
                     "fields": {
                         "Chinese": rec.chinese,
-                        "English": (
-                            rec.english if self.deck_type == "sents" else rec.definition
-                        ),
+                        "English": rec.english,
                         "Pinyin": rec.pinyin,
                         "Notes": rec.level,
                         "Audio": rec.anki_audio,

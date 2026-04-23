@@ -87,7 +87,12 @@ class ScrapeCpod:
             pinyin = pinyin_def[0]
             definition = pinyin_def[1]
 
-        self.definition = Word(self.word, definition, pinyin, audio_file)
+        self.definition = Word(
+            chinese=self.word,
+            english=definition,
+            pinyin=pinyin,
+            audio_link=audio_file,
+        )
 
     def scrape_sentences(
         self,

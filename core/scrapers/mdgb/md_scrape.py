@@ -15,11 +15,11 @@ class ScrapeMd:
         else:
             sel_word = self.result_words[index]
             return Word(
-                sel_word["chinese"],
-                sel_word["definition"],
-                sel_word["pinyin"],
-                sel_word["audio"],
-                sel_word["level"],
+                chinese=sel_word["chinese"],
+                english=sel_word["definition"],
+                pinyin=sel_word["pinyin"],
+                audio_link=sel_word["audio"],
+                level=sel_word["level"],
             )
 
     def scrape_definition(self):

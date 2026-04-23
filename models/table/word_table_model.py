@@ -49,11 +49,11 @@ class WordTableModel(QAbstractTableModel):
             if section == 2:
                 return "Pinyin"
             if section == 3:
-                return "Definition"
+                return "English"
             if section == 4:
                 return "Level"
             if section == 5:
-                return "Audio"
+                return "Audio Link"
 
         return super().headerData(section, orientation, role)
 
@@ -72,22 +72,22 @@ class WordTableModel(QAbstractTableModel):
             elif index.column() == 2:
                 return word.pinyin
             elif index.column() == 3:
-                return word.definition
+                return word.english
             elif index.column() == 4:
                 return word.level
             elif index.column() == 5:
-                return word.audio
+                return word.audio_link
         elif role == Qt.EditRole:
             if index.column() == 1:
                 return word.chinese
             elif index.column() == 2:
                 return word.pinyin
             elif index.column() == 3:
-                return word.definition
+                return word.english
             elif index.column() == 4:
                 return word.level
             elif index.column() == 5:
-                return word.audio
+                return word.audio_link
 
     def flags(self, index: QModelIndex):
         if not index.isValid():
@@ -102,11 +102,11 @@ class WordTableModel(QAbstractTableModel):
             elif index.column() == 2:
                 word.pinyin = value
             elif index.column() == 3:
-                word.definition = value
+                word.english = value
             elif index.column() == 4:
                 word.level = value
             elif index.column() == 5:
-                word.audio = value
+                word.audio_link = value
             word.local_update = self.current_timestamp()
             self.dataChanged.emit()
             self.wordUpdated.emit(word)
@@ -119,12 +119,12 @@ class WordTableModel(QAbstractTableModel):
         print("here is the selectioned", word)
         if 0 <= row_index < self.rowCount():
             return Word(
-                self.data(self.index(row_index, 1), Qt.DisplayRole),
-                self.data(self.index(row_index, 3), Qt.DisplayRole),
-                self.data(self.index(row_index, 2), Qt.DisplayRole),
-                self.data(self.index(row_index, 5), Qt.DisplayRole),
-                self.data(self.index(row_index, 4), Qt.DisplayRole),
-                word.id if word.id else None,
+                chinese=self.data(self.index(row_index, 1), Qt.DisplayRole),
+                english=self.data(self.index(row_index, 3), Qt.DisplayRole),
+                pinyin=self.data(self.index(row_index, 2), Qt.DisplayRole),
+                audio_link=self.data(self.index(row_index, 5), Qt.DisplayRole),
+                level=self.data(self.index(row_index, 4), Qt.DisplayRole),
+                id=word.id if word.id else None,
             )
 
         else:
