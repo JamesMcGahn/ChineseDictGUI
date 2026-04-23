@@ -7,13 +7,13 @@ from PySide6.QtCore import Signal, Slot
 from base import QWorkerBase
 from base.enums import JOBSTATUS
 from models.services import (
-    CombineAudioPayload,
-    CombineAudioResponse,
     JobRef,
     JobRequest,
     JobResponse,
 )
 from utils.files import PathManager
+
+from .models import CombineAudioPayload, CombineAudioResponse
 
 
 class AudioCombineWorker(QWorkerBase):

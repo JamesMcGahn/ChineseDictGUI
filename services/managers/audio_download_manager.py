@@ -4,10 +4,12 @@ from PySide6.QtCore import Signal, Slot
 
 from base import QObjectBase, ThreadQueueManager
 from db import DatabaseQueryThread
-from models.services import AudioDownloadPayload, JobRequest
+from models.services import JobRequest
 from services.audio import AudioThread
 from services.sentences.models import Sentence
 from services.words.models import Word
+
+from ..audio.models import AudioDownloadPayload
 
 # TODO update db code when context db thread is built out
 

@@ -7,8 +7,6 @@ from base.enums import (
 )
 from models.dictionary import Lesson
 from models.services import (
-    AudioDownloadPayload,
-    CombineAudioPayload,
     CPodLessonPayload,
     LingqLessonPayload,
 )
@@ -18,8 +16,13 @@ from pipelines.models import (
     PipelineServiceContainer,
     TaskDefinition,
 )
-from services.audio.enums import WHISPERPROVIDER
-from services.audio.models import WhisperPayload
+from services.audio.enums import AUDIOTYPE, WHISPERPROVIDER
+from services.audio.models import (
+    AudioDownloadPayload,
+    AudioItem,
+    CombineAudioPayload,
+    WhisperPayload,
+)
 from services.database.enums import DBJOBTYPE, DBOPERATION
 from services.database.models import DBJobPayload
 from services.database.models.write import UpsertOnePayload
@@ -139,6 +142,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
     def dispatch_transcribe_lesson(self, task: LESSONTASK, lesson: Lesson):
         # TODO WHISPER SETTINGS From Settings
+        # TODO add check to see if lesson file is there
         if lesson.transcribe_lesson:
             self.ffmpeg_task_manager.whisper_audio(
                 job=self._create_job_request(
@@ -201,7 +205,21 @@ class CPodLessonPipeline(BaseLessonPipeline):
         sents_words_with_in_order = []
         for i, sent_item in enumerate(all_sents + words):
             sent_item.id = i + 1
-            sents_words_with_in_order.append(sent_item)
+            if hasattr(sent_item, "sent_type"):
+                file_name = f"Sentence-{sent_item.id}"
+                audio_type = AUDIOTYPE.SENTENCE
+            else:
+                file_name = f"Word-{sent_item.id}"
+                audio_type = AUDIOTYPE.WORD
+            item = AudioItem(
+                ref_id=lesson.queue_id,
+                file_name=file_name,
+                target_path=f"{self.lesson.storage_path}/audio",
+                source_url=sent_item.audio_link,
+                category=audio_type,
+                text=sent_item.chinese,
+            )
+            sents_words_with_in_order.append(item)
 
         if sents_words_with_in_order:
             self.logging(

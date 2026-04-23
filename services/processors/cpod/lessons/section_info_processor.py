@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ....lessons.models import LessonTaskPayload
 
-from base.enums import LESSONAUDIO
-from models.dictionary import Lesson, LessonAudio
+from models.dictionary import Lesson
+from services.audio.models import AudioItem
 
 from ...base_section_processor import BaseSectionProcessor
 from ...models import ProcessorResponse
@@ -31,24 +31,22 @@ class InfoProcessor(BaseSectionProcessor):
         path = f"{self.base_path}{lesson.level}/{lesson.title}/"
         lesson.storage_path = path
 
-        dialogue_audio = LessonAudio(
-            title="dialogue",
-            audio_type=LESSONAUDIO.DIALOGUE,
-            audio=lesson_info.dialogue_audio,
-            level=lesson.level,
-            lesson=lesson.title,
-            transcribe=False,
+        dialogue_audio = AudioItem(
+            lesson.queue_id,
+            file_name="dialogue",
+            target_path=path,
+            source_url=lesson_info.dialogue_audio,
+            text=None,
         )
 
-        lesson_audio = LessonAudio(
-            title="lesson",
-            audio_type=LESSONAUDIO.LESSON,
-            audio=lesson_info.lesson_audio,
-            level=lesson.level,
-            lesson=lesson.title,
-            transcribe=lesson.transcribe_lesson,
+        lesson_audio = AudioItem(
+            lesson.queue_id,
+            file_name="lesson",
+            target_path=path,
+            source_url=lesson_info.lesson_audio,
+            text=None,
         )
-        lesson.lesson_parts.lesson_audios.append(dialogue_audio)
-        lesson.lesson_parts.lesson_audios.append(lesson_audio)
+
+        lesson.lesson_parts.lesson_audios.extend([dialogue_audio, lesson_audio])
 
         return ProcessorResponse()

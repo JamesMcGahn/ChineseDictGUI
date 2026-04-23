@@ -8,7 +8,6 @@ from base import QWorkerBase
 from base.enums import JOBSTATUS
 from models.dictionary import LessonAudio
 from models.services import (
-    AudioDownloadPayload,
     BatchJobResponse,
     JobRef,
     JobRequest,
@@ -18,7 +17,9 @@ from services.sentences.models import Sentence
 from services.words.models import Word
 from utils.files import PathManager
 
+from .enums import AUDIOTYPE
 from .google_audio_worker import GoogleAudioWorker
+from .models import AudioDownloadPayload, AudioItem
 
 
 class AudioDownloadWorker(QWorkerBase):
@@ -119,58 +120,39 @@ class AudioDownloadWorker(QWorkerBase):
         try:
             self.current_item = None
             self.current_item = self.data.popleft()
-            filename = self.prepare_file_type(self.current_item)
-            if filename is None:
-                self.logging("Non supported Audio Download object type", "ERROR")
+
+            if self.current_item.text is None and self.current_item.source_url is None:
+                self.logging("Audio Item has no text and source url.", "ERROR")
                 self.download_error += 1
                 self.failed_items.append(self.current_item)
                 self.schedule_next_download()
                 return
 
-            path = PathManager.check_dup(self.folder_path, filename, ".mp3")
+            path = PathManager.check_dup(
+                self.current_item.target_path, self.current_item.file_name, ".mp3"
+            )
             filename = PathManager.regex_path(path)["filename"]
-            if not isinstance(self.current_item, LessonAudio):
-                self.current_item.anki_audio = f"[sound:{filename}.mp3]"
+
             success_msg = f'(Lesson: {self.project_name} - {self.count + 1}/{self.data_length}) Audio content written to file "{filename}.mp3"'
 
-            if getattr(self.current_item, "audio", None) or getattr(
-                self.current_item, "audio_link", None
-            ):
-                self.queue_downloading = True
-                if getattr(self.current_item, "audio", None):
-                    checkHttp = self.current_item.audio.replace("http://", "https://")
-                else:
-                    checkHttp = self.current_item.audio_link.replace(
-                        "http://", "https://"
-                    )
-                urllib.request.urlretrieve(checkHttp, path)
-                self.logging(success_msg, "INFO")
+            self.queue_downloading = True
 
-                self.queue_downloading = False
+            checkHttp_url = self.current_item.source_url.replace("http://", "https://")
+            urllib.request.urlretrieve(checkHttp_url, path)
+            self.logging(success_msg, "INFO")
 
-                if not isinstance(self.current_item, LessonAudio):
-                    self.updateAnkiAudio.emit(self.current_item)
+            self.queue_downloading = False
 
-                self.count += 1
-                self.download_success += 1
-                self.succeed_items.append(self.current_item)
-                QTimer.singleShot(0, self.schedule_next_download)
-            else:
-                self.logging("There is not an audio link for the file", "WARN")
-                if isinstance(self.current_item, LessonAudio):
-                    self.logging(
-                        f"There is not an audio link for {self.current_item.audio_type}"
-                    )
-                    self.failed_items.append(self.current_item)
-                    self.schedule_next_download()
-                else:
-                    self.start_google_download(self.current_item, filename, success_msg)
+            self.count += 1
+            self.download_success += 1
+            self.succeed_items.append(self.current_item)
+            QTimer.singleShot(0, self.schedule_next_download)
 
         except Exception as e:
 
             self.queue_downloading = False
             self.logging(f"Error in Audio Download: {e}", "ERROR")
-            if isinstance(self.current_item, (Sentence, Word)):
+            if self.current_item.category != AUDIOTYPE.DEFAULT:
                 error_msg = "Something went wrong...Trying to Get Audio from Google..."
                 success_msg = f'(Lesson: {self.project_name} - {self.count + 1}/{self.data_length}) Audio content written to file "{filename}.mp3"'
                 self.logging(error_msg, "ERROR")
@@ -179,11 +161,11 @@ class AudioDownloadWorker(QWorkerBase):
                 self.download_error += 1
                 QTimer.singleShot(0, self.schedule_next_download)
 
-    def start_google_download(self, x, filename, success_message):
+    def start_google_download(self, x: AudioItem, filename, success_message):
         self.google_audio = GoogleAudioWorker(
-            text=x.chinese,
-            filename=filename,
-            folder_path=self.folder_path,
+            text=x.text,
+            filename=x.file_name,
+            folder_path=x.target_path,
             project_name=self.project_name,
             success_message=success_message,
             audio_object=x,
@@ -199,7 +181,7 @@ class AudioDownloadWorker(QWorkerBase):
     def google_download_success(self, x):
         self.count += 1
         self.download_success += 1
-        self.updateAnkiAudio.emit(x)
+        # self.updateAnkiAudio.emit(x)
         self.queue_downloading = False
         self.succeed_items.append(x)
         QTimer.singleShot(0, self.schedule_next_download)

@@ -1,9 +1,10 @@
 from PySide6.QtCore import Signal, Slot
 
 from base import QThreadBase
-from models.services import CombineAudioPayload, JobRequest
+from models.services import JobRequest
 
 from .audio_combine_worker import AudioCombineWorker
+from .models import CombineAudioPayload
 
 
 class CombineAudioThread(QThreadBase):

@@ -1,9 +1,10 @@
 from PySide6.QtCore import QTimer, Signal, Slot
 
 from base import QThreadBase
-from models.services import AudioDownloadPayload, JobRequest
+from models.services import JobRequest
 
 from .audio_download_worker import AudioDownloadWorker
+from .models import AudioDownloadPayload
 
 
 class AudioThread(QThreadBase):
