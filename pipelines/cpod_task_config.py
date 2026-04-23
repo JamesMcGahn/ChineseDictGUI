@@ -23,7 +23,7 @@ TASK_GRAPH: dict[LESSONTASK, TaskDefinition] = {
     ),
     LESSONTASK.DIALOGUE: TaskDefinition(
         next_tasks=[LESSONTASK.VOCAB],
-        sources=[EXTRACTDATASOURCE.API, EXTRACTDATASOURCE.SCRAPE],
+        sources=[EXTRACTDATASOURCE.SCRAPE],
         policy=TaskPolicy(
             max_retries=2,
             retry_delay_ms=5000,
@@ -39,7 +39,7 @@ TASK_GRAPH: dict[LESSONTASK, TaskDefinition] = {
     ),
     LESSONTASK.VOCAB: TaskDefinition(
         next_tasks=[LESSONTASK.EXPANSION],
-        sources=[EXTRACTDATASOURCE.API, EXTRACTDATASOURCE.SCRAPE],
+        sources=[EXTRACTDATASOURCE.SCRAPE],
         policy=TaskPolicy(
             max_retries=2,
             retry_delay_ms=5000,
@@ -55,7 +55,7 @@ TASK_GRAPH: dict[LESSONTASK, TaskDefinition] = {
     ),
     LESSONTASK.EXPANSION: TaskDefinition(
         next_tasks=[LESSONTASK.GRAMMAR],
-        sources=[EXTRACTDATASOURCE.API, EXTRACTDATASOURCE.SCRAPE],
+        sources=[EXTRACTDATASOURCE.SCRAPE],
         policy=TaskPolicy(
             max_retries=2,
             retry_delay_ms=5000,
@@ -71,7 +71,7 @@ TASK_GRAPH: dict[LESSONTASK, TaskDefinition] = {
     ),
     LESSONTASK.GRAMMAR: TaskDefinition(
         next_tasks=[LESSONTASK.CHECK],
-        sources=[EXTRACTDATASOURCE.API, EXTRACTDATASOURCE.SCRAPE],
+        sources=[EXTRACTDATASOURCE.SCRAPE],
         policy=TaskPolicy(
             max_retries=2,
             retry_delay_ms=5000,

@@ -5,6 +5,7 @@ from models.dictionary import GrammarPoint, Lesson
 from services.sentences.enums import SENTTYPE
 from services.sentences.models import Sentence
 from utils.contains_chinese import contains_chinese
+from utils.remove_chinese import remove_chinese
 
 from ....lessons.models import LessonTaskPayload
 from ...base_section_transformer import BaseSectionTransformer
@@ -61,7 +62,7 @@ class GrammarTransformer(BaseSectionTransformer):
                     sentence = Sentence(
                         chinese=chinese,
                         english=english,
-                        pinyin=pinyin,
+                        pinyin=remove_chinese(pinyin),
                         audio_link="",
                         level=lesson.level,
                         sent_type=SENTTYPE.GRAMMAR,

@@ -5,6 +5,7 @@ from models.dictionary import Lesson
 from services.sentences.enums import SENTTYPE
 from services.sentences.models import Sentence
 from utils import strip_string
+from utils.remove_chinese import remove_chinese
 
 from ....lessons.models import LessonTaskPayload
 from ...base_section_transformer import BaseSectionTransformer
@@ -37,7 +38,7 @@ class DialogueTransformer(BaseSectionTransformer):
             english = sentence.find("p", class_="translation-container").get_text()
             audio = scrape_audio(sentence)
             chinese = strip_string(chinese)
-            pinyin = strip_string(pinyin)
+            pinyin = remove_chinese(strip_string(pinyin))
             english = strip_string(english)
 
             dialogue_sent = Sentence(

@@ -5,6 +5,7 @@ from models.dictionary import Lesson
 from services.sentences.enums import SENTTYPE
 from services.sentences.models import Sentence
 from utils import strip_string
+from utils.remove_chinese import remove_chinese
 
 from ....lessons.models import LessonTaskPayload
 from ...base_section_transformer import BaseSectionTransformer
@@ -40,7 +41,7 @@ class ExpansionTransformer(BaseSectionTransformer):
                 pinyin = sent.find("p", class_="show-pinyin").get_text()
                 english = sent.find("p", class_="translation-container").get_text()
                 audio = scrape_audio(sent)
-                pinyin = strip_string(pinyin)
+                pinyin = remove_chinese(strip_string(pinyin))
                 chinese = strip_string(chinese)
                 english = strip_string(english)
 

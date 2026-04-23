@@ -42,7 +42,7 @@ class VocabTransformer(BaseSectionTransformer):
 
                 new_word = Word(
                     chinese=chinese,
-                    definition=english,
+                    english=english,
                     pinyin=pinyin,
                     audio_link=audio,
                     lesson=(lesson.title if lesson.title else ""),

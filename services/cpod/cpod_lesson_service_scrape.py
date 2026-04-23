@@ -29,6 +29,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
         self.session = session
         self.handlers: dict[LESSONTASK, callable] = {
             LESSONTASK.INFO: self.get_info,
+            LESSONTASK.DIALOGUE: self.get_dialogue,
             LESSONTASK.EXPANSION: self.get_expansion,
             LESSONTASK.VOCAB: self.get_vocab,
             LESSONTASK.GRAMMAR: self.get_grammar,
@@ -44,7 +45,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
     def get_handler(self, page, task: LESSONTASK):
         handler = self.handlers.get(task)
         if not handler:
-            self.on_error()
+            self.on_error(f"There is not a handler for {task}")
         handler(page)
 
     def get_info(self, page):
