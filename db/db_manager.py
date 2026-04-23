@@ -100,6 +100,7 @@ class DatabaseManager(QObject):
              anki_id INTEGER,
              anki_update INTEGER,
              local_update INTEGER,
+             lesson TEXT,
              runtime_id TEXT NOT NULL UNIQUE,
              staging_path TEXT,
              storage_path TEXT
@@ -116,7 +117,12 @@ class DatabaseManager(QObject):
              anki_audio TEXT,
              anki_id INTEGER,
              anki_update INTEGER,
-             local_update INTEGER
+             local_update INTEGER,
+             sent_type TEXT,
+             lesson TEXT,
+             runtime_id TEXT,
+             staging_path TEXT,
+             storage_path TEXT
              )
             """)
 

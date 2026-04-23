@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 
 from base.enums import EXTRACTDATASOURCE
 from models.dictionary import GrammarPoint, Lesson
+from services.sentences.enums import SENTTYPE
 from services.sentences.models import Sentence
 from utils.contains_chinese import contains_chinese
 
@@ -61,9 +62,9 @@ class GrammarTransformer(BaseSectionTransformer):
                         chinese=chinese,
                         english=english,
                         pinyin=pinyin,
-                        audio="",
+                        audio_link="",
                         level=lesson.level,
-                        sent_type="grammar",
+                        sent_type=SENTTYPE.GRAMMAR,
                         lesson=(lesson.title if lesson.title else ""),
                     )
                     sentences.append(sentence)
@@ -108,7 +109,7 @@ class GrammarTransformer(BaseSectionTransformer):
                     pinyin=sentence["p"],
                     audio_link=audio,
                     level=lesson.level,
-                    sent_type="grammar",
+                    sent_type=SENTTYPE.GRAMMAR,
                     lesson=(lesson.title if lesson.title else ""),
                 )
                 sentences.append(new_sent)

@@ -19,16 +19,21 @@ class SentsReadService(BaseReadService[Sentence]):
         rows = self.dal.exists(sentences_strings)
         sentences = [
             Sentence(
-                sent[1],
-                sent[2],
-                sent[3],
-                sent[4],
-                sent[5],
-                sent[0],
-                sent[6],
-                sent[7],
-                sent[8],
-                sent[9],
+                chinese=sent[1],
+                english=sent[2],
+                pinyin=sent[3],
+                audio_link=sent[4],
+                level=sent[5],
+                id=sent[0],
+                anki_audio=sent[6],
+                anki_id=sent[7],
+                anki_update=sent[8],
+                local_update=sent[9],
+                sent_type=sent[10],
+                lesson=sent[11],
+                runtime_id=sent[12],
+                staging_path=sent[13],
+                storage_path=sent[14],
             )
             for sent in rows
         ]
@@ -40,16 +45,21 @@ class SentsReadService(BaseReadService[Sentence]):
         rows = self.dal.get_anki_export()
         sentences = [
             Sentence(
-                sent[1],
-                sent[2],
-                sent[3],
-                sent[4],
-                sent[5],
-                sent[0],
-                sent[6],
-                sent[7],
-                sent[8],
-                sent[9],
+                chinese=sent[1],
+                english=sent[2],
+                pinyin=sent[3],
+                audio_link=sent[4],
+                level=sent[5],
+                id=sent[0],
+                anki_audio=sent[6],
+                anki_id=sent[7],
+                anki_update=sent[8],
+                local_update=sent[9],
+                sent_type=sent[10],
+                lesson=sent[11],
+                runtime_id=sent[12],
+                staging_path=sent[13],
+                storage_path=sent[14],
             )
             for sent in rows
         ]
@@ -74,11 +84,18 @@ class SentsReadService(BaseReadService[Sentence]):
                 chinese=sent[1],
                 english=sent[2],
                 pinyin=sent[3],
-                audio=sent[4],
+                audio_link=sent[4],
                 level=sent[5],
                 id=sent[0],
+                anki_audio=sent[6],
+                anki_id=sent[7],
+                anki_update=sent[8],
+                local_update=sent[9],
                 sent_type=sent[10],
                 lesson=sent[11],
+                runtime_id=sent[12],
+                staging_path=sent[13],
+                storage_path=sent[14],
             )
             for sent in rows
         ]

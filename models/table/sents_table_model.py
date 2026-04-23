@@ -56,7 +56,7 @@ class SentenceTableModel(QAbstractTableModel):
             if section == 4:
                 return "Level"
             if section == 5:
-                return "Audio"
+                return "Audio Link"
             if section == 6:
                 return "Type"
             if section == 7:
@@ -83,7 +83,7 @@ class SentenceTableModel(QAbstractTableModel):
             elif index.column() == 4:
                 return sentence.level
             elif index.column() == 5:
-                return sentence.audio
+                return sentence.audio_link
             elif index.column() == 6:
                 return sentence.sent_type
             elif index.column() == 7:
@@ -98,7 +98,7 @@ class SentenceTableModel(QAbstractTableModel):
             elif index.column() == 4:
                 return sentence.level
             elif index.column() == 5:
-                return sentence.audio
+                return sentence.audio_link
             elif index.column() == 6:
                 return sentence.sent_type
             elif index.column() == 7:
@@ -121,7 +121,7 @@ class SentenceTableModel(QAbstractTableModel):
             elif index.column() == 4:
                 sentence.level = value
             elif index.column() == 5:
-                sentence.audio = value
+                sentence.audio_link = value
             elif index.column() == 6:
                 sentence.sent_type = value
             elif index.column() == 7:
@@ -142,10 +142,16 @@ class SentenceTableModel(QAbstractTableModel):
                 english=self.data(self.index(row_index, 2), Qt.DisplayRole),
                 pinyin=self.data(self.index(row_index, 3), Qt.DisplayRole),
                 level=self.data(self.index(row_index, 4), Qt.DisplayRole),
-                audio=self.data(self.index(row_index, 5), Qt.DisplayRole),
+                audio_link=self.data(self.index(row_index, 5), Qt.DisplayRole),
                 id=sentence.id if sentence.id else None,
                 sent_type=self.data(self.index(row_index, 6), Qt.DisplayRole),
                 lesson=self.data(self.index(row_index, 7), Qt.DisplayRole),
+                anki_audio=sentence.anki_audio,
+                anki_update=sentence.anki_update,
+                local_update=sentence.local_update,
+                runtime_id=sentence.runtime_id,
+                staging_path=sentence.staging_path,
+                storage_path=sentence.storage_path,
             )
 
         else:

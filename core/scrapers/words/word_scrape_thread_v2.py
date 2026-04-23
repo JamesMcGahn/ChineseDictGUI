@@ -275,7 +275,13 @@ class WordScraperThreadV2(QThread):
             pinyin = sentence["pinyin"]
             chinese = sentence["simplified"]
             level = sentence["lessonInfo"]["level"]
-            sentence = Sentence(chinese, english, pinyin, audio, level)
+            sentence = Sentence(
+                chinese=chinese,
+                english=english,
+                pinyin=pinyin,
+                audio_link=audio,
+                level=level,
+            )
             self.example_sentences.append(sentence)
 
         if self.level_selection:

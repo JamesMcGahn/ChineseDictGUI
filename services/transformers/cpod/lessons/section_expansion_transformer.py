@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 
 from base.enums import EXTRACTDATASOURCE
 from models.dictionary import Lesson
+from services.sentences.enums import SENTTYPE
 from services.sentences.models import Sentence
 from utils import strip_string
 
@@ -47,9 +48,9 @@ class ExpansionTransformer(BaseSectionTransformer):
                     chinese=chinese,
                     english=english,
                     pinyin=pinyin,
-                    audio=audio,
+                    audio_link=audio,
                     level=lesson.level,
-                    sent_type="expansion",
+                    sent_type=SENTTYPE.EXPANSION,
                     lesson=(lesson.title if lesson.title else ""),
                 )
 
@@ -82,9 +83,9 @@ class ExpansionTransformer(BaseSectionTransformer):
                     chinese=sentence["s"],
                     english=sentence["en"],
                     pinyin=sentence["p"],
-                    audio=audio,
+                    audio_link=audio,
                     level=lesson.level,
-                    sent_type="expansion",
+                    sent_type=SENTTYPE.EXPANSION,
                     lesson=(lesson.title if lesson.title else ""),
                 )
                 sentences.append(new_sent)

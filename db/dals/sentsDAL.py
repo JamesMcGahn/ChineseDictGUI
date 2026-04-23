@@ -1,16 +1,24 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from services.sentences.models import Sentence
+
+
 class SentsDAL:
     def __init__(self, db_manager):
         self.db_manager = db_manager
 
-    def insert_sentence(self, sentence):
-        query = "INSERT INTO sentences (chinese, english, pinyin, audio, level,anki_audio, anki_id, anki_update,local_update,sent_type, lesson) VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+    def insert_sentence(self, sentence: Sentence):
+        query = "INSERT INTO sentences (chinese, english, pinyin, audio, level,anki_audio, anki_id, anki_update,local_update,sent_type, lesson, runtime_id,staging_path,storage_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
         return self.db_manager.execute_write_query(
             query,
             (
                 sentence.chinese,
                 sentence.english,
                 sentence.pinyin,
-                sentence.audio,
+                sentence.audio_link,
                 sentence.level,
                 sentence.anki_audio,
                 sentence.anki_id,
@@ -18,10 +26,13 @@ class SentsDAL:
                 sentence.local_update,
                 sentence.sent_type,
                 sentence.lesson,
+                sentence.runtime_id,
+                sentence.staging_path,
+                sentence.staging_path,
             ),
         )
 
-    def check_for_duplicate(self, sentences):
+    def check_for_duplicate(self, sentences: list[Sentence]):
         placeholders = ",".join(["?"] * len(sentences))
         # print(placeholders, placeholders)
         # trunk-ignore(bandit/B608)

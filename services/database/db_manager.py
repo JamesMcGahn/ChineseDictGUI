@@ -105,23 +105,25 @@ class DatabaseManager(QObject):
 
     def create_tables_if_not_exist(self):
         self.execute_query("BEGIN;")
-        self.execute_query(
-            """
+        self.execute_query("""
             CREATE TABLE IF NOT EXISTS words (
              id INTEGER PRIMARY KEY AUTOINCREMENT,
              chinese TEXT NOT NULL,
              pinyin TEXT NOT NULL,
-             definition TEXT NOT NULL,
-             audio TEXT,
+             english TEXT NOT NULL,
+             audio_link TEXT,
              level TEXT,
              anki_audio TEXT,
              anki_id INTEGER,
              anki_update INTEGER,
-             local_update INTEGER)
-            """
-        )
-        self.execute_query(
-            """
+             local_update INTEGER,
+             lesson TEXT,
+             runtime_id TEXT NOT NULL UNIQUE,
+             staging_path TEXT,
+             storage_path TEXT
+             )
+            """)
+        self.execute_query("""
             CREATE TABLE IF NOT EXISTS sentences (
              id INTEGER PRIMARY KEY AUTOINCREMENT,
              chinese TEXT NOT NULL,
@@ -132,13 +134,16 @@ class DatabaseManager(QObject):
              anki_audio TEXT,
              anki_id INTEGER,
              anki_update INTEGER,
-             local_update INTEGER
+             local_update INTEGER,
+             sent_type TEXT,
+             lesson TEXT,
+             runtime_id TEXT,
+             staging_path TEXT,
+             storage_path TEXT
              )
-            """
-        )
+            """)
 
-        self.execute_query(
-            """
+        self.execute_query("""
         CREATE TABLE IF NOT EXISTS lessons (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         provider TEXT NOT NULL,
@@ -154,25 +159,19 @@ class DatabaseManager(QObject):
         created_at INTEGER,
         updated_at INTEGER
         )
-        """
-        )
+        """)
 
-        self.execute_query(
-            """
+        self.execute_query("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_lessons_provider_url
             ON lessons(provider, url)
-            """
-        )
-        self.execute_query(
-            """
+            """)
+        self.execute_query("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_lessons_provider_lesson_id
             ON lessons(provider, lesson_id)
             WHERE lesson_id IS NOT NULL
-            """
-        )
+            """)
 
-        self.execute_query(
-            """
+        self.execute_query("""
         CREATE TABLE IF NOT EXISTS lesson_queue (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             lesson_id INTEGER NOT NULL,
@@ -189,19 +188,16 @@ class DatabaseManager(QObject):
             UNIQUE(lesson_id),
             FOREIGN KEY (lesson_id) REFERENCES lessons(id)
         );
-        """
-        )
+        """)
 
-        self.execute_query(
-            """
+        self.execute_query("""
             CREATE TABLE IF NOT EXISTS anki_integration (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             anki_update INTEGER,
             local_update INTEGER,
             initial_import_done INTEGER DEFAULT 0
             )
-            """
-        )
+            """)
         self.execute_query("COMMIT;")
 
     def create_anki_integration_record(self):

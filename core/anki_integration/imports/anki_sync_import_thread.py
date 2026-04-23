@@ -198,7 +198,7 @@ class AnkiSyncImportThread(QThread):
                 chinese=word_fields["Chinese"]["value"],
                 english=word_fields["English"]["value"],
                 pinyin=word_fields["Pinyin"]["value"],
-                audio=None,
+                audio_link=None,
                 level=word_fields["Notes"]["value"],
                 anki_audio=word_fields["Audio"]["value"],
                 anki_id=sent["noteId"],

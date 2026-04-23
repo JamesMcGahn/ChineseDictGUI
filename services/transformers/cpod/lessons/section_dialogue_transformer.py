@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 
 from base.enums import EXTRACTDATASOURCE
 from models.dictionary import Lesson
+from services.sentences.enums import SENTTYPE
 from services.sentences.models import Sentence
 from utils import strip_string
 
@@ -43,9 +44,9 @@ class DialogueTransformer(BaseSectionTransformer):
                 chinese=chinese,
                 english=english,
                 pinyin=pinyin,
-                audio=audio,
+                audio_link=audio,
                 level=lesson.level,
-                sent_type="dialogue",
+                sent_type=SENTTYPE.DIALOGUE,
                 lesson=(lesson.title if lesson.title else ""),
             )
             sentences.append(dialogue_sent)
@@ -70,9 +71,9 @@ class DialogueTransformer(BaseSectionTransformer):
                 chinese=sentence["s"],
                 english=sentence["en"],
                 pinyin=sentence["p"],
-                audio=audio,
+                audio_link=audio,
                 level=lesson.level,
-                sent_type="dialogue",
+                sent_type=SENTTYPE.DIALOGUE,
                 lesson=(lesson.title if lesson.title else ""),
             )
             sentences.append(new_sent)

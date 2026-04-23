@@ -93,7 +93,7 @@ class AnkiInitialImportThread(QThread):
                     chinese=sent["fields"]["Chinese"]["value"],
                     pinyin=sent["fields"]["Pinyin"]["value"],
                     english=sent["fields"]["English"]["value"],
-                    audio=None,
+                    audio_link=None,
                     level=sent["fields"]["Notes"]["value"],
                     anki_audio=sent["fields"]["Audio"]["value"],
                     anki_id=sent["noteId"],

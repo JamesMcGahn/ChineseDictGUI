@@ -115,11 +115,11 @@ class ScrapeCpod:
             english_sent = utils.strip_string(english_sent)
             pinyin_sent = utils.strip_string(pinyin_sent)
             example_sentence = Sentence(
-                char_sent,
-                english_sent,
-                pinyin_sent,
-                audio,
-                level,
+                chinese=char_sent,
+                english=english_sent,
+                pinyin=pinyin_sent,
+                audio_link=audio,
+                level=level,
             )
             example_sentence.word = self.word
             if (
@@ -152,7 +152,13 @@ class ScrapeCpod:
             pinyin = utils.strip_string(pinyin)
             english = utils.strip_string(english)
 
-            dialogue_sent = Sentence(chinese, english, pinyin, audio, badge)
+            dialogue_sent = Sentence(
+                chinese=chinese,
+                english=english,
+                pinyin=pinyin,
+                audio=audio,
+                level=badge,
+            )
             dialogue_sent.word = title
             self.dialogue.append(dialogue_sent)
 
@@ -176,7 +182,13 @@ class ScrapeCpod:
                 chinese = utils.strip_string(chinese)
                 english = utils.strip_string(english)
 
-                expand_sentence = Sentence(chinese, english, pinyin, audio, badge)
+                expand_sentence = Sentence(
+                    chinese=chinese,
+                    english=english,
+                    pinyin=pinyin,
+                    audio_link=audio,
+                    level=badge,
+                )
                 expand_sentence.word = word
                 self.expand_sentences.append(expand_sentence)
 
@@ -231,7 +243,13 @@ class ScrapeCpod:
                 chinese = utils.strip_string(chinese)
                 english = utils.strip_string(english)
 
-                grammar_sent = Sentence(chinese, english, pinyin, audio, badge)
+                grammar_sent = Sentence(
+                    chinese=chinese,
+                    english=english,
+                    pinyin=pinyin,
+                    audio_link=audio,
+                    level=badge,
+                )
                 grammar_sent.word = title_n_des
                 self.grammar_sentences.append(grammar_sent)
 

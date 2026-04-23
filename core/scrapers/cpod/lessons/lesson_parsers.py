@@ -6,6 +6,7 @@ from base.enums import (
 )
 from models.dictionary import GrammarPoint, Lesson
 from services.lessons.models import LessonInfo, LessonTaskPayload
+from services.sentences.enums import SENTTYPE
 from services.sentences.models import Sentence
 from services.words.models import Word
 
@@ -98,9 +99,9 @@ def parse_dialogue(lesson: Lesson, res_data) -> LessonTaskPayload:
                 chinese=sentence["s"],
                 english=sentence["en"],
                 pinyin=sentence["p"],
-                audio=audio,
+                audio_link=audio,
                 level=lesson.level,
-                sent_type="dialogue",
+                sent_type=SENTTYPE.DIALOGUE,
                 lesson=(lesson.title if lesson.title else ""),
             )
             sentences.append(new_sent)
@@ -121,9 +122,9 @@ def parse_expansion(lesson: Lesson, res_data) -> LessonTaskPayload:
                     chinese=sentence["s"],
                     english=sentence["en"],
                     pinyin=sentence["p"],
-                    audio=audio,
+                    audio_link=audio,
                     level=lesson.level,
-                    sent_type="expansion",
+                    sent_type=SENTTYPE.EXPANSION,
                     lesson=(lesson.title if lesson.title else ""),
                 )
                 sentences.append(new_sent)
@@ -151,9 +152,9 @@ def parse_grammar(lesson: Lesson, res_data) -> LessonTaskPayload:
                 chinese=sentence["s"],
                 english=sentence["en"],
                 pinyin=sentence["p"],
-                audio=audio,
+                anki_audio=audio,
                 level=lesson.level,
-                sent_type="grammar",
+                sent_type=SENTTYPE.GRAMMAR,
                 lesson=(lesson.title if lesson.title else ""),
             )
             sentences.append(new_sent)
