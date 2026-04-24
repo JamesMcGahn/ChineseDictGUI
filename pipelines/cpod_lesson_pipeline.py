@@ -164,7 +164,6 @@ class CPodLessonPipeline(BaseLessonPipeline):
                 task,
                 payload=AudioDownloadPayload(
                     audio_urls=lesson.lesson_parts.lesson_audios,
-                    export_path=lesson.storage_path,
                     project_name=lesson.title,
                 ),
             )
@@ -232,7 +231,6 @@ class CPodLessonPipeline(BaseLessonPipeline):
                     task,
                     payload=AudioDownloadPayload(
                         audio_urls=sents_words_with_in_order,
-                        export_path=f"{lesson.storage_path}audio",
                         project_name=lesson.title,
                     ),
                 )

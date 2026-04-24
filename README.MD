@@ -35,8 +35,8 @@ Priorities:
 
 - [ ] separate logic from forms/pages into controllers
 - [x] introduce controller factory (used only in composition layer)
-- [ ] create page-specific controller containers (LessonPageControllers, etc.)
-- [ ] inject controllers into pages at creation (no runtime lookup)
+- [/] create page-specific controller containers (LessonPageControllers, etc.)
+- [x] inject controllers into pages at creation (no runtime lookup)
 - [ ] pipelines emit domain events (rename UIEvent → Event)
 - [ ] controllers translate pipeline events → UI updates
 - [x] define UI composition layer (MainScreen/CentralWidget) for wiring
@@ -139,28 +139,36 @@ Priorities:
 - [x] Move Chinesepod Lesson Specific Logic to ChinesePodLesson Pipeline
 - [ ] Move Chinesepod Word Specific Logic to ChinesepodWord Pipeline
 - [ ] Move MGDB Word Specific Logic to MGDB Word Pipeline
-- [ ] Move Core Methods to Base class
+- [x] Move Core Methods to Base class
 
 ### Transformers & Processors
 
 - [x] Restructure Processor folder root -> provider -> domain
 - [ ] Transformers Global Registry Class
 - [ ] Processors Global Registry Class
-- [ ] Provider Registry Class
+- [x] Provider Registry Class
   - [x] Transformer
   - [x] Processor
-- [ ] Domain Registry Class (e.g. Lessons, Words etc)
+- [x] Domain Registry Class (e.g. Lessons, Words etc)
   - [x] Base Class - Transformer
-  - [ ] Base Class - Processor
+  - [x] Base Class - Processor
 - [x] Section Transformers
-- [ ] Section Processors
+- [x] Section Processors
 
 ## CPOD Scrape Refactor
 
 - [ ] move cpod from core to services
+  - [ ] Words
+  - [x] Lessons
 - [ ] Create tasks for steps handled in CPOD Scrape in Pipeline
+  - [ ] Words
+  - [x] Lessons
 - [ ] refactor scraper to just handle network calls and return payloads
+  - [ ] Words
+  - [x] Lessons
 - [ ] Move out transformation handling to pipeline
+  - [ ] Words
+  - [x] Lessons
 
 ## Lesson Workflow Pipeline
 

@@ -25,8 +25,6 @@ class AudioDownloadManager(QObjectBase):
     @Slot(list)
     def download_audio(self, job: JobRequest[AudioDownloadPayload]):
         audio_thread = AudioThread(job=job)
-        if job.payload.update_db:
-            audio_thread.updateAnkiAudio.connect(self.update_anki_audio)
         audio_thread.task_complete.connect(self.task_complete)
         self.queue_manager.add_thread(audio_thread)
 
