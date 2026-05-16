@@ -1,6 +1,9 @@
 import json
+import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QProcess, Signal, Slot
@@ -9,6 +12,7 @@ from base import QWorkerBase
 from base.enums import JOBSTATUS, LOGLEVEL
 from models.services import JobRef, JobRequest, JobResponse
 from utils.files import PathManager
+from utils.to_simplified import to_simplified
 
 from .models import WhisperPayload, WhisperResponse
 
@@ -105,6 +109,9 @@ class OpenAIWhisperWorker(QWorkerBase):
         if code == 0 and status == QProcess.ExitStatus.NormalExit:
             self.logging(f"100% Percent done - Transcribing {self.filename}")
             out_file = self.path.with_suffix(".txt")
+
+            self.safe_rewrite_text_file(out_file, to_simplified)
+
             self.task_complete.emit(
                 JobResponse(
                     job_ref=JobRef(
@@ -164,3 +171,30 @@ class OpenAIWhisperWorker(QWorkerBase):
         if hasattr(self, "process") and self.process.state() != QProcess.NotRunning:
             self.logging("Stopping whisper process...", LOGLEVEL.INFO)
             self.process.kill()
+
+    # TODO Move to File Service
+    def safe_rewrite_text_file(
+        self,
+        file_path: str | Path,
+        modify_text,
+        make_backup: bool = True,
+    ) -> None:
+        path = Path(file_path)
+
+        if make_backup:
+            shutil.copy2(path, path.with_suffix(path.suffix + ".bak"))
+
+        original_text = path.read_text(encoding="utf-8")
+
+        new_text = modify_text(original_text)
+
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=path.parent,
+            delete=False,
+        ) as tmp:
+            tmp.write(new_text)
+            temp_name = tmp.name
+
+        os.replace(temp_name, path)

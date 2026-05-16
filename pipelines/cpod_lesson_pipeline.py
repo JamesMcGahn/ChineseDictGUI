@@ -88,9 +88,9 @@ class CPodLessonPipeline(BaseLessonPipeline):
                 "dialogue": "2653032 ",
             },
             LESSONLEVEL.INTERMEDIATE: {
-                "lesson": "2491860",
-                "sents": "2402549",
-                "dialogue": "2402549",
+                "lesson": "2736072",
+                "sents": "2736068",
+                "dialogue": "2736068",
             },
             LESSONLEVEL.ADVANCED: {
                 "lesson": "2310680",
@@ -152,7 +152,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
                         provider=WHISPERPROVIDER.WHISPER,
                         file_filename="lesson.mp3",
                         file_folder_path=lesson.storage_path,
-                        model_name="tiny",
+                        model_name="medium",
                     ),
                 )
             )
