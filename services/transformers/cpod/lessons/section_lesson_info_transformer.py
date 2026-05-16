@@ -24,9 +24,11 @@ class LessonInfoTransformer(BaseSectionTransformer):
 
         badge = title_cont.find("a", class_="badge").get_text()
         title = title_cont.find("span").get_text()
-        container = soup.find("div", id="player")
+        # container = soup.find("div", id="#panelLessonReviewDownloads")
 
         container = soup.select_one("#panelLessonReviewDownloads")
+        list_container = container.select_one("div.list-group")
+
         if not container:
             return LessonTaskPayload(
                 success=False,
@@ -36,12 +38,20 @@ class LessonInfoTransformer(BaseSectionTransformer):
 
         lesson_link = None
         dialogue_link = None
-        for a in container.select("a[href]"):
-            text = a.get_text(strip=True)
+        for a in list_container.select("a.cpod-dl[data-url]"):
 
-            # Skip Low Quality version
+            label = a.select_one(".cpod-dl-label")
+
+            if not label:
+                continue
+
+            text = label.get_text(" ", strip=True)
+
+            # Skip low quality versions
             if "(LQ)" in text:
                 continue
+
+            # audio_url = a.get("data-url")
 
             if text == "Lesson" and not lesson_link:
                 lesson_link = clean_audio_link(a)

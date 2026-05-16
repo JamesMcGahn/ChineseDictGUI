@@ -52,10 +52,15 @@ class CpodLessonServiceScrape(PlaywrightBase):
         page.goto(
             f"https://chinesepod.com/lessons/{self.job.payload.slug}",
             wait_until="domcontentloaded",
-            timeout=60_000,
+            timeout=120_000,
         )
-        info_card = page.locator("#panelLessonReviewDownloads")
-        info_card.wait_for(state="attached", timeout=30_000)
+
+        sidebar = page.locator("#lessonLeftSidebar")
+        sidebar.wait_for(state="visible", timeout=30_000)
+        downloads = sidebar.locator("text=Downloads")
+        downloads.click()
+        page.wait_for_selector("#panelLessonReviewDownloads", timeout=15_000)
+
         data = page.content()
         self.on_success(data)
 
@@ -64,7 +69,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
         page.goto(
             f"https://www.chinesepod.com/lessons/{self.job.payload.slug}#dialogue-tab",
             wait_until="domcontentloaded",
-            timeout=60_000,
+            timeout=120_000,
         )
         dialogue_tab = page.locator("#dialogue-tab")
         if self.page_has_tab(page, "#dialogue-tab"):
@@ -79,7 +84,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
         page.goto(
             f"https://www.chinesepod.com/lessons/{self.job.payload.slug}#expansion-tab",
             wait_until="domcontentloaded",
-            timeout=60_000,
+            timeout=120_000,
         )
         expansion = page.locator("#expansion-tab")
         if self.page_has_tab(page, "#expansion-tab"):
@@ -92,7 +97,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
         page.goto(
             f"https://www.chinesepod.com/lessons/{self.job.payload.slug}#vocabulary-tab",
             wait_until="domcontentloaded",
-            timeout=60_000,
+            timeout=120_000,
         )
         vocab_card = page.locator("#vocabulary-tab")
         if self.page_has_tab(page, "#vocabulary-tab"):
@@ -126,7 +131,7 @@ class CpodLessonServiceScrape(PlaywrightBase):
     def get_check(self, page):
         self.logging(f"Lesson - {self.job.payload.slug} - Checking Lesson")
         url = f"https://www.chinesepod.com/lessons/{self.job.payload.slug}"
-        page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+        page.goto(url, wait_until="domcontentloaded", timeout=120_000)
         studied_span = page.locator("#studiedBtn")
         unstudied_span = page.locator("#unstudiedBtn")
         studied_span.wait_for(state="attached", timeout=10_000)

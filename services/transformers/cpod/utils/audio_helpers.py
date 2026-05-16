@@ -48,9 +48,13 @@ def scrape_audio(element: Tag) -> str:
 def clean_audio_link(link: Tag) -> str | None:
     if not link:
         return None
-
-    href = link.get("href")
-    if not href:
+    try:
+        href = link.get("href")
+        if href == "#":
+            href = link.get("data-url")
+        if not href:
+            return None
+    except Exception:
         return None
 
     return href.replace("http://", "https://")
