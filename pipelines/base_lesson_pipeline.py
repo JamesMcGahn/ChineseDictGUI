@@ -284,8 +284,6 @@ class BaseLessonPipeline(QObjectBase):
         state.downstream_dispatched = True
 
     def handle_success(self, job: JobRef, payload, lesson: Lesson):
-        state = self._get_task_state(job.task)
-        state.status = TASKSTATESTATUS.COMPLETE
         self.update_completed_tasks(job.task)
         task_def = self._get_task_def(job.task)
         capability = task_def.capability
@@ -319,6 +317,8 @@ class BaseLessonPipeline(QObjectBase):
 
     def update_completed_tasks(self, task: LESSONTASK):
         self.completed_tasks.add(task)
+        state = self._get_task_state(task)
+        state.status = TASKSTATESTATUS.COMPLETE
         self.check_pipeline_completed()
 
     def update_errored_tasks(self, task: LESSONTASK):

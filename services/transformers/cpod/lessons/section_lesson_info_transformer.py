@@ -21,7 +21,11 @@ class LessonInfoTransformer(BaseSectionTransformer):
         title_cont = soup.find("h1", class_="lesson-page-title")
         lesson_id = soup.select_one("#v3_id")
         lesson_id = lesson_id.get("value") if lesson_id else None
-
+        if not lesson_id:
+            lesson_id_el = soup.select_one(
+                'span.lesson-hero-meta-item[title="Lesson ID"] .lesson-hero-meta-value'
+            )
+            lesson_id = lesson_id_el.get_text(strip=True) if lesson_id_el else None
         badge = title_cont.find("a", class_="badge").get_text()
         title = title_cont.find("span").get_text()
         # container = soup.find("div", id="#panelLessonReviewDownloads")

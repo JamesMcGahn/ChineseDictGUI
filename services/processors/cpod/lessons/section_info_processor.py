@@ -31,22 +31,26 @@ class InfoProcessor(BaseSectionProcessor):
         path = f"{self.base_path}{lesson.level}/{lesson.title}/"
         lesson.storage_path = path
 
-        dialogue_audio = AudioItem(
-            lesson.queue_id,
-            file_name="dialogue",
-            target_path=path,
-            source_url=lesson_info.dialogue_audio,
-            text=None,
-        )
+        if lesson_info.dialogue_audio:
 
-        lesson_audio = AudioItem(
-            lesson.queue_id,
-            file_name="lesson",
-            target_path=path,
-            source_url=lesson_info.lesson_audio,
-            text=None,
-        )
+            dialogue_audio = AudioItem(
+                lesson.queue_id,
+                file_name="dialogue",
+                target_path=path,
+                source_url=lesson_info.dialogue_audio,
+                text=None,
+            )
+            lesson.lesson_parts.lesson_audios.extend([dialogue_audio])
 
-        lesson.lesson_parts.lesson_audios.extend([dialogue_audio, lesson_audio])
+        if lesson_info.lesson_audio:
+            lesson_audio = AudioItem(
+                lesson.queue_id,
+                file_name="lesson",
+                target_path=path,
+                source_url=lesson_info.lesson_audio,
+                text=None,
+            )
+
+            lesson.lesson_parts.lesson_audios.extend([lesson_audio])
 
         return ProcessorResponse()

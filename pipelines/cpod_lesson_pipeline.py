@@ -350,5 +350,7 @@ class CPodLessonPipeline(BaseLessonPipeline):
 
             job_list.append(job)
 
-        self.lingq_workflow_manager.create_lingq_lesson(jobs=job_list)
-        print("Ready for Lingq")
+            self.lingq_workflow_manager.create_lingq_lesson(jobs=job_list)
+        else:
+            self.logging("Lesson doesn't have a Dialogue. Completing Tasks")
+            self.update_completed_tasks(LESSONTASK.LINGQ_DIALOGUE)
